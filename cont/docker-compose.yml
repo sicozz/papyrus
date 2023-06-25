@@ -1,0 +1,16 @@
+version: '3'
+services:
+  db:
+    container_name: papyrus_db
+    image: postgres:latest
+    restart: always
+    environment:
+      - POSTGRES_USER=mastersoft
+      - POSTGRES_PASSWORD=mastersoft
+      - POSTGRES_DATABASE=papyrus
+    ports:
+      - '5432:5432'
+    volumes:
+      - ../db/init.sql:/docker-entrypoint-initdb.d/init.sql
+    expose:
+      - '5432'

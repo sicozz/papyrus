@@ -2,7 +2,7 @@ CREATE DATABASE papyrus;
 
 \connect papyrus;
 
-CREATE TABLE DIR (
+CREATE TABLE dir (
     uuid        UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
     name        VARCHAR(256)  NOT NULL,
     parent_dir  UUID          REFERENCES dir

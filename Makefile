@@ -1,6 +1,6 @@
 # Database
 POSTGRESQL_USER      ?=  mastersoft
-POSTGRESQL_PASSWORD  ?=  papyrus
+POSTGRESQL_PASSWORD  ?=  mastersoft
 POSTGRESQL_ADDRESS   ?=  127.0.0.1:5432
 POSTGRESQL_DATABASE  ?=  papyrus
 
@@ -97,7 +97,7 @@ image-build:
 
 # ~~~ Database Migrations ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-POSTGRESQL_DSN := "postgresql://$(POSTGRESQL_USER):$(POSTGRESQL_PASSWORD)@tcp($(POSTGRESQL_ADDRESS))/$(POSTGRESQL_DATABASE)"
+POSTGRESQL_DSN := "postgres://$(POSTGRESQL_USER):$(POSTGRESQL_PASSWORD)@$(POSTGRESQL_ADDRESS)/$(POSTGRESQL_DATABASE)?sslmode=disable"
 
 migrate-up: $(MIGRATE) ## Apply all (or N up) migrations.
 	@ read -p "How many migration you wants to perform (default value: [all]): " N; \

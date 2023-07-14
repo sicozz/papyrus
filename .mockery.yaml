@@ -1,0 +1,11 @@
+with-expecter: true
+# all: true
+dir: "domain/mocks"
+# dir: "domain/mocks/{{.InterfaceDir}}"
+filename: "{{.InterfaceName}}.go"
+mockname: "{{.InterfaceName}}"
+outpkg: "mocks"
+packages:
+  github.com/sicozz/papyrus/domain:
+    interfaces:
+      UserRepository:

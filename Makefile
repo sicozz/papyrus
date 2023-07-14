@@ -34,7 +34,7 @@ dev-env-test: dev-env ## Run application (within a Docker-Compose help)
 	@ $(MAKE) image-build
 	docker-compose up web
 
-dev-air: $(AIR) ## Starts AIR ( Continuous Development app).
+dev-air: $(AIR) ## Starts AIR (Continuous Development app).
 	air
 
 docker-stop:
@@ -42,6 +42,7 @@ docker-stop:
 
 docker-teardown:
 	@ docker-compose down --remove-orphans -v
+
 # ~~~ Code Actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 lint: $(GOLANGCI) ## Runs golangci-lint with predefined configuration
@@ -66,7 +67,7 @@ build-race: ## Builds binary (with -race flag)
 		./app/
 	@ echo "done"
 
-go-generate: $(MOCKERY) ## Runs go generte ./...
+go-generate: $(MOCKERY) ## Runs go generate ./...
 	go generate ./...
 
 TESTS_ARGS := --format testname --jsonfile gotestsum.json.out

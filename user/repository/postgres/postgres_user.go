@@ -38,11 +38,11 @@ func (r *postgresUserRepository) fetch(ctx context.Context, query string, args .
 		// Get from db
 		err = rows.Scan(
 			&t.Uuid,
-			&t.UserName,
+			&t.Username,
 			&t.Email,
 			&t.Password,
 			&t.Name,
-			&t.LastName,
+			&t.Lastname,
 			&roleCode,
 			&stateCode,
 		)

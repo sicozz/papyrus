@@ -10,6 +10,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	_ "github.com/lib/pq"
+	_roleRepo "github.com/sicozz/papyrus/role/repository/postgres"
 	_userHttpDelivery "github.com/sicozz/papyrus/user/delivery/http"
 	_userRepo "github.com/sicozz/papyrus/user/repository/postgres"
 	_userUsecase "github.com/sicozz/papyrus/user/usecase"
@@ -59,8 +60,9 @@ func main() {
 	e.Use(middleware.CORS())
 
 	timeoutContext := time.Duration(viper.GetInt("context.timeout")) * time.Second
+	rr := _roleRepo.NewPostgresRoleRepository(dbConn)
 	ur := _userRepo.NewPostgresUserRepository(dbConn)
-	uu := _userUsecase.NewUserUsecase(ur, timeoutContext)
+	uu := _userUsecase.NewUserUsecase(ur, rr, timeoutContext)
 	_userHttpDelivery.NewUserHandler(e, uu)
 	e.Logger.Fatal(e.Start(":9090"))
 }

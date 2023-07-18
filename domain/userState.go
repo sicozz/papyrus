@@ -10,5 +10,6 @@ type UserState struct {
 
 // UserStateRepository represents the userStates's repository contract
 type UserStateRepository interface {
-	GetByDescription(ctx context.Context, desc string) (Role, error)
+	GetByCode(ctx context.Context, code int64) (UserState, error)
+	GetByDescription(ctx context.Context, desc string) (UserState, error)
 }

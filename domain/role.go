@@ -10,5 +10,7 @@ type Role struct {
 
 // RoleRepository represents the role's repository contract
 type RoleRepository interface {
-	GetByDescription(ctx context.Context, desc string) (Role, error)
+	GetByCode(ctx context.Context, code int64) (Role, error)
+	GetAll(ctx context.Context) ([]Role, error)
+	// GetByDescription(ctx context.Context, desc string) (Role, error)
 }

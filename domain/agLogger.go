@@ -7,9 +7,9 @@ import (
 
 const (
 	flags       = log.LstdFlags | log.Lshortfile
-	infoPrefix  = `INFO: `
-	warnPrefix  = `WARN: `
-	errorPrefix = `ERROR: `
+	infoPrefix  = `INF: `
+	warnPrefix  = `WRN: `
+	errorPrefix = `ERR: `
 )
 
 type AggregatedLogger struct {

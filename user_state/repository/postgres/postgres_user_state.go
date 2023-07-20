@@ -69,6 +69,23 @@ func (r *postgresUserStateRepository) GetByCode(ctx context.Context, code int64)
 	return
 }
 
+func (r *postgresUserStateRepository) GetByDescription(ctx context.Context, desc string) (res domain.UserState, err error) {
+	query := `SELECT code, description FROM user_state WHERE description=$1`
+	states, err := r.fetch(ctx, query, desc)
+	if err != nil {
+		domain.AgLog.Error(err)
+		return domain.UserState{}, err
+	}
+
+	if l := len(states); l != 1 {
+		domain.AgLog.Error("Could not find user_state with description: ", desc)
+		return domain.UserState{}, err
+	}
+
+	res = states[0]
+	return
+}
+
 func (r *postgresUserStateRepository) GetAll(ctx context.Context) ([]domain.UserState, error) {
 	query := `SELECT code, description FROM user_state`
 	return r.fetch(ctx, query)

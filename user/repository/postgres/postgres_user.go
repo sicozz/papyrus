@@ -65,53 +65,44 @@ func (r *postgresUserRepository) fetch(ctx context.Context, query string, args .
 
 // Retrieve all users
 func (r *postgresUserRepository) Fetch(ctx context.Context) (res []domain.User, err error) {
-	query := `SELECT uuid, username, email, name, lastname, role, state FROM user_`
+	query :=
+		`SELECT uuid, username, email, password, name, lastname, role, state
+		FROM user_`
 
 	res, err = r.fetch(ctx, query)
 	if err != nil {
 		return nil, err
 	}
+	for _, u := range res {
+		u.Password = ""
+	}
 
 	return
 }
 
+// TODO: Add role and user_state as argument to fill new user
 func (r *postgresUserRepository) Store(ctx context.Context, u *domain.User) (err error) {
-	query := `INSERT INTO user_ (username, email, password, name, lastname, role, state) VALUES ($1, $2, $3, $4, $5, $6, $7)`
+	query :=
+		`INSERT INTO user_ (username, email, password, name, lastname, role, state)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		RETURNING uuid`
 	stmt, err := r.Conn.PrepareContext(ctx, query)
 	if err != nil {
 		domain.AgLog.Error(err)
 		return
 	}
+	defer stmt.Close()
 
-	res, err := stmt.ExecContext(
+	err = stmt.QueryRowContext(
 		ctx,
-		`Solarized`,
-		`simozuluaga@gmail.com`,
-		`hardHash21*`,
-		`Simon`,
-		`Zuluaga`,
-		1,
-		1,
-	)
-	// res, err := stmt.ExecContext(
-	// 	ctx,
-	// 	u.Uuid,
-	// 	u.Username,
-	// 	u.Email,
-	// 	u.Password,
-	// 	u.Name,
-	// 	u.Lastname,
-	// 	u.Role,
-	// 	u.State,
-	// )
+		u.Username,
+		u.Email,
+		u.Password,
+		u.Name,
+		u.Lastname,
+		u.Role.Code,
+		u.State.Code,
+	).Scan(&u.Uuid)
 
-	rowsAffected, err := res.RowsAffected()
-	domain.AgLog.Warn("ROWS AFFECTED:\t", rowsAffected)
-	if err != nil {
-		return
-	}
-
-	// u.Uuid = lastUuid
-	// TODO: defer stmt.Close() everywhere
 	return
 }

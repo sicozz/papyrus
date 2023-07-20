@@ -7,6 +7,11 @@ import (
 	"github.com/sicozz/papyrus/domain"
 )
 
+const (
+	defRoleDesc      = `estandar`
+	defUserStateDesc = `inactivo`
+)
+
 type userUsecase struct {
 	userRepo       domain.UserRepository
 	roleRepo       domain.RoleRepository
@@ -19,7 +24,7 @@ type userUsecase struct {
 * Look how this works in this package explanation
 * in godoc: https://godoc.org/golang.org/x/sync/errgroup#ex-Group--Pipeline
  */
-func (u *userUsecase) fillUserDetails(ctx context.Context, users []domain.User) (res []domain.User, err error) {
+func (u *userUsecase) fillUserDetails(ctx context.Context, users []domain.User) (err error) {
 	// get roles
 	roles, err := u.roleRepo.GetAll(ctx)
 	if err != nil {
@@ -71,21 +76,34 @@ func (u *userUsecase) Fetch(c context.Context) (res []domain.User, err error) {
 	defer cancel()
 
 	res, err = u.userRepo.Fetch(ctx)
+	domain.AgLog.Warn("FETCH:\t", res)
 	if err != nil {
 		domain.AgLog.Error("Error inside Fetch function")
 	}
 
 	// TODO: Rename ctx context.Context as c context.Context
-	// TODO: Check filling details after being able to save users
-	domain.AgLog.Info("Not filled:\t", res)
-	res, err = u.fillUserDetails(ctx, res)
-	domain.AgLog.Info("Filled:\t", res)
+	err = u.fillUserDetails(ctx, res)
+	if err != nil {
+		domain.AgLog.Error("Error filling user details")
+	}
 	return
 }
 
 func (u *userUsecase) Store(c context.Context, user *domain.User) (err error) {
 	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
 	defer cancel()
+
+	r, err := u.roleRepo.GetByDescription(ctx, defRoleDesc)
+	if err != nil {
+		domain.AgLog.Error("Could not find default role.", err)
+	}
+	user.Role = r
+
+	s, err := u.userStateRepo.GetByDescription(ctx, defUserStateDesc)
+	if err != nil {
+		domain.AgLog.Error("Could not find default user state.", err)
+	}
+	user.State = s
 
 	err = u.userRepo.Store(ctx, user)
 	return

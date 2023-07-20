@@ -61,7 +61,24 @@ func (r *postgresRoleRepository) GetByCode(ctx context.Context, code int64) (res
 	}
 
 	if l := len(roles); l != 1 {
-		domain.AgLog.Error("Could not find role with code: ", code)
+		domain.AgLog.Error("Could not find role with code:", code)
+		return domain.Role{}, err
+	}
+
+	res = roles[0]
+	return
+}
+
+func (r *postgresRoleRepository) GetByDescription(ctx context.Context, desc string) (res domain.Role, err error) {
+	query := `SELECT code, description FROM role WHERE description=$1`
+	roles, err := r.fetch(ctx, query, desc)
+	if err != nil {
+		domain.AgLog.Error(err)
+		return domain.Role{}, err
+	}
+
+	if l := len(roles); l != 1 {
+		domain.AgLog.Error("Could not find role with description:", desc)
 		return domain.Role{}, err
 	}
 

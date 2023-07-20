@@ -21,7 +21,7 @@ type UserUsecase interface {
 	// GetByEmail(ctx context.Context, email string) (User, error)
 	// GetByUserName(ctx context.Context, uname string) (User, error)
 	// Update(ctx context.Context, u *User) error
-	// Store(ctx context.Context, u *User) error
+	Store(ctx context.Context, u *User) error
 	// Delete(ctx context.Context, uuid string) error
 }
 
@@ -32,6 +32,6 @@ type UserRepository interface {
 	// GetByEmail(ctx context.Context, email string) (User, error)
 	// GetByUserName(ctx context.Context, uname string) (User, error)
 	// Update(ctx context.Context, u *User) error
-	// Store(ctx context.Context, u *User) error
+	Store(ctx context.Context, u *User) error
 	// Delete(ctx context.Context, uuid string) error
 }

@@ -17,9 +17,9 @@ func NewUserHandler(e *echo.Echo, us domain.UserUsecase) {
 		UUsecase: us,
 	}
 	e.GET("/users", handler.Fetch)
-	// e.POST("/articles", handler.Store)
-	// e.GET("/articles/:id", handler.GetByID)
-	// e.DELETE("/articles/:id", handler.Delete)
+	e.POST("/users", handler.Store)
+	// e.GET("/users/:id", handler.GetByID)
+	// e.DELETE("/users/:id", handler.Delete)
 }
 
 func (u *UserHandler) Fetch(c echo.Context) error {
@@ -30,4 +30,25 @@ func (u *UserHandler) Fetch(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, users)
+}
+
+func (u *UserHandler) Store(c echo.Context) (err error) {
+	var user domain.User
+	err = c.Bind(&user)
+	if err != nil {
+		return c.JSON(http.StatusUnprocessableEntity, err.Error())
+	}
+
+	// TODO: Add payload validation
+	// if ok, err = isRequestValid(&article); !ok {
+	// 	return c.JSON(http.StatusBadRequest, err.Error())
+	// }
+
+	ctx := c.Request().Context()
+	err = u.UUsecase.Store(ctx, &user)
+	if err != nil {
+		domain.AgLog.Error("Could not store user: ", err)
+	}
+
+	return c.JSON(http.StatusOK, user)
 }

@@ -14,6 +14,7 @@ import (
 	_userHttpDelivery "github.com/sicozz/papyrus/user/delivery/http"
 	_userRepo "github.com/sicozz/papyrus/user/repository/postgres"
 	_userUsecase "github.com/sicozz/papyrus/user/usecase"
+	_userStateRepo "github.com/sicozz/papyrus/user_state/repository/postgres"
 	"github.com/spf13/viper"
 )
 
@@ -62,7 +63,8 @@ func main() {
 	timeoutContext := time.Duration(viper.GetInt("context.timeout")) * time.Second
 	rr := _roleRepo.NewPostgresRoleRepository(dbConn)
 	ur := _userRepo.NewPostgresUserRepository(dbConn)
-	uu := _userUsecase.NewUserUsecase(ur, rr, timeoutContext)
+	usr := _userStateRepo.NewPostgresUserStateRepository(dbConn)
+	uu := _userUsecase.NewUserUsecase(ur, rr, usr, timeoutContext)
 	_userHttpDelivery.NewUserHandler(e, uu)
 	e.Logger.Fatal(e.Start(":9090"))
 }

@@ -74,3 +74,44 @@ func (r *postgresUserRepository) Fetch(ctx context.Context) (res []domain.User, 
 
 	return
 }
+
+func (r *postgresUserRepository) Store(ctx context.Context, u *domain.User) (err error) {
+	query := `INSERT INTO user_ (username, email, password, name, lastname, role, state) VALUES ($1, $2, $3, $4, $5, $6, $7)`
+	stmt, err := r.Conn.PrepareContext(ctx, query)
+	if err != nil {
+		domain.AgLog.Error(err)
+		return
+	}
+
+	res, err := stmt.ExecContext(
+		ctx,
+		`Solarized`,
+		`simozuluaga@gmail.com`,
+		`hardHash21*`,
+		`Simon`,
+		`Zuluaga`,
+		1,
+		1,
+	)
+	// res, err := stmt.ExecContext(
+	// 	ctx,
+	// 	u.Uuid,
+	// 	u.Username,
+	// 	u.Email,
+	// 	u.Password,
+	// 	u.Name,
+	// 	u.Lastname,
+	// 	u.Role,
+	// 	u.State,
+	// )
+
+	rowsAffected, err := res.RowsAffected()
+	domain.AgLog.Warn("ROWS AFFECTED:\t", rowsAffected)
+	if err != nil {
+		return
+	}
+
+	// u.Uuid = lastUuid
+	// TODO: defer stmt.Close() everywhere
+	return
+}

@@ -10,6 +10,7 @@ import (
 type userUsecase struct {
 	userRepo       domain.UserRepository
 	roleRepo       domain.RoleRepository
+	userStateRepo  domain.UserStateRepository
 	contextTimeout time.Duration
 }
 
@@ -19,6 +20,7 @@ type userUsecase struct {
 * in godoc: https://godoc.org/golang.org/x/sync/errgroup#ex-Group--Pipeline
  */
 func (u *userUsecase) fillUserDetails(ctx context.Context, users []domain.User) (res []domain.User, err error) {
+	// get roles
 	roles, err := u.roleRepo.GetAll(ctx)
 	if err != nil {
 		domain.AgLog.Error("Could not get roles to fill user details", err)
@@ -29,10 +31,25 @@ func (u *userUsecase) fillUserDetails(ctx context.Context, users []domain.User) 
 		mapRoles[role.Code] = role
 	}
 
+	// get user_states
+	states, err := u.userStateRepo.GetAll(ctx)
+	if err != nil {
+		domain.AgLog.Error("Could not get user_states to fill user details", err)
+	}
+
+	mapStates := map[int64]domain.UserState{}
+	for _, state := range states { //nolint
+		mapStates[state.Code] = state
+	}
+
 	// merge the user's data
 	for idx, user := range users { //nolint
 		if r, ok := mapRoles[user.Role.Code]; ok {
 			users[idx].Role = r
+		}
+
+		if s, ok := mapStates[user.State.Code]; ok {
+			users[idx].State = s
 		}
 	}
 
@@ -40,10 +57,11 @@ func (u *userUsecase) fillUserDetails(ctx context.Context, users []domain.User) 
 }
 
 // NewUserUsecase will create a new userUsecase object representation of domain.UserUsecase interface
-func NewUserUsecase(ur domain.UserRepository, rr domain.RoleRepository, timeout time.Duration) domain.UserUsecase {
+func NewUserUsecase(ur domain.UserRepository, rr domain.RoleRepository, usr domain.UserStateRepository, timeout time.Duration) domain.UserUsecase {
 	return &userUsecase{
 		userRepo:       ur,
 		roleRepo:       rr,
+		userStateRepo:  usr,
 		contextTimeout: timeout,
 	}
 }
@@ -57,9 +75,18 @@ func (u *userUsecase) Fetch(c context.Context) (res []domain.User, err error) {
 		domain.AgLog.Error("Error inside Fetch function")
 	}
 
+	// TODO: Rename ctx context.Context as c context.Context
 	// TODO: Check filling details after being able to save users
 	domain.AgLog.Info("Not filled:\t", res)
 	res, err = u.fillUserDetails(ctx, res)
 	domain.AgLog.Info("Filled:\t", res)
+	return
+}
+
+func (u *userUsecase) Store(c context.Context, user *domain.User) (err error) {
+	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
+	defer cancel()
+
+	err = u.userRepo.Store(ctx, user)
 	return
 }

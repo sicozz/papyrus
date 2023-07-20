@@ -11,7 +11,10 @@ type postgresRoleRepository struct {
 	Conn *sql.DB
 }
 
-// NewPostgresRoleRepository will create an object that represent the RoleRepository interface
+/*
+* NewPostgresRoleRepository will create an object that represent the
+* RoleRepository interface
+ */
 func NewPostgresRoleRepository(conn *sql.DB) domain.RoleRepository {
 	return &postgresRoleRepository{conn}
 }

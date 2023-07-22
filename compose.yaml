@@ -1,8 +1,19 @@
 version: "3.7"
 services:
-  postgresql:
+  papyrus_app:
+    image: papyrus
+    container_name: pps_app
+    ports:
+      - 9090:9090
+    depends_on:
+      papyrus_db:
+        condition: service_healthy
+    volumes:
+      - ./config.json:/app/config.json
+
+  papyrus_db:
     image: postgres:15
-    container_name: papyrus_db
+    container_name: pps_db
     volumes:
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
@@ -16,3 +27,9 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+networks:
+  papyrus-net:
+    driver: bridge
+    ipam:
+      driver: default

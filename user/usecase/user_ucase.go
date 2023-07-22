@@ -76,12 +76,10 @@ func (u *userUsecase) Fetch(c context.Context) (res []domain.User, err error) {
 	defer cancel()
 
 	res, err = u.userRepo.Fetch(ctx)
-	domain.AgLog.Warn("FETCH:\t", res)
 	if err != nil {
 		domain.AgLog.Error("Error inside Fetch function")
 	}
 
-	// TODO: Rename ctx context.Context as c context.Context
 	err = u.fillUserDetails(ctx, res)
 	if err != nil {
 		domain.AgLog.Error("Error filling user details")

@@ -80,7 +80,6 @@ func (r *postgresUserRepository) Fetch(ctx context.Context) (res []domain.User, 
 	return
 }
 
-// TODO: Add role and user_state as argument to fill new user
 func (r *postgresUserRepository) Store(ctx context.Context, u *domain.User) (err error) {
 	query :=
 		`INSERT INTO user_ (username, email, password, name, lastname, role, state)

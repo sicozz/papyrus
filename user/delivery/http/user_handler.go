@@ -5,6 +5,7 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/sicozz/papyrus/domain"
+	"gopkg.in/go-playground/validator.v9"
 )
 
 // UserHandler will initialize the users/ resources endpoint
@@ -20,6 +21,15 @@ func NewUserHandler(e *echo.Echo, us domain.UserUsecase) {
 	e.POST("/users", handler.Store)
 	// e.GET("/users/:id", handler.GetByID)
 	// e.DELETE("/users/:id", handler.Delete)
+}
+
+func isRequestValid(u *domain.User) (bool, error) {
+	validate := validator.New()
+	err := validate.Struct(u)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 func (u *UserHandler) Fetch(c echo.Context) error {
@@ -40,9 +50,9 @@ func (u *UserHandler) Store(c echo.Context) (err error) {
 	}
 
 	// TODO: Add payload validation
-	// if ok, err = isRequestValid(&article); !ok {
-	// 	return c.JSON(http.StatusBadRequest, err.Error())
-	// }
+	if ok, err := isRequestValid(&user); !ok {
+		return c.JSON(http.StatusBadRequest, err.Error())
+	}
 
 	ctx := c.Request().Context()
 	err = u.UUsecase.Store(ctx, &user)

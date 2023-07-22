@@ -5,11 +5,11 @@ import "context"
 // User is representing the User data struct
 type User struct {
 	Uuid     string    `json:"uuid"`
-	Username string    `json:"username"`
-	Email    string    `json:"email"`
-	Password string    `json:"password"`
-	Name     string    `json:"name"`
-	Lastname string    `json:"lastname"`
+	Username string    `json:"username" validate:"required"`
+	Email    string    `json:"email" validate:"required"`
+	Password string    `json:"password" validate:"required"`
+	Name     string    `json:"name" validate:"required"`
+	Lastname string    `json:"lastname" validate:"required"`
 	Role     Role      `json:"role"`
 	State    UserState `json:"state"`
 }

@@ -80,6 +80,7 @@ func (r *postgresUserRepository) Fetch(ctx context.Context) (res []domain.User, 
 	return
 }
 
+// Store a new user
 func (r *postgresUserRepository) Store(ctx context.Context, u *domain.User) (err error) {
 	query :=
 		`INSERT INTO user_ (username, email, password, name, lastname, role, state)
@@ -102,6 +103,36 @@ func (r *postgresUserRepository) Store(ctx context.Context, u *domain.User) (err
 		u.Role.Code,
 		u.State.Code,
 	).Scan(&u.Uuid)
+
+	return
+}
+
+// Delete a user
+func (r *postgresUserRepository) Delete(ctx context.Context, uname string) (err error) {
+	// TODO: Verify deletion
+	query :=
+		`DELETE FROM user_ WHERE username=$1`
+
+	_, err = r.fetch(ctx, query, uname)
+
+	return
+}
+
+// Change user state
+func (r *postgresUserRepository) ChangeState(ctx context.Context, uname string, st domain.UserState) (err error) {
+	query := `UPDATE user_ SET state=$1 WHERE username=$2`
+
+	_, err = r.fetch(ctx, query, st.Code, uname)
+
+	return
+}
+
+// Change user state
+func (r *postgresUserRepository) ChangeRole(ctx context.Context, uname string, ro domain.Role) (err error) {
+	query := `UPDATE user_ SET role=$1 WHERE username=$2`
+
+	res, err := r.fetch(ctx, query, ro.Code, uname)
+	domain.AgLog.Info("PATCH RES:", res)
 
 	return
 }

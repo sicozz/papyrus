@@ -67,4 +67,13 @@ func main() {
 	uu := _userUsecase.NewUserUsecase(ur, rr, usr, timeoutContext)
 	_userHttpDelivery.NewUserHandler(e, uu)
 	e.Logger.Fatal(e.Start(":9090"))
+	/**
+	* TODO: - Enforce REST rules
+	* TODO: - Create API specification
+	* TODO: - Add RETURNING clauses for statements without return rows
+	* TODO: - Improve payload validations
+	* TODO: - Improve error management and logging
+	* TODO: - Add unit testing for everything created
+	* TODO: - Add logs and make them good (change log flags)
+	**/
 }

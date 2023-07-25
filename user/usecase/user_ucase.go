@@ -106,3 +106,51 @@ func (u *userUsecase) Store(c context.Context, user *domain.User) (err error) {
 	err = u.userRepo.Store(ctx, user)
 	return
 }
+
+func (u *userUsecase) Delete(c context.Context, uname string) (err error) {
+	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
+	defer cancel()
+
+	err = u.userRepo.Delete(ctx, uname)
+	if err != nil {
+		domain.AgLog.Error("Error while deleting user with username:", uname, err)
+	}
+
+	return
+}
+
+func (u *userUsecase) ChangeState(c context.Context, uname string, desc string) (err error) {
+	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
+	defer cancel()
+
+	s, err := u.userStateRepo.GetByDescription(ctx, desc)
+	if err != nil {
+		domain.AgLog.Error("Could not find user state with description:", desc)
+		return
+	}
+
+	err = u.userRepo.ChangeState(ctx, uname, s)
+	if err != nil {
+		domain.AgLog.Error("Could not update state of user:", uname)
+	}
+
+	return
+}
+
+func (u *userUsecase) ChangeRole(c context.Context, uname string, desc string) (err error) {
+	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
+	defer cancel()
+
+	r, err := u.roleRepo.GetByDescription(ctx, desc)
+	if err != nil {
+		domain.AgLog.Error("Could not find role with description:", desc)
+		return
+	}
+
+	err = u.userRepo.ChangeRole(ctx, uname, r)
+	if err != nil {
+		domain.AgLog.Error("Could not update role of user:", uname)
+	}
+
+	return
+}

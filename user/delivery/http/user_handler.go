@@ -17,10 +17,12 @@ func NewUserHandler(e *echo.Echo, us domain.UserUsecase) {
 	handler := &UserHandler{
 		UUsecase: us,
 	}
-	e.GET("/users", handler.Fetch)
-	e.POST("/users", handler.Store)
+	e.GET("/user", handler.Fetch)
+	e.POST("/user", handler.Store)
 	// e.GET("/users/:id", handler.GetByID)
-	// e.DELETE("/users/:id", handler.Delete)
+	e.DELETE("/user/:uname", handler.Delete)
+	e.PATCH("/user/:uname/state/:desc", handler.ChangeState)
+	e.PATCH("/user/:uname/role/:desc", handler.ChangeRole)
 }
 
 func isRequestValid(u *domain.User) (bool, error) {
@@ -49,7 +51,6 @@ func (u *UserHandler) Store(c echo.Context) (err error) {
 		return c.JSON(http.StatusUnprocessableEntity, err.Error())
 	}
 
-	// TODO: Add payload validation
 	if ok, err := isRequestValid(&user); !ok {
 		return c.JSON(http.StatusBadRequest, err.Error())
 	}
@@ -60,5 +61,43 @@ func (u *UserHandler) Store(c echo.Context) (err error) {
 		domain.AgLog.Error("Could not store user: ", err)
 	}
 
-	return c.JSON(http.StatusOK, user)
+	return c.JSON(http.StatusCreated, user)
+}
+
+func (u *UserHandler) Delete(c echo.Context) error {
+	ctx := c.Request().Context()
+	uname := c.Param("uname")
+	err := u.UUsecase.Delete(ctx, uname)
+	if err != nil {
+		domain.AgLog.Error("Could not delete user")
+		return c.JSON(http.StatusNotFound, err)
+	}
+
+	return c.NoContent(http.StatusOK)
+}
+
+func (u *UserHandler) ChangeState(c echo.Context) error {
+	ctx := c.Request().Context()
+	uname := c.Param("uname")
+	desc := c.Param("desc")
+	err := u.UUsecase.ChangeState(ctx, uname, desc)
+	if err != nil {
+		domain.AgLog.Error("Could not patch user")
+		return c.JSON(http.StatusNotModified, err)
+	}
+
+	return c.NoContent(http.StatusOK)
+}
+
+func (u *UserHandler) ChangeRole(c echo.Context) error {
+	ctx := c.Request().Context()
+	uname := c.Param("uname")
+	desc := c.Param("desc")
+	err := u.UUsecase.ChangeRole(ctx, uname, desc)
+	if err != nil {
+		domain.AgLog.Error("Could not patch user")
+		return c.JSON(http.StatusNotModified, err)
+	}
+
+	return c.NoContent(http.StatusOK)
 }

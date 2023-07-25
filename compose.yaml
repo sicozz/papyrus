@@ -8,8 +8,6 @@ services:
     depends_on:
       papyrus_db:
         condition: service_healthy
-    volumes:
-      - ./config.json:/app/config.json
 
   papyrus_db:
     image: postgres:15
@@ -19,11 +17,11 @@ services:
     ports:
       - 5432:5432
     environment:
-      - POSTGRES_DATABASE=papyrus
-      - POSTGRES_USER=mastersoft
-      - POSTGRES_PASSWORD=mastersoft
+      - POSTGRES_DATABASE=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWD}
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready" ]
+      test: [ "CMD-SHELL", "pg_isready -d ${POSTGRES_DB} -U ${POSTGRES_USER}" ]
       interval: 10s
       timeout: 5s
       retries: 5

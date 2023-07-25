@@ -1,8 +1,11 @@
 # Database
-POSTGRESQL_USER      ?=  mastersoft
-POSTGRESQL_PASSWORD  ?=  mastersoft
-POSTGRESQL_ADDRESS   ?=  127.0.0.1:5432
-POSTGRESQL_DATABASE  ?=  papyrus
+POSTGRESQL_USER    ?=  mastersoft
+POSTGRESQL_PASSWD  ?=  mastersoft
+POSTGRESQL_ADDR    ?=  127.0.0.1:5432
+POSTGRESQL_DB      ?=  papyrus
+
+# Docker compose env file
+DOCKER_ENV ?= compose.env
 
 # Exporting bin folder to the path for makefile
 export PATH   := $(PWD)/bin:$(PATH)
@@ -28,20 +31,20 @@ deps:
 	@echo "Required Tools Are Available"
 
 dev-env: ## Bootstrap Environment (with a Docker-Compose help).
-	@ docker-compose up -d --build papyrus_db
+	@ docker-compose --env-file $(DOCKER_ENV) up -d --build papyrus_db
 
 dev-env-test: dev-env ## Run application (within a Docker-Compose help)
 	@ $(MAKE) image-build
-	docker-compose up papyrus_app
+	docker-compose --env-file $(DOCKER_ENV) up papyrus_app
 
 dev-air: $(AIR) ## Starts AIR (Continuous Development app).
 	air
 
 docker-stop:
-	@ docker-compose down
+	@ docker-compose --env-file $(DOCKER_ENV) down
 
 docker-teardown:
-	@ docker-compose down --remove-orphans -v
+	@ docker-compose --env-file $(DOCKER_ENV) down --remove-orphans -v
 
 # ~~~ Code Actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -98,7 +101,7 @@ image-build:
 
 # ~~~ Database Migrations ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-POSTGRESQL_DSN := "postgres://$(POSTGRESQL_USER):$(POSTGRESQL_PASSWORD)@$(POSTGRESQL_ADDRESS)/$(POSTGRESQL_DATABASE)?sslmode=disable"
+POSTGRESQL_DSN := "postgres://$(POSTGRESQL_USER):$(POSTGRESQL_PASSWD)@$(POSTGRESQL_ADDR)/$(POSTGRESQL_DB)?sslmode=disable"
 
 migrate-up: $(MIGRATE) ## Apply all (or N up) migrations.
 	@ read -p "How many migration you wants to perform (default value: [all]): " N; \

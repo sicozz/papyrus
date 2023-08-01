@@ -19,11 +19,11 @@ type UserUsecase interface {
 	Fetch(c context.Context) ([]User, error)
 	// GetByUuid(c context.Context, uuid string) (User, error)
 	// GetByEmail(c context.Context, email string) (User, error)
-	// GetByUserName(c context.Context, uname string) (User, error)
+	GetByUsername(c context.Context, uname string) (User, error)
 	// Update(c context.Context, u *User) error
 	Store(c context.Context, u *User) error
-	Delete(c context.Context, uname string) error
-	// Login(c context.Context, u *User) (User, error)
+	Delete(c context.Context, uname string) (string /*uuid*/, error)
+	Login(c context.Context, uname string, passwd string) (User, error)
 	ChangeState(c context.Context, uname string, desc string) error
 	ChangeRole(c context.Context, uname string, desc string) error
 }
@@ -33,11 +33,11 @@ type UserRepository interface {
 	Fetch(ctx context.Context) ([]User, error)
 	// GetByUuid(ctx context.Context, uuid string) (User, error)
 	// GetByEmail(ctx context.Context, email string) (User, error)
-	// GetByUserName(ctx context.Context, uname string) (User, error)
+	GetByUsername(ctx context.Context, uname string) (User, error)
 	// Update(ctx context.Context, u *User) error
 	Store(ctx context.Context, u *User) error
-	Delete(ctx context.Context, uuid string) error
-	// Login(c context.Context, u *User) (User, error) // TODO: implement login
+	Delete(ctx context.Context, uuid string) (string /*uuid*/, error)
+	Login(ctx context.Context, uname string, passwd string) (User, error)
 	ChangeState(ctx context.Context, uname string, st UserState) error
 	ChangeRole(ctx context.Context, uname string, ro Role) error
 }

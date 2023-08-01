@@ -87,6 +87,26 @@ func (u *userUsecase) Fetch(c context.Context) (res []domain.User, err error) {
 	return
 }
 
+func (u *userUsecase) GetByUsername(c context.Context, uname string) (res domain.User, err error) {
+	// Refactor flluserdetails
+	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
+	defer cancel()
+
+	res, err = u.userRepo.GetByUsername(ctx, uname)
+	if err != nil {
+		domain.AgLog.Error("Error inside Fetch function")
+	}
+
+	resArr := make([]domain.User, 1)
+	resArr[0] = res
+	err = u.fillUserDetails(ctx, resArr)
+	res = resArr[0]
+	if err != nil {
+		domain.AgLog.Error("Error filling user details")
+	}
+	return
+}
+
 func (u *userUsecase) Store(c context.Context, user *domain.User) (err error) {
 	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
 	defer cancel()
@@ -107,11 +127,11 @@ func (u *userUsecase) Store(c context.Context, user *domain.User) (err error) {
 	return
 }
 
-func (u *userUsecase) Delete(c context.Context, uname string) (err error) {
+func (u *userUsecase) Delete(c context.Context, uname string) (uuid string, err error) {
 	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
 	defer cancel()
 
-	err = u.userRepo.Delete(ctx, uname)
+	uuid, err = u.userRepo.Delete(ctx, uname)
 	if err != nil {
 		domain.AgLog.Error("Error while deleting user with username:", uname, err)
 	}
@@ -152,5 +172,26 @@ func (u *userUsecase) ChangeRole(c context.Context, uname string, desc string) (
 		domain.AgLog.Error("Could not update role of user:", uname)
 	}
 
+	return
+}
+
+func (u *userUsecase) Login(c context.Context, uname string, passwd string) (res domain.User, err error) {
+	// Refactor flluserdetails
+	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
+	defer cancel()
+
+	res, err = u.userRepo.Login(ctx, uname, passwd)
+	if err != nil {
+		domain.AgLog.Error("Error inside Login function")
+		return
+	}
+
+	resArr := make([]domain.User, 1)
+	resArr[0] = res
+	err = u.fillUserDetails(ctx, resArr)
+	res = resArr[0]
+	if err != nil {
+		domain.AgLog.Error("Error filling user details")
+	}
 	return
 }

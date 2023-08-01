@@ -3,6 +3,8 @@ package postgres
 import (
 	"context"
 	"database/sql"
+	"errors"
+	"fmt"
 
 	"github.com/sicozz/papyrus/domain"
 )
@@ -80,6 +82,33 @@ func (r *postgresUserRepository) Fetch(ctx context.Context) (res []domain.User, 
 	return
 }
 
+// Get user by id
+func (r *postgresUserRepository) GetByUsername(ctx context.Context, uname string) (res domain.User, err error) {
+	// TODO: Refactor operations that expect only 1 row
+	// TODO: Rename this function to GetByUsername
+	query :=
+		`SELECT uuid, username, email, password, name, lastname, role, state
+		FROM user_
+		WHERE username = $1`
+
+	users, err := r.fetch(ctx, query, uname)
+	if err != nil {
+		return domain.User{}, err
+	}
+
+	if len(users) < 1 {
+		return domain.User{}, errors.New(fmt.Sprintln("No user with username:", uname))
+	}
+
+	for _, u := range users {
+		u.Password = ""
+	}
+
+	res = users[0]
+
+	return
+}
+
 // Store a new user
 func (r *postgresUserRepository) Store(ctx context.Context, u *domain.User) (err error) {
 	query :=
@@ -108,12 +137,17 @@ func (r *postgresUserRepository) Store(ctx context.Context, u *domain.User) (err
 }
 
 // Delete a user
-func (r *postgresUserRepository) Delete(ctx context.Context, uname string) (err error) {
+func (r *postgresUserRepository) Delete(ctx context.Context, uname string) (uuid string, err error) {
 	// TODO: Verify deletion
-	query :=
-		`DELETE FROM user_ WHERE username=$1`
+	query := `DELETE FROM user_ WHERE username=$1 RETURNING uuid`
+	stmt, err := r.Conn.PrepareContext(ctx, query)
+	if err != nil {
+		domain.AgLog.Error(err)
+		return
+	}
+	defer stmt.Close()
 
-	_, err = r.fetch(ctx, query, uname)
+	err = stmt.QueryRowContext(ctx, uname).Scan(&uuid)
 
 	return
 }
@@ -135,4 +169,18 @@ func (r *postgresUserRepository) ChangeRole(ctx context.Context, uname string, r
 	domain.AgLog.Info("PATCH RES:", res)
 
 	return
+}
+
+// Authenticate a user
+func (r *postgresUserRepository) Login(ctx context.Context, uname string, passwd string) (res domain.User, err error) {
+	user, err := r.GetByUsername(ctx, uname)
+	if err != nil {
+		return domain.User{}, err
+	}
+
+	if user.Password != passwd {
+		return domain.User{}, errors.New("Incorrect password or username")
+	}
+
+	return user, nil
 }

@@ -17,13 +17,16 @@ func NewUserHandler(e *echo.Echo, us domain.UserUsecase) {
 	handler := &UserHandler{
 		UUsecase: us,
 	}
+	e.GET("/login/:uname/:passwd", handler.Login)
 	e.GET("/user", handler.Fetch)
 	e.POST("/user", handler.Store)
-	// e.GET("/users/:id", handler.GetByID)
+	e.GET("/user/:uname", handler.GetByUsername)
 	e.DELETE("/user/:uname", handler.Delete)
 	e.PATCH("/user/:uname/state/:desc", handler.ChangeState)
 	e.PATCH("/user/:uname/role/:desc", handler.ChangeRole)
 }
+
+// TODO: Add failure responses when error
 
 func isRequestValid(u *domain.User) (bool, error) {
 	validate := validator.New()
@@ -42,6 +45,18 @@ func (u *UserHandler) Fetch(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, users)
+}
+
+func (u *UserHandler) GetByUsername(c echo.Context) error {
+	ctx := c.Request().Context()
+	uname := c.Param("uname")
+	user, err := u.UUsecase.GetByUsername(ctx, uname)
+	if err != nil {
+		domain.AgLog.Error("Could not retrieve user")
+		return c.NoContent(http.StatusNotFound)
+	}
+
+	return c.JSON(http.StatusOK, user)
 }
 
 func (u *UserHandler) Store(c echo.Context) (err error) {
@@ -67,13 +82,13 @@ func (u *UserHandler) Store(c echo.Context) (err error) {
 func (u *UserHandler) Delete(c echo.Context) error {
 	ctx := c.Request().Context()
 	uname := c.Param("uname")
-	err := u.UUsecase.Delete(ctx, uname)
+	uuid, err := u.UUsecase.Delete(ctx, uname)
 	if err != nil {
 		domain.AgLog.Error("Could not delete user")
 		return c.JSON(http.StatusNotFound, err)
 	}
 
-	return c.NoContent(http.StatusOK)
+	return c.JSON(http.StatusOK, uuid)
 }
 
 func (u *UserHandler) ChangeState(c echo.Context) error {
@@ -100,4 +115,17 @@ func (u *UserHandler) ChangeRole(c echo.Context) error {
 	}
 
 	return c.NoContent(http.StatusOK)
+}
+
+func (u *UserHandler) Login(c echo.Context) error {
+	ctx := c.Request().Context()
+	uname := c.Param("uname")
+	passwd := c.Param("passwd")
+	user, err := u.UUsecase.Login(ctx, uname, passwd)
+	if err != nil {
+		domain.AgLog.Error("Could not login")
+		return c.JSON(http.StatusNotFound, err)
+	}
+
+	return c.JSON(http.StatusOK, user)
 }

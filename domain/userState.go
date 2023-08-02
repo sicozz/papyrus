@@ -4,8 +4,8 @@ import "context"
 
 // UserState is representing the userState data struct
 type UserState struct {
-	Code        int64  `json:"Code"`
-	Description string `json:"Description"`
+	Code        int64  `json:"code"`
+	Description string `json:"description"`
 }
 
 // UserStateRepository represents the userStates's repository contract

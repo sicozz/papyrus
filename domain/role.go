@@ -4,8 +4,8 @@ import "context"
 
 // Role is representing the Role data struct
 type Role struct {
-	Code        int64  `json:"Code"`
-	Description string `json:"Description"`
+	Code        int64  `json:"code"`
+	Description string `json:"description"`
 }
 
 // RoleRepository represents the role's repository contract

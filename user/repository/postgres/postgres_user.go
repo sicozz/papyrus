@@ -137,7 +137,7 @@ func (r *postgresUserRepository) Store(ctx context.Context, u *domain.User) (err
 }
 
 // Delete a user
-func (r *postgresUserRepository) Delete(ctx context.Context, uname string) (uuid string, err error) {
+func (r *postgresUserRepository) Delete(ctx context.Context, uname string) (err error) {
 	// TODO: Verify deletion
 	query := `DELETE FROM user_ WHERE username=$1 RETURNING uuid`
 	stmt, err := r.Conn.PrepareContext(ctx, query)
@@ -147,7 +147,11 @@ func (r *postgresUserRepository) Delete(ctx context.Context, uname string) (uuid
 	}
 	defer stmt.Close()
 
+	var uuid string
 	err = stmt.QueryRowContext(ctx, uname).Scan(&uuid)
+	if uuid == "" && err == nil {
+		err = errors.New("Could not delete user")
+	}
 
 	return
 }

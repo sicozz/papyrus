@@ -2,9 +2,11 @@ package usecase
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/sicozz/papyrus/domain"
+	"github.com/sicozz/papyrus/domain/dtos"
 )
 
 const (
@@ -127,15 +129,18 @@ func (u *userUsecase) Store(c context.Context, user *domain.User) (err error) {
 	return
 }
 
-func (u *userUsecase) Delete(c context.Context, uname string) (uuid string, err error) {
+func (u *userUsecase) Delete(c context.Context, uname string) (body dtos.BaseDto, errBody dtos.ErrorDto) {
 	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
 	defer cancel()
 
-	uuid, err = u.userRepo.Delete(ctx, uname)
+	err := u.userRepo.Delete(ctx, uname)
 	if err != nil {
-		domain.AgLog.Error("Error while deleting user with username:", uname, err)
+		domain.AgLog.Error("error while deleting user with username:", uname, err)
+		errBody = dtos.NewErrorDto(fmt.Sprint("fail: user deletion [username:", uname, "]"))
+		return
 	}
 
+	body = dtos.NewBaseDto(fmt.Sprint("success: User deletion [username:", uname, "]"))
 	return
 }
 

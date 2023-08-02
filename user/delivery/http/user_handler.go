@@ -82,13 +82,13 @@ func (u *UserHandler) Store(c echo.Context) (err error) {
 func (u *UserHandler) Delete(c echo.Context) error {
 	ctx := c.Request().Context()
 	uname := c.Param("uname")
-	uuid, err := u.UUsecase.Delete(ctx, uname)
-	if err != nil {
+	body, err := u.UUsecase.Delete(ctx, uname)
+	if err.Message != "" {
 		domain.AgLog.Error("Could not delete user")
 		return c.JSON(http.StatusNotFound, err)
 	}
 
-	return c.JSON(http.StatusOK, uuid)
+	return c.JSON(http.StatusOK, body)
 }
 
 func (u *UserHandler) ChangeState(c echo.Context) error {

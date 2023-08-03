@@ -5,6 +5,7 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/sicozz/papyrus/domain"
+	"github.com/sicozz/papyrus/domain/dtos"
 	"gopkg.in/go-playground/validator.v9"
 )
 
@@ -24,6 +25,7 @@ func NewUserHandler(e *echo.Echo, us domain.UserUsecase) {
 	e.DELETE("/user/:uname", handler.Delete)
 	e.PATCH("/user/:uname/state/:desc", handler.ChangeState)
 	e.PATCH("/user/:uname/role/:desc", handler.ChangeRole)
+	e.PATCH("/user/:uname", handler.Update)
 }
 
 // TODO: Add failure responses when error
@@ -42,6 +44,8 @@ func (u *UserHandler) Fetch(c echo.Context) error {
 	users, err := u.UUsecase.Fetch(ctx)
 	if err != nil {
 		domain.AgLog.Error("Could not retrieve users")
+		errBody := dtos.NewErrDto("[failure] users fetch")
+		return c.JSON(http.StatusInternalServerError, errBody)
 	}
 
 	return c.JSON(http.StatusOK, users)
@@ -63,11 +67,16 @@ func (u *UserHandler) Store(c echo.Context) (err error) {
 	var user domain.User
 	err = c.Bind(&user)
 	if err != nil {
-		return c.JSON(http.StatusUnprocessableEntity, err.Error())
+		errBody := dtos.NewErrDto("[failure] user creation. could not bind payload")
+		return c.JSON(http.StatusBadRequest, errBody)
 	}
 
 	if ok, err := isRequestValid(&user); !ok {
-		return c.JSON(http.StatusBadRequest, err.Error())
+		errBody, err := dtos.NewValidationErrDto(err.Error())
+		if err != nil {
+			return c.JSON(http.StatusBadRequest, errBody)
+		}
+		return c.JSON(http.StatusBadRequest, errBody)
 	}
 
 	ctx := c.Request().Context()
@@ -82,13 +91,13 @@ func (u *UserHandler) Store(c echo.Context) (err error) {
 func (u *UserHandler) Delete(c echo.Context) error {
 	ctx := c.Request().Context()
 	uname := c.Param("uname")
-	body, err := u.UUsecase.Delete(ctx, uname)
-	if err.Message != "" {
+	err := u.UUsecase.Delete(ctx, uname)
+	if err != nil {
 		domain.AgLog.Error("Could not delete user")
 		return c.JSON(http.StatusNotFound, err)
 	}
 
-	return c.JSON(http.StatusOK, body)
+	return c.NoContent(http.StatusOK)
 }
 
 func (u *UserHandler) ChangeState(c echo.Context) error {
@@ -128,4 +137,37 @@ func (u *UserHandler) Login(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, user)
+}
+
+func (u *UserHandler) Update(c echo.Context) error {
+	ctx := c.Request().Context()
+	uname := c.Param("uname")
+
+	var uUpDto dtos.UserUpdateDto
+	err := c.Bind(&uUpDto)
+	if err != nil {
+		errBody := dtos.NewErrDto("[failure] user update. could not bind payload")
+		return c.JSON(http.StatusBadRequest, errBody)
+	}
+
+	// if ok, err := isRequestValid(&uUpDto); !ok {
+	// 	errBody, err := dtos.NewValidationErrDto(err.Error())
+	// 	if err != nil {
+	// 		return c.JSON(http.StatusBadRequest, errBody)
+	// 	}
+	// 	return c.JSON(http.StatusBadRequest, errBody)
+	// }
+
+	user := domain.User{
+		Username: uUpDto.Username,
+		Lastname: uUpDto.Lastname,
+		Role:     domain.Role{Description: uUpDto.Role},
+		State:    domain.UserState{Description: uUpDto.State},
+	}
+	err = u.UUsecase.Update(ctx, uname, &user)
+	if err != nil {
+		domain.AgLog.Error("Error in user update: ", err)
+	}
+
+	return c.JSON(http.StatusCreated, user)
 }

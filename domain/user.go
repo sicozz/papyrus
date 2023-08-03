@@ -1,10 +1,6 @@
 package domain
 
-import (
-	"context"
-
-	"github.com/sicozz/papyrus/domain/dtos"
-)
+import "context"
 
 // User is representing the User data struct
 type User struct {
@@ -26,10 +22,11 @@ type UserUsecase interface {
 	GetByUsername(c context.Context, uname string) (User, error)
 	// Update(c context.Context, u *User) error
 	Store(c context.Context, u *User) error
-	Delete(c context.Context, uname string) (dtos.BaseDto, dtos.ErrorDto)
+	Delete(c context.Context, uname string) error
 	Login(c context.Context, uname string, passwd string) (User, error)
 	ChangeState(c context.Context, uname string, desc string) error
 	ChangeRole(c context.Context, uname string, desc string) error
+	Update(c context.Context, uname string, uUp *User) error
 }
 
 // UserRepository represents the user's repository contract
@@ -44,4 +41,7 @@ type UserRepository interface {
 	Login(ctx context.Context, uname string, passwd string) (User, error)
 	ChangeState(ctx context.Context, uname string, st UserState) error
 	ChangeRole(ctx context.Context, uname string, ro Role) error
+	// TODO: Change -> Chg
+	ChangeUsername(ctx context.Context, uname string, nUname string) error
+	ChangeLastname(ctx context.Context, uname string, nLname string) error
 }

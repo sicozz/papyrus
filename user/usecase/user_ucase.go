@@ -2,11 +2,10 @@ package usecase
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"time"
 
 	"github.com/sicozz/papyrus/domain"
-	"github.com/sicozz/papyrus/domain/dtos"
 )
 
 const (
@@ -129,18 +128,62 @@ func (u *userUsecase) Store(c context.Context, user *domain.User) (err error) {
 	return
 }
 
-func (u *userUsecase) Delete(c context.Context, uname string) (body dtos.BaseDto, errBody dtos.ErrorDto) {
+func (u *userUsecase) Delete(c context.Context, uname string) (err error) {
 	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
 	defer cancel()
 
-	err := u.userRepo.Delete(ctx, uname)
+	err = u.userRepo.Delete(ctx, uname)
 	if err != nil {
-		domain.AgLog.Error("error while deleting user with username:", uname, err)
-		errBody = dtos.NewErrorDto(fmt.Sprint("fail: user deletion [username:", uname, "]"))
-		return
+		domain.AgLog.Error("Error while deleting user with username:", uname, err)
 	}
 
-	body = dtos.NewBaseDto(fmt.Sprint("success: User deletion [username:", uname, "]"))
+	return
+}
+
+func (u *userUsecase) Update(c context.Context, uname string, uUp *domain.User) (err error) {
+	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
+	defer cancel()
+
+	if uUp.Username != "" {
+		err = u.userRepo.ChangeUsername(ctx, uname, uUp.Username)
+	}
+	if err != nil {
+		return errors.New("Could not update user username")
+	}
+
+	if uUp.Lastname != "" {
+		err = u.userRepo.ChangeLastname(ctx, uname, uUp.Lastname)
+	}
+	if err != nil {
+		return errors.New("Could not update user lastname")
+	}
+
+	if uUp.Role.Description != "" {
+		r, rErr := u.roleRepo.GetByDescription(ctx, uUp.Role.Description)
+		if rErr != nil {
+			domain.AgLog.Error("Could not find user role with description:", uUp.State.Description)
+			return
+		}
+
+		err = u.userRepo.ChangeRole(ctx, uname, r)
+	}
+	if err != nil {
+		return errors.New("Could not update user role")
+	}
+
+	if uUp.State.Description != "" {
+		s, sErr := u.userStateRepo.GetByDescription(ctx, uUp.State.Description)
+		if sErr != nil {
+			domain.AgLog.Error("Could not find user state with description:", uUp.State.Description)
+			return
+		}
+
+		err = u.userRepo.ChangeState(ctx, uname, s)
+	}
+	if err != nil {
+		return errors.New("Could not update user state")
+	}
+
 	return
 }
 

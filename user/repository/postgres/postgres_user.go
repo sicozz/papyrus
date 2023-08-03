@@ -169,8 +169,25 @@ func (r *postgresUserRepository) ChangeState(ctx context.Context, uname string, 
 func (r *postgresUserRepository) ChangeRole(ctx context.Context, uname string, ro domain.Role) (err error) {
 	query := `UPDATE user_ SET role=$1 WHERE username=$2`
 
-	res, err := r.fetch(ctx, query, ro.Code, uname)
-	domain.AgLog.Info("PATCH RES:", res)
+	_, err = r.fetch(ctx, query, ro.Code, uname)
+
+	return
+}
+
+// Change user username
+func (r *postgresUserRepository) ChangeUsername(ctx context.Context, uname string, nUname string) (err error) {
+	query := `UPDATE user_ SET username=$1 WHERE username=$2`
+
+	_, err = r.fetch(ctx, query, nUname, uname)
+
+	return
+}
+
+// Change user lastname
+func (r *postgresUserRepository) ChangeLastname(ctx context.Context, uname string, nLname string) (err error) {
+	query := `UPDATE user_ SET lastname=$1 WHERE username=$2`
+
+	_, err = r.fetch(ctx, query, nLname, uname)
 
 	return
 }

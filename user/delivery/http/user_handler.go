@@ -23,14 +23,12 @@ func NewUserHandler(e *echo.Echo, us domain.UserUsecase) {
 	e.POST("/user", handler.Store)
 	e.GET("/user/:uname", handler.GetByUsername)
 	e.DELETE("/user/:uname", handler.Delete)
-	e.PATCH("/user/:uname/state/:desc", handler.ChangeState)
-	e.PATCH("/user/:uname/role/:desc", handler.ChangeRole)
 	e.PATCH("/user/:uname", handler.Update)
 }
 
 // TODO: Add failure responses when error
 
-func isRequestValid(u *domain.User) (bool, error) {
+func isRequestValid(u any) (bool, error) {
 	validate := validator.New()
 	err := validate.Struct(u)
 	if err != nil {
@@ -100,32 +98,6 @@ func (u *UserHandler) Delete(c echo.Context) error {
 	return c.NoContent(http.StatusOK)
 }
 
-func (u *UserHandler) ChangeState(c echo.Context) error {
-	ctx := c.Request().Context()
-	uname := c.Param("uname")
-	desc := c.Param("desc")
-	err := u.UUsecase.ChangeState(ctx, uname, desc)
-	if err != nil {
-		domain.AgLog.Error("Could not patch user")
-		return c.JSON(http.StatusNotModified, err)
-	}
-
-	return c.NoContent(http.StatusOK)
-}
-
-func (u *UserHandler) ChangeRole(c echo.Context) error {
-	ctx := c.Request().Context()
-	uname := c.Param("uname")
-	desc := c.Param("desc")
-	err := u.UUsecase.ChangeRole(ctx, uname, desc)
-	if err != nil {
-		domain.AgLog.Error("Could not patch user")
-		return c.JSON(http.StatusNotModified, err)
-	}
-
-	return c.NoContent(http.StatusOK)
-}
-
 func (u *UserHandler) Login(c echo.Context) error {
 	ctx := c.Request().Context()
 	uname := c.Param("uname")
@@ -150,17 +122,21 @@ func (u *UserHandler) Update(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, errBody)
 	}
 
-	// if ok, err := isRequestValid(&uUpDto); !ok {
-	// 	errBody, err := dtos.NewValidationErrDto(err.Error())
-	// 	if err != nil {
-	// 		return c.JSON(http.StatusBadRequest, errBody)
-	// 	}
-	// 	return c.JSON(http.StatusBadRequest, errBody)
-	// }
+	domain.AgLog.Warn("UP:DTO:\t", uUpDto)
+	if ok, err := isRequestValid(&uUpDto); !ok {
+		domain.AgLog.Warn("BEF VAL")
+		errBody, err := dtos.NewValidationErrDto(err.Error())
+		domain.AgLog.Warn("ERRBODY:\t", errBody)
+		if err != nil {
+			return c.JSON(http.StatusBadRequest, errBody)
+		}
+		return c.JSON(http.StatusBadRequest, errBody)
+	}
 
 	user := domain.User{
-		Username: uUpDto.Username,
+		Name:     uUpDto.Name,
 		Lastname: uUpDto.Lastname,
+		Email:    uUpDto.Email,
 		Role:     domain.Role{Description: uUpDto.Role},
 		State:    domain.UserState{Description: uUpDto.State},
 	}

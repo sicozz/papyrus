@@ -24,8 +24,6 @@ type UserUsecase interface {
 	Store(c context.Context, u *User) error
 	Delete(c context.Context, uname string) error
 	Login(c context.Context, uname string, passwd string) (User, error)
-	ChangeState(c context.Context, uname string, desc string) error
-	ChangeRole(c context.Context, uname string, desc string) error
 	Update(c context.Context, uname string, uUp *User) error
 }
 
@@ -35,13 +33,12 @@ type UserRepository interface {
 	// GetByUuid(ctx context.Context, uuid string) (User, error)
 	// GetByEmail(ctx context.Context, email string) (User, error)
 	GetByUsername(ctx context.Context, uname string) (User, error)
-	// Update(ctx context.Context, u *User) error
 	Store(ctx context.Context, u *User) error
 	Delete(ctx context.Context, uuid string) error
 	Login(ctx context.Context, uname string, passwd string) (User, error)
-	ChangeState(ctx context.Context, uname string, st UserState) error
-	ChangeRole(ctx context.Context, uname string, ro Role) error
-	// TODO: Change -> Chg
-	ChangeUsername(ctx context.Context, uname string, nUname string) error
-	ChangeLastname(ctx context.Context, uname string, nLname string) error
+	ChgEmail(ctx context.Context, uname string, email string) error
+	ChgName(ctx context.Context, uname string, nName string) error
+	ChgLstname(ctx context.Context, uname string, nLname string) error
+	ChgRole(ctx context.Context, uname string, ro Role) error
+	ChgState(ctx context.Context, uname string, st UserState) error
 }

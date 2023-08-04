@@ -138,7 +138,6 @@ func (r *postgresUserRepository) Store(ctx context.Context, u *domain.User) (err
 
 // Delete a user
 func (r *postgresUserRepository) Delete(ctx context.Context, uname string) (err error) {
-	// TODO: Verify deletion
 	query := `DELETE FROM user_ WHERE username=$1 RETURNING uuid`
 	stmt, err := r.Conn.PrepareContext(ctx, query)
 	if err != nil {
@@ -156,17 +155,35 @@ func (r *postgresUserRepository) Delete(ctx context.Context, uname string) (err 
 	return
 }
 
-// Change user state
-func (r *postgresUserRepository) ChangeState(ctx context.Context, uname string, st domain.UserState) (err error) {
-	query := `UPDATE user_ SET state=$1 WHERE username=$2`
+// Change user email
+func (r *postgresUserRepository) ChgEmail(ctx context.Context, uname string, nEmail string) (err error) {
+	query := `UPDATE user_ SET email=$1 WHERE username=$2`
 
-	_, err = r.fetch(ctx, query, st.Code, uname)
+	_, err = r.fetch(ctx, query, nEmail, uname)
 
 	return
 }
 
-// Change user state
-func (r *postgresUserRepository) ChangeRole(ctx context.Context, uname string, ro domain.Role) (err error) {
+// Change user name
+func (r *postgresUserRepository) ChgName(ctx context.Context, uname string, nName string) (err error) {
+	query := `UPDATE user_ SET name=$1 WHERE username=$2`
+
+	_, err = r.fetch(ctx, query, nName, uname)
+
+	return
+}
+
+// Change user lastname
+func (r *postgresUserRepository) ChgLstname(ctx context.Context, uname string, nLname string) (err error) {
+	query := `UPDATE user_ SET lastname=$1 WHERE username=$2`
+
+	_, err = r.fetch(ctx, query, nLname, uname)
+
+	return
+}
+
+// Change user role
+func (r *postgresUserRepository) ChgRole(ctx context.Context, uname string, ro domain.Role) (err error) {
 	query := `UPDATE user_ SET role=$1 WHERE username=$2`
 
 	_, err = r.fetch(ctx, query, ro.Code, uname)
@@ -174,20 +191,11 @@ func (r *postgresUserRepository) ChangeRole(ctx context.Context, uname string, r
 	return
 }
 
-// Change user username
-func (r *postgresUserRepository) ChangeUsername(ctx context.Context, uname string, nUname string) (err error) {
-	query := `UPDATE user_ SET username=$1 WHERE username=$2`
+// Change user state
+func (r *postgresUserRepository) ChgState(ctx context.Context, uname string, st domain.UserState) (err error) {
+	query := `UPDATE user_ SET state=$1 WHERE username=$2`
 
-	_, err = r.fetch(ctx, query, nUname, uname)
-
-	return
-}
-
-// Change user lastname
-func (r *postgresUserRepository) ChangeLastname(ctx context.Context, uname string, nLname string) (err error) {
-	query := `UPDATE user_ SET lastname=$1 WHERE username=$2`
-
-	_, err = r.fetch(ctx, query, nLname, uname)
+	_, err = r.fetch(ctx, query, st.Code, uname)
 
 	return
 }

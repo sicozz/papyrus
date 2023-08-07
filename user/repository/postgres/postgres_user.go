@@ -67,6 +67,7 @@ func (r *postgresUserRepository) fetch(ctx context.Context, query string, args .
 
 // Retrieve all users
 func (r *postgresUserRepository) Fetch(ctx context.Context) (res []domain.User, err error) {
+	// TODO: Rename this Fetch to GetAll
 	query :=
 		`SELECT uuid, username, email, password, name, lastname, role, state
 		FROM user_`
@@ -85,7 +86,6 @@ func (r *postgresUserRepository) Fetch(ctx context.Context) (res []domain.User, 
 // Get user by id
 func (r *postgresUserRepository) GetByUsername(ctx context.Context, uname string) (res domain.User, err error) {
 	// TODO: Refactor operations that expect only 1 row
-	// TODO: Rename this function to GetByUsername
 	query :=
 		`SELECT uuid, username, email, password, name, lastname, role, state
 		FROM user_
@@ -105,6 +105,36 @@ func (r *postgresUserRepository) GetByUsername(ctx context.Context, uname string
 	}
 
 	res = users[0]
+
+	return
+}
+
+// Know if a user has already taken a username
+func (r *postgresUserRepository) ExistByUname(ctx context.Context, uname string) (res bool) {
+	query := `SELECT COUNT(*) > 0 FROM user_ WHERE username = $1`
+	stmt, err := r.Conn.PrepareContext(ctx, query)
+	if err != nil {
+		domain.AgLog.Error("Context preparation failed", err)
+		return
+	}
+	defer stmt.Close()
+
+	err = stmt.QueryRowContext(ctx, uname).Scan(&res)
+
+	return
+}
+
+// Know if a user has already taken an email
+func (r *postgresUserRepository) ExistByEmail(ctx context.Context, email string) (res bool) {
+	query := `SELECT COUNT(*) > 0 FROM user_ WHERE email = $1`
+	stmt, err := r.Conn.PrepareContext(ctx, query)
+	if err != nil {
+		domain.AgLog.Error("Context preparation failed", err)
+		return
+	}
+	defer stmt.Close()
+
+	err = stmt.QueryRowContext(ctx, email).Scan(&res)
 
 	return
 }

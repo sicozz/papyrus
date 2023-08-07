@@ -3,6 +3,8 @@ package postgres
 import (
 	"context"
 	"database/sql"
+	"errors"
+	"fmt"
 
 	"github.com/sicozz/papyrus/domain"
 )
@@ -79,6 +81,7 @@ func (r *postgresRoleRepository) GetByDescription(ctx context.Context, desc stri
 
 	if l := len(roles); l != 1 {
 		domain.AgLog.Error("Could not find role with description:", desc)
+		err = errors.New(fmt.Sprint("No role with description: ", desc))
 		return domain.Role{}, err
 	}
 

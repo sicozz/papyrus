@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/sicozz/papyrus/domain"
@@ -89,13 +90,20 @@ func (u *userUsecase) Fetch(c context.Context) (res []domain.User, err error) {
 }
 
 func (u *userUsecase) GetByUsername(c context.Context, uname string) (res domain.User, err error) {
-	// Refactor flluserdetails
+	// Refactor filluserdetails
 	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
 	defer cancel()
 
+	if exists := u.userRepo.ExistByUname(ctx, uname); !exists {
+		err = errors.New(fmt.Sprint("User not found. username: ", uname))
+		return
+	}
+
 	res, err = u.userRepo.GetByUsername(ctx, uname)
 	if err != nil {
-		domain.AgLog.Error("Error inside Fetch function")
+		domain.AgLog.Error("Error inside Fetch function", err)
+		err = errors.New(fmt.Sprint("User fetch failed. username: ", uname))
+		return domain.User{}, err
 	}
 
 	resArr := make([]domain.User, 1)
@@ -112,15 +120,29 @@ func (u *userUsecase) Store(c context.Context, user *domain.User) (err error) {
 	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
 	defer cancel()
 
+	if exists := u.userRepo.ExistByUname(ctx, user.Username); exists {
+		err = errors.New("Username already taken")
+		return
+	}
+
+	if exists := u.userRepo.ExistByEmail(ctx, user.Email); exists {
+		err = errors.New("Email already taken")
+		return
+	}
+
 	r, err := u.roleRepo.GetByDescription(ctx, defRoleDesc)
 	if err != nil {
 		domain.AgLog.Error("Could not find default role.", err)
+		err = errors.New("Base role fetch failed")
+		return
 	}
 	user.Role = r
 
 	s, err := u.userStateRepo.GetByDescription(ctx, defUserStateDesc)
 	if err != nil {
-		domain.AgLog.Error("Could not find default user state.", err)
+		domain.AgLog.Error("Base state fetch failed", err)
+		err = errors.New("Base role fetch failed")
+		return
 	}
 	user.State = s
 
@@ -132,9 +154,14 @@ func (u *userUsecase) Delete(c context.Context, uname string) (err error) {
 	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
 	defer cancel()
 
+	if exists := u.userRepo.ExistByUname(ctx, uname); !exists {
+		err = errors.New(fmt.Sprint("User not found. username: ", uname))
+		return
+	}
+
 	err = u.userRepo.Delete(ctx, uname)
 	if err != nil {
-		domain.AgLog.Error("Error while deleting user with username:", uname, err)
+		domain.AgLog.Error("User deletion failed. username: ", uname)
 	}
 
 	return
@@ -145,50 +172,54 @@ func (u *userUsecase) Update(c context.Context, uname string, uUp *domain.User) 
 	defer cancel()
 
 	if uUp.Email != "" {
+		if taken := u.userRepo.ExistByEmail(ctx, uUp.Email); taken {
+			err = errors.New("Email already taken")
+			return
+		}
 		err = u.userRepo.ChgEmail(ctx, uname, uUp.Email)
-	}
-	if err != nil {
-		return errors.New("Could not update user's email")
+		if err != nil {
+			return errors.New(fmt.Sprint("User patch failed: ", err))
+		}
 	}
 
 	if uUp.Name != "" {
 		err = u.userRepo.ChgName(ctx, uname, uUp.Name)
-	}
-	if err != nil {
-		return errors.New("Could not update user's name")
+		if err != nil {
+			return errors.New(fmt.Sprint("User patch failed: ", err))
+		}
 	}
 
 	if uUp.Lastname != "" {
 		err = u.userRepo.ChgLstname(ctx, uname, uUp.Lastname)
-	}
-	if err != nil {
-		return errors.New("Could not update user's lastname")
+		if err != nil {
+			return errors.New(fmt.Sprint("User patch failed: ", err))
+		}
 	}
 
 	if uUp.Role.Description != "" {
 		r, rErr := u.roleRepo.GetByDescription(ctx, uUp.Role.Description)
 		if rErr != nil {
-			domain.AgLog.Error("Could not find user role with description:", uUp.State.Description)
-			return
+			domain.AgLog.Error("Role not found: ", rErr)
+			return errors.New(fmt.Sprint("Role not found"))
 		}
 
 		err = u.userRepo.ChgRole(ctx, uname, r)
-	}
-	if err != nil {
-		return errors.New("Could not update user's role")
+		if err != nil {
+			return errors.New(fmt.Sprint("User patch failed: ", err))
+		}
 	}
 
 	if uUp.State.Description != "" {
 		s, sErr := u.userStateRepo.GetByDescription(ctx, uUp.State.Description)
 		if sErr != nil {
-			domain.AgLog.Error("Could not find user_state with description:", uUp.State.Description)
-			return
+			domain.AgLog.Error("User_state not found", sErr)
+			return errors.New(fmt.Sprint("User_state not found"))
 		}
 
 		err = u.userRepo.ChgState(ctx, uname, s)
-	}
-	if err != nil {
-		return errors.New("Could not update user's state")
+		if err != nil {
+			return errors.New(fmt.Sprint("User patch failed: ", err))
+		}
 	}
 
 	return

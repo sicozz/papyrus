@@ -3,6 +3,8 @@ package postgres
 import (
 	"context"
 	"database/sql"
+	"errors"
+	"fmt"
 
 	"github.com/sicozz/papyrus/domain"
 )
@@ -79,6 +81,7 @@ func (r *postgresUserStateRepository) GetByDescription(ctx context.Context, desc
 
 	if l := len(states); l != 1 {
 		domain.AgLog.Error("Could not find user_state with description: ", desc)
+		err = errors.New(fmt.Sprint("No user__state with description: ", desc))
 		return domain.UserState{}, err
 	}
 

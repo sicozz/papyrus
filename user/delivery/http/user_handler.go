@@ -38,11 +38,11 @@ func isRequestValid(u any) (bool, error) {
 
 func (u *UserHandler) Fetch(c echo.Context) error {
 	ctx := c.Request().Context()
-	users, err := u.UUsecase.Fetch(ctx)
-	if err != nil {
+	users, rErr := u.UUsecase.Fetch(ctx)
+	if rErr != nil {
 		domain.AgLog.Error("[failure] users fetch")
 		errBody := dtos.NewErrDto("User fetch failed")
-		return c.JSON(http.StatusInternalServerError, errBody)
+		return c.JSON(rErr.GetStatus(), errBody)
 	}
 
 	return c.JSON(http.StatusOK, users)
@@ -51,10 +51,10 @@ func (u *UserHandler) Fetch(c echo.Context) error {
 func (u *UserHandler) GetByUsername(c echo.Context) error {
 	ctx := c.Request().Context()
 	uname := c.Param("uname")
-	user, err := u.UUsecase.GetByUsername(ctx, uname)
-	if err != nil {
-		errBody := dtos.NewErrDto(err.Error())
-		return c.JSON(http.StatusNotFound, errBody)
+	user, rErr := u.UUsecase.GetByUsername(ctx, uname)
+	if rErr != nil {
+		errBody := dtos.NewErrDto(rErr.Error())
+		return c.JSON(rErr.GetStatus(), errBody)
 	}
 
 	return c.JSON(http.StatusOK, user)
@@ -78,11 +78,11 @@ func (u *UserHandler) Store(c echo.Context) (err error) {
 	}
 
 	ctx := c.Request().Context()
-	err = u.UUsecase.Store(ctx, &user)
-	if err != nil {
+	rErr := u.UUsecase.Store(ctx, &user)
+	if rErr != nil {
 		domain.AgLog.Error("Could not store user: ", err)
-		errBody := dtos.NewErrDto(err.Error())
-		return c.JSON(http.StatusNotAcceptable, errBody)
+		errBody := dtos.NewErrDto(rErr.Error())
+		return c.JSON(rErr.GetStatus(), errBody)
 	}
 
 	return c.JSON(http.StatusCreated, user)
@@ -91,11 +91,11 @@ func (u *UserHandler) Store(c echo.Context) (err error) {
 func (u *UserHandler) Delete(c echo.Context) error {
 	ctx := c.Request().Context()
 	uname := c.Param("uname")
-	err := u.UUsecase.Delete(ctx, uname)
-	if err != nil {
+	rErr := u.UUsecase.Delete(ctx, uname)
+	if rErr != nil {
 		domain.AgLog.Error("Could not delete user")
-		errBody := dtos.NewErrDto(err.Error())
-		return c.JSON(http.StatusNotFound, errBody)
+		errBody := dtos.NewErrDto(rErr.Error())
+		return c.JSON(rErr.GetStatus(), errBody)
 	}
 
 	return c.NoContent(http.StatusOK)
@@ -119,11 +119,11 @@ func (u *UserHandler) Login(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, errBody)
 	}
 
-	user, err := u.UUsecase.Login(ctx, lDto.Username, lDto.Password)
-	if err != nil {
+	user, rErr := u.UUsecase.Login(ctx, lDto.Username, lDto.Password)
+	if rErr != nil {
 		domain.AgLog.Error("Login failed")
 		errBody := dtos.NewErrDto("Wrong username or password")
-		return c.JSON(http.StatusNotFound, errBody)
+		return c.JSON(rErr.GetStatus(), errBody)
 	}
 
 	return c.JSON(http.StatusOK, user)
@@ -146,10 +146,6 @@ func (u *UserHandler) Update(c echo.Context) error {
 			errValid := dtos.NewErrDto(fmt.Sprint("Req body validation failed: ", err))
 			return c.JSON(http.StatusBadRequest, errValid)
 		}
-		/* TODO: Add custom errors to diferentiate error response status
-		* 404: User not found, role not found, state not found
-		* 406: Email taken
-		 */
 		return c.JSON(http.StatusBadRequest, errBody)
 	}
 
@@ -161,10 +157,10 @@ func (u *UserHandler) Update(c echo.Context) error {
 		State:    domain.UserState{Description: uUpDto.State},
 	}
 
-	err = u.UUsecase.Update(ctx, uname, &user)
-	if err != nil {
-		errBody := dtos.NewErrDto(err.Error())
-		return c.JSON(http.StatusNotAcceptable, errBody)
+	rErr := u.UUsecase.Update(ctx, uname, &user)
+	if rErr != nil {
+		errBody := dtos.NewErrDto(rErr.Error())
+		return c.JSON(rErr.GetStatus(), errBody)
 	}
 
 	return c.NoContent(http.StatusOK)

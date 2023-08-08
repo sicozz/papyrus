@@ -1,6 +1,8 @@
 package domain
 
-import "errors"
+import (
+	"errors"
+)
 
 var (
 	// ErrInternalServerError will throw if any the Internal Server Error happen
@@ -12,3 +14,25 @@ var (
 	// ErrBadParamInput will throw if the given request-body or params is not valid
 	ErrBadParamInput = errors.New("given Param is not valid")
 )
+
+type RequestErr interface {
+	GetStatus() int
+	error
+}
+
+type uCaseErr struct {
+	Status int
+	Err    error
+}
+
+func (u uCaseErr) GetStatus() int {
+	return u.Status
+}
+
+func (u uCaseErr) Error() string {
+	return u.Err.Error()
+}
+
+func NewUCaseErr(status int, err error) uCaseErr {
+	return uCaseErr{status, err}
+}

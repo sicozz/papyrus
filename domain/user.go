@@ -16,15 +16,15 @@ type User struct {
 
 // UserUsecase represents the user's usecases
 type UserUsecase interface {
-	Fetch(c context.Context) ([]User, error)
+	Fetch(c context.Context) ([]User, RequestErr)
 	// GetByUuid(c context.Context, uuid string) (User, error)
 	// GetByEmail(c context.Context, email string) (User, error)
-	GetByUsername(c context.Context, uname string) (User, error)
+	GetByUsername(c context.Context, uname string) (User, RequestErr)
 	// Update(c context.Context, u *User) error
-	Store(c context.Context, u *User) error
-	Delete(c context.Context, uname string) error
-	Login(c context.Context, uname string, passwd string) (User, error)
-	Update(c context.Context, uname string, uUp *User) error
+	Store(c context.Context, u *User) RequestErr
+	Delete(c context.Context, uname string) RequestErr
+	Login(c context.Context, uname string, passwd string) (User, RequestErr)
+	Update(c context.Context, uname string, uUp *User) RequestErr
 }
 
 // UserRepository represents the user's repository contract

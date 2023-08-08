@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/sicozz/papyrus/domain"
@@ -73,37 +74,44 @@ func NewUserUsecase(ur domain.UserRepository, rr domain.RoleRepository, usr doma
 	}
 }
 
-func (u *userUsecase) Fetch(c context.Context) (res []domain.User, err error) {
+func (u *userUsecase) Fetch(c context.Context) (res []domain.User, rErr domain.RequestErr) {
 	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
 	defer cancel()
 
-	res, err = u.userRepo.Fetch(ctx)
+	res, err := u.userRepo.Fetch(ctx)
 	if err != nil {
 		domain.AgLog.Error("Error inside Fetch function")
+		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+		return
 	}
 
 	err = u.fillUserDetails(ctx, res)
 	if err != nil {
 		domain.AgLog.Error("Error filling user details")
+		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+		return
 	}
+
 	return
 }
 
-func (u *userUsecase) GetByUsername(c context.Context, uname string) (res domain.User, err error) {
+func (u *userUsecase) GetByUsername(c context.Context, uname string) (res domain.User, rErr domain.RequestErr) {
 	// Refactor filluserdetails
 	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
 	defer cancel()
 
 	if exists := u.userRepo.ExistByUname(ctx, uname); !exists {
-		err = errors.New(fmt.Sprint("User not found. username: ", uname))
+		err := errors.New(fmt.Sprint("User not found. username: ", uname))
+		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
 		return
 	}
 
-	res, err = u.userRepo.GetByUsername(ctx, uname)
+	res, err := u.userRepo.GetByUsername(ctx, uname)
 	if err != nil {
 		domain.AgLog.Error("Error inside Fetch function", err)
 		err = errors.New(fmt.Sprint("User fetch failed. username: ", uname))
-		return domain.User{}, err
+		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
+		return domain.User{}, rErr
 	}
 
 	resArr := make([]domain.User, 1)
@@ -112,36 +120,40 @@ func (u *userUsecase) GetByUsername(c context.Context, uname string) (res domain
 	res = resArr[0]
 	if err != nil {
 		domain.AgLog.Error("Error filling user details")
+		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+		return
 	}
 	return
 }
 
-func (u *userUsecase) Store(c context.Context, user *domain.User) (err error) {
+func (u *userUsecase) Store(c context.Context, user *domain.User) (rErr domain.RequestErr) {
 	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
 	defer cancel()
 
 	if exists := u.userRepo.ExistByUname(ctx, user.Username); exists {
-		err = errors.New("Username already taken")
+		err := errors.New("Username already taken")
+		rErr = domain.NewUCaseErr(http.StatusConflict, err)
 		return
 	}
 
 	if exists := u.userRepo.ExistByEmail(ctx, user.Email); exists {
-		err = errors.New("Email already taken")
+		err := errors.New("Email already taken")
+		rErr = domain.NewUCaseErr(http.StatusConflict, err)
 		return
 	}
 
 	r, err := u.roleRepo.GetByDescription(ctx, defRoleDesc)
 	if err != nil {
-		domain.AgLog.Error("Could not find default role.", err)
 		err = errors.New("Base role fetch failed")
+		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
 		return
 	}
 	user.Role = r
 
 	s, err := u.userStateRepo.GetByDescription(ctx, defUserStateDesc)
 	if err != nil {
-		domain.AgLog.Error("Base state fetch failed", err)
 		err = errors.New("Base role fetch failed")
+		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
 		return
 	}
 	user.State = s
@@ -150,89 +162,112 @@ func (u *userUsecase) Store(c context.Context, user *domain.User) (err error) {
 	return
 }
 
-func (u *userUsecase) Delete(c context.Context, uname string) (err error) {
+func (u *userUsecase) Delete(c context.Context, uname string) (rErr domain.RequestErr) {
 	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
 	defer cancel()
 
 	if exists := u.userRepo.ExistByUname(ctx, uname); !exists {
-		err = errors.New(fmt.Sprint("User not found. username: ", uname))
+		err := errors.New(fmt.Sprint("User not found. username: ", uname))
+		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
 		return
 	}
 
-	err = u.userRepo.Delete(ctx, uname)
+	err := u.userRepo.Delete(ctx, uname)
 	if err != nil {
 		domain.AgLog.Error("User deletion failed. username: ", uname)
+		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+		return
 	}
 
 	return
 }
 
-func (u *userUsecase) Update(c context.Context, uname string, uUp *domain.User) (err error) {
+func (u *userUsecase) Update(c context.Context, uname string, uUp *domain.User) (rErr domain.RequestErr) {
 	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
 	defer cancel()
 
+	if exists := u.userRepo.ExistByUname(ctx, uname); !exists {
+		err := errors.New(fmt.Sprint("User not found. username: ", uname))
+		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
+		return
+	}
+
 	if uUp.Email != "" {
 		if taken := u.userRepo.ExistByEmail(ctx, uUp.Email); taken {
-			err = errors.New("Email already taken")
+			err := errors.New("Email already taken")
+			rErr = domain.NewUCaseErr(http.StatusConflict, err)
 			return
 		}
-		err = u.userRepo.ChgEmail(ctx, uname, uUp.Email)
+		err := u.userRepo.ChgEmail(ctx, uname, uUp.Email)
 		if err != nil {
-			return errors.New(fmt.Sprint("User patch failed: ", err))
+			err = errors.New(fmt.Sprint("User patch failed: ", err))
+			rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+			return
 		}
 	}
 
 	if uUp.Name != "" {
-		err = u.userRepo.ChgName(ctx, uname, uUp.Name)
+		err := u.userRepo.ChgName(ctx, uname, uUp.Name)
 		if err != nil {
-			return errors.New(fmt.Sprint("User patch failed: ", err))
+			err = errors.New(fmt.Sprint("User patch failed: ", err))
+			rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+			return
 		}
 	}
 
 	if uUp.Lastname != "" {
-		err = u.userRepo.ChgLstname(ctx, uname, uUp.Lastname)
+		err := u.userRepo.ChgLstname(ctx, uname, uUp.Lastname)
 		if err != nil {
-			return errors.New(fmt.Sprint("User patch failed: ", err))
+			err = errors.New(fmt.Sprint("User patch failed: ", err))
+			rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+			return
 		}
 	}
 
 	if uUp.Role.Description != "" {
-		r, rErr := u.roleRepo.GetByDescription(ctx, uUp.Role.Description)
-		if rErr != nil {
-			domain.AgLog.Error("Role not found: ", rErr)
-			return errors.New(fmt.Sprint("Role not found"))
+		r, err := u.roleRepo.GetByDescription(ctx, uUp.Role.Description)
+		if err != nil {
+			domain.AgLog.Error("Role not found: ", err)
+			err = errors.New(fmt.Sprint("Role not found"))
+			rErr = domain.NewUCaseErr(http.StatusNotFound, err)
+			return
 		}
-
 		err = u.userRepo.ChgRole(ctx, uname, r)
 		if err != nil {
-			return errors.New(fmt.Sprint("User patch failed: ", err))
+			err = errors.New(fmt.Sprint("User patch failed: ", err))
+			rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+			return
 		}
 	}
 
 	if uUp.State.Description != "" {
-		s, sErr := u.userStateRepo.GetByDescription(ctx, uUp.State.Description)
-		if sErr != nil {
-			domain.AgLog.Error("User_state not found", sErr)
-			return errors.New(fmt.Sprint("User_state not found"))
+		s, err := u.userStateRepo.GetByDescription(ctx, uUp.State.Description)
+		if err != nil {
+			domain.AgLog.Error("User_state not found", err)
+			err = errors.New(fmt.Sprint("User_state not found"))
+			rErr = domain.NewUCaseErr(http.StatusNotFound, err)
 		}
 
 		err = u.userRepo.ChgState(ctx, uname, s)
 		if err != nil {
-			return errors.New(fmt.Sprint("User patch failed: ", err))
+			err = errors.New(fmt.Sprint("User patch failed: ", err))
+			rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+			return
 		}
 	}
 
 	return
 }
 
-func (u *userUsecase) Login(c context.Context, uname string, passwd string) (res domain.User, err error) {
+func (u *userUsecase) Login(c context.Context, uname string, passwd string) (res domain.User, rErr domain.RequestErr) {
 	// Refactor flluserdetails
 	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
 	defer cancel()
 
-	res, err = u.userRepo.Login(ctx, uname, passwd)
+	res, err := u.userRepo.Login(ctx, uname, passwd)
 	if err != nil {
 		domain.AgLog.Error("Error inside Login function")
+		rErr = domain.NewUCaseErr(http.StatusUnauthorized, err)
 		return
 	}
 
@@ -242,6 +277,8 @@ func (u *userUsecase) Login(c context.Context, uname string, passwd string) (res
 	res = resArr[0]
 	if err != nil {
 		domain.AgLog.Error("Error filling user details")
+		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+		return
 	}
 	return
 }

@@ -7,28 +7,32 @@ import (
 	"fmt"
 
 	"github.com/sicozz/papyrus/domain"
+	"github.com/sicozz/papyrus/utils"
+	"github.com/sicozz/papyrus/utils/constants"
 )
 
 type postgresUserRepository struct {
 	Conn *sql.DB
+	log  utils.AggregatedLogger
 }
 
 // NewPostgresUserRepository will create an object that represent the UserRepository interface
 func NewPostgresUserRepository(conn *sql.DB) domain.UserRepository {
-	return &postgresUserRepository{conn}
+	logger := utils.NewAggregatedLogger(constants.Repository, constants.User)
+	return &postgresUserRepository{conn, logger}
 }
 
 func (r *postgresUserRepository) fetch(ctx context.Context, query string, args ...interface{}) (res []domain.User, err error) {
 	rows, err := r.Conn.QueryContext(ctx, query, args...)
 	if err != nil {
-		domain.AgLog.Error(err)
+		r.log.Error(err)
 		return nil, err
 	}
 
 	defer func() {
 		errRow := rows.Close()
 		if errRow != nil {
-			domain.AgLog.Error(errRow)
+			r.log.Error(errRow)
 		}
 	}()
 
@@ -50,7 +54,7 @@ func (r *postgresUserRepository) fetch(ctx context.Context, query string, args .
 		)
 
 		if err != nil {
-			domain.AgLog.Error(err)
+			r.log.Error(err)
 			return nil, err
 		}
 		t.Role = domain.Role{
@@ -114,7 +118,7 @@ func (r *postgresUserRepository) ExistByUname(ctx context.Context, uname string)
 	query := `SELECT COUNT(*) > 0 FROM user_ WHERE username = $1`
 	stmt, err := r.Conn.PrepareContext(ctx, query)
 	if err != nil {
-		domain.AgLog.Error("Context preparation failed", err)
+		r.log.Error("Context preparation failed", err)
 		return
 	}
 	defer stmt.Close()
@@ -129,7 +133,7 @@ func (r *postgresUserRepository) ExistByEmail(ctx context.Context, email string)
 	query := `SELECT COUNT(*) > 0 FROM user_ WHERE email = $1`
 	stmt, err := r.Conn.PrepareContext(ctx, query)
 	if err != nil {
-		domain.AgLog.Error("Context preparation failed", err)
+		r.log.Error("Context preparation failed", err)
 		return
 	}
 	defer stmt.Close()
@@ -147,7 +151,7 @@ func (r *postgresUserRepository) Store(ctx context.Context, u *domain.User) (err
 		RETURNING uuid`
 	stmt, err := r.Conn.PrepareContext(ctx, query)
 	if err != nil {
-		domain.AgLog.Error(err)
+		r.log.Error(err)
 		return
 	}
 	defer stmt.Close()
@@ -171,7 +175,7 @@ func (r *postgresUserRepository) Delete(ctx context.Context, uname string) (err 
 	query := `DELETE FROM user_ WHERE username=$1 RETURNING uuid`
 	stmt, err := r.Conn.PrepareContext(ctx, query)
 	if err != nil {
-		domain.AgLog.Error(err)
+		r.log.Error(err)
 		return
 	}
 	defer stmt.Close()

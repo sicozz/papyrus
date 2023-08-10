@@ -7,10 +7,13 @@ import (
 	"fmt"
 
 	"github.com/sicozz/papyrus/domain"
+	"github.com/sicozz/papyrus/utils"
+	"github.com/sicozz/papyrus/utils/constants"
 )
 
 type postgresUserStateRepository struct {
 	Conn *sql.DB
+	log  utils.AggregatedLogger
 }
 
 /*
@@ -18,20 +21,21 @@ type postgresUserStateRepository struct {
 * UserStateRepository interface
  */
 func NewPostgresUserStateRepository(conn *sql.DB) domain.UserStateRepository {
-	return &postgresUserStateRepository{conn}
+	logger := utils.NewAggregatedLogger(constants.Repository, constants.UserState)
+	return &postgresUserStateRepository{conn, logger}
 }
 
 func (r *postgresUserStateRepository) fetch(ctx context.Context, query string, args ...interface{}) (res []domain.UserState, err error) {
 	rows, err := r.Conn.QueryContext(ctx, query, args...)
 	if err != nil {
-		domain.AgLog.Error(err)
+		r.log.Error(err)
 		return nil, err
 	}
 
 	defer func() {
 		errRow := rows.Close()
 		if errRow != nil {
-			domain.AgLog.Error(errRow)
+			r.log.Error(errRow)
 		}
 	}()
 
@@ -45,7 +49,7 @@ func (r *postgresUserStateRepository) fetch(ctx context.Context, query string, a
 		)
 
 		if err != nil {
-			domain.AgLog.Error(err)
+			r.log.Error(err)
 			return nil, err
 		}
 		res = append(res, t)
@@ -58,12 +62,12 @@ func (r *postgresUserStateRepository) GetByCode(ctx context.Context, code int64)
 	query := `SELECT code, description FROM user_state WHERE code=$1`
 	states, err := r.fetch(ctx, query, code)
 	if err != nil {
-		domain.AgLog.Error(err)
+		r.log.Error(err)
 		return domain.UserState{}, err
 	}
 
 	if l := len(states); l != 1 {
-		domain.AgLog.Error("Could not find user_state with code: ", code)
+		r.log.Error("Could not find user_state with code: ", code)
 		return domain.UserState{}, err
 	}
 
@@ -75,12 +79,12 @@ func (r *postgresUserStateRepository) GetByDescription(ctx context.Context, desc
 	query := `SELECT code, description FROM user_state WHERE description=$1`
 	states, err := r.fetch(ctx, query, desc)
 	if err != nil {
-		domain.AgLog.Error(err)
+		r.log.Error(err)
 		return domain.UserState{}, err
 	}
 
 	if l := len(states); l != 1 {
-		domain.AgLog.Error("Could not find user_state with description: ", desc)
+		r.log.Error("Could not find user_state with description: ", desc)
 		err = errors.New(fmt.Sprint("No user__state with description: ", desc))
 		return domain.UserState{}, err
 	}

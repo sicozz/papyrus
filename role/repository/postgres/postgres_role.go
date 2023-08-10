@@ -7,10 +7,13 @@ import (
 	"fmt"
 
 	"github.com/sicozz/papyrus/domain"
+	"github.com/sicozz/papyrus/utils"
+	"github.com/sicozz/papyrus/utils/constants"
 )
 
 type postgresRoleRepository struct {
 	Conn *sql.DB
+	log  utils.AggregatedLogger
 }
 
 /*
@@ -18,20 +21,22 @@ type postgresRoleRepository struct {
 * RoleRepository interface
  */
 func NewPostgresRoleRepository(conn *sql.DB) domain.RoleRepository {
-	return &postgresRoleRepository{conn}
+	// TODO: Add layer enum and domain enum in utils package
+	logger := utils.NewAggregatedLogger(constants.Repository, constants.Role)
+	return &postgresRoleRepository{conn, logger}
 }
 
 func (r *postgresRoleRepository) fetch(ctx context.Context, query string, args ...interface{}) (res []domain.Role, err error) {
 	rows, err := r.Conn.QueryContext(ctx, query, args...)
 	if err != nil {
-		domain.AgLog.Error(err)
+		r.log.Error(err)
 		return nil, err
 	}
 
 	defer func() {
 		errRow := rows.Close()
 		if errRow != nil {
-			domain.AgLog.Error(errRow)
+			r.log.Error(errRow)
 		}
 	}()
 
@@ -45,7 +50,7 @@ func (r *postgresRoleRepository) fetch(ctx context.Context, query string, args .
 		)
 
 		if err != nil {
-			domain.AgLog.Error(err)
+			r.log.Error(err)
 			return nil, err
 		}
 		res = append(res, t)
@@ -58,12 +63,12 @@ func (r *postgresRoleRepository) GetByCode(ctx context.Context, code int64) (res
 	query := `SELECT code, description FROM role WHERE code=$1`
 	roles, err := r.fetch(ctx, query, code)
 	if err != nil {
-		domain.AgLog.Error(err)
+		r.log.Error(err)
 		return domain.Role{}, err
 	}
 
 	if l := len(roles); l != 1 {
-		domain.AgLog.Error("Could not find role with code:", code)
+		r.log.Error("Could not find role with code:", code)
 		return domain.Role{}, err
 	}
 
@@ -75,12 +80,12 @@ func (r *postgresRoleRepository) GetByDescription(ctx context.Context, desc stri
 	query := `SELECT code, description FROM role WHERE description=$1`
 	roles, err := r.fetch(ctx, query, desc)
 	if err != nil {
-		domain.AgLog.Error(err)
+		r.log.Error(err)
 		return domain.Role{}, err
 	}
 
 	if l := len(roles); l != 1 {
-		domain.AgLog.Error("Could not find role with description:", desc)
+		r.log.Error("Could not find role with description:", desc)
 		err = errors.New(fmt.Sprint("No role with description: ", desc))
 		return domain.Role{}, err
 	}

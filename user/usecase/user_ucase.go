@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"github.com/sicozz/papyrus/domain"
+	"github.com/sicozz/papyrus/utils"
+	"github.com/sicozz/papyrus/utils/constants"
 )
 
 const (
@@ -20,6 +22,19 @@ type userUsecase struct {
 	roleRepo       domain.RoleRepository
 	userStateRepo  domain.UserStateRepository
 	contextTimeout time.Duration
+	log            utils.AggregatedLogger
+}
+
+// NewUserUsecase will create a new userUsecase object representation of domain.UserUsecase interface
+func NewUserUsecase(ur domain.UserRepository, rr domain.RoleRepository, usr domain.UserStateRepository, timeout time.Duration) domain.UserUsecase {
+	logger := utils.NewAggregatedLogger(constants.Usecase, constants.User)
+	return &userUsecase{
+		userRepo:       ur,
+		roleRepo:       rr,
+		userStateRepo:  usr,
+		contextTimeout: timeout,
+		log:            logger,
+	}
 }
 
 /*
@@ -31,7 +46,7 @@ func (u *userUsecase) fillUserDetails(ctx context.Context, users []domain.User) 
 	// get roles
 	roles, err := u.roleRepo.GetAll(ctx)
 	if err != nil {
-		domain.AgLog.Error("Could not get roles to fill user details", err)
+		u.log.Error("Could not get roles to fill user details", err)
 	}
 
 	mapRoles := map[int64]domain.Role{}
@@ -42,7 +57,7 @@ func (u *userUsecase) fillUserDetails(ctx context.Context, users []domain.User) 
 	// get user_states
 	states, err := u.userStateRepo.GetAll(ctx)
 	if err != nil {
-		domain.AgLog.Error("Could not get user_states to fill user details", err)
+		u.log.Error("Could not get user_states to fill user details", err)
 	}
 
 	mapStates := map[int64]domain.UserState{}
@@ -64,30 +79,20 @@ func (u *userUsecase) fillUserDetails(ctx context.Context, users []domain.User) 
 	return
 }
 
-// NewUserUsecase will create a new userUsecase object representation of domain.UserUsecase interface
-func NewUserUsecase(ur domain.UserRepository, rr domain.RoleRepository, usr domain.UserStateRepository, timeout time.Duration) domain.UserUsecase {
-	return &userUsecase{
-		userRepo:       ur,
-		roleRepo:       rr,
-		userStateRepo:  usr,
-		contextTimeout: timeout,
-	}
-}
-
 func (u *userUsecase) Fetch(c context.Context) (res []domain.User, rErr domain.RequestErr) {
 	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
 	defer cancel()
 
 	res, err := u.userRepo.Fetch(ctx)
 	if err != nil {
-		domain.AgLog.Error("Error inside Fetch function")
+		u.log.Error("Error inside Fetch function")
 		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
 		return
 	}
 
 	err = u.fillUserDetails(ctx, res)
 	if err != nil {
-		domain.AgLog.Error("Error filling user details")
+		u.log.Error("Error filling user details")
 		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
 		return
 	}
@@ -108,7 +113,7 @@ func (u *userUsecase) GetByUsername(c context.Context, uname string) (res domain
 
 	res, err := u.userRepo.GetByUsername(ctx, uname)
 	if err != nil {
-		domain.AgLog.Error("Error inside Fetch function", err)
+		u.log.Error("Error inside Fetch function", err)
 		err = errors.New(fmt.Sprint("User fetch failed. username: ", uname))
 		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
 		return domain.User{}, rErr
@@ -119,7 +124,7 @@ func (u *userUsecase) GetByUsername(c context.Context, uname string) (res domain
 	err = u.fillUserDetails(ctx, resArr)
 	res = resArr[0]
 	if err != nil {
-		domain.AgLog.Error("Error filling user details")
+		u.log.Error("Error filling user details")
 		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
 		return
 	}
@@ -174,7 +179,7 @@ func (u *userUsecase) Delete(c context.Context, uname string) (rErr domain.Reque
 
 	err := u.userRepo.Delete(ctx, uname)
 	if err != nil {
-		domain.AgLog.Error("User deletion failed. username: ", uname)
+		u.log.Error("User deletion failed. username: ", uname)
 		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
 		return
 	}
@@ -193,11 +198,6 @@ func (u *userUsecase) Update(c context.Context, uname string, uUp *domain.User) 
 	}
 
 	if uUp.Email != "" {
-		if taken := u.userRepo.ExistByEmail(ctx, uUp.Email); taken {
-			err := errors.New("Email already taken")
-			rErr = domain.NewUCaseErr(http.StatusConflict, err)
-			return
-		}
 		err := u.userRepo.ChgEmail(ctx, uname, uUp.Email)
 		if err != nil {
 			err = errors.New(fmt.Sprint("User patch failed: ", err))
@@ -227,7 +227,7 @@ func (u *userUsecase) Update(c context.Context, uname string, uUp *domain.User) 
 	if uUp.Role.Description != "" {
 		r, err := u.roleRepo.GetByDescription(ctx, uUp.Role.Description)
 		if err != nil {
-			domain.AgLog.Error("Role not found: ", err)
+			u.log.Error("Role not found: ", err)
 			err = errors.New(fmt.Sprint("Role not found"))
 			rErr = domain.NewUCaseErr(http.StatusNotFound, err)
 			return
@@ -243,7 +243,7 @@ func (u *userUsecase) Update(c context.Context, uname string, uUp *domain.User) 
 	if uUp.State.Description != "" {
 		s, err := u.userStateRepo.GetByDescription(ctx, uUp.State.Description)
 		if err != nil {
-			domain.AgLog.Error("User_state not found", err)
+			u.log.Error("User_state not found", err)
 			err = errors.New(fmt.Sprint("User_state not found"))
 			rErr = domain.NewUCaseErr(http.StatusNotFound, err)
 		}
@@ -266,7 +266,7 @@ func (u *userUsecase) Login(c context.Context, uname string, passwd string) (res
 
 	res, err := u.userRepo.Login(ctx, uname, passwd)
 	if err != nil {
-		domain.AgLog.Error("Error inside Login function")
+		u.log.Error("Error inside Login function")
 		rErr = domain.NewUCaseErr(http.StatusUnauthorized, err)
 		return
 	}
@@ -276,7 +276,7 @@ func (u *userUsecase) Login(c context.Context, uname string, passwd string) (res
 	err = u.fillUserDetails(ctx, resArr)
 	res = resArr[0]
 	if err != nil {
-		domain.AgLog.Error("Error filling user details")
+		u.log.Error("Error filling user details")
 		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
 		return
 	}

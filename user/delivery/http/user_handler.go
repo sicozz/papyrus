@@ -7,18 +7,20 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/sicozz/papyrus/domain"
 	"github.com/sicozz/papyrus/domain/dtos"
+	"github.com/sicozz/papyrus/utils"
+	"github.com/sicozz/papyrus/utils/constants"
 	"gopkg.in/go-playground/validator.v9"
 )
 
 // UserHandler will initialize the users/ resources endpoint
 type UserHandler struct {
 	UUsecase domain.UserUsecase
+	log      utils.AggregatedLogger
 }
 
 func NewUserHandler(e *echo.Echo, us domain.UserUsecase) {
-	handler := &UserHandler{
-		UUsecase: us,
-	}
+	logger := utils.NewAggregatedLogger(constants.Delivery, constants.User)
+	handler := &UserHandler{us, logger}
 	e.GET("/user", handler.Fetch)
 	e.POST("/user", handler.Store)
 	e.GET("/user/:uname", handler.GetByUsername)
@@ -37,10 +39,12 @@ func isRequestValid(u any) (bool, error) {
 }
 
 func (u *UserHandler) Fetch(c echo.Context) error {
+	u.log.Info("Hello! I'm your new ag-inf-log")
+	// TODO: Rename this ref (u) to (h) of handler
 	ctx := c.Request().Context()
 	users, rErr := u.UUsecase.Fetch(ctx)
 	if rErr != nil {
-		domain.AgLog.Error("[failure] users fetch")
+		u.log.Error("[failure] users fetch")
 		errBody := dtos.NewErrDto("User fetch failed")
 		return c.JSON(rErr.GetStatus(), errBody)
 	}
@@ -80,7 +84,7 @@ func (u *UserHandler) Store(c echo.Context) (err error) {
 	ctx := c.Request().Context()
 	rErr := u.UUsecase.Store(ctx, &user)
 	if rErr != nil {
-		domain.AgLog.Error("Could not store user: ", err)
+		u.log.Error("Could not store user: ", err)
 		errBody := dtos.NewErrDto(rErr.Error())
 		return c.JSON(rErr.GetStatus(), errBody)
 	}
@@ -93,7 +97,7 @@ func (u *UserHandler) Delete(c echo.Context) error {
 	uname := c.Param("uname")
 	rErr := u.UUsecase.Delete(ctx, uname)
 	if rErr != nil {
-		domain.AgLog.Error("Could not delete user")
+		u.log.Error("Could not delete user")
 		errBody := dtos.NewErrDto(rErr.Error())
 		return c.JSON(rErr.GetStatus(), errBody)
 	}
@@ -121,7 +125,7 @@ func (u *UserHandler) Login(c echo.Context) error {
 
 	user, rErr := u.UUsecase.Login(ctx, lDto.Username, lDto.Password)
 	if rErr != nil {
-		domain.AgLog.Error("Login failed")
+		u.log.Error("Login failed")
 		errBody := dtos.NewErrDto("Wrong username or password")
 		return c.JSON(rErr.GetStatus(), errBody)
 	}

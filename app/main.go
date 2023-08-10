@@ -79,4 +79,11 @@ func main() {
 	* TODO: - Add unit testing for everything created
 	* TODO: - Add logs and make them good (change log flags)
 	**/
+	/**
+	* TODO: Add field to dir: number of children
+	* This is meant to cache the number of children and it will reduce the
+	* computational cost
+	* TODO: Add field to dir: path
+	* Same as the last one, cache to improve computation
+	 */
 }

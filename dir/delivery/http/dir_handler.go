@@ -1,6 +1,7 @@
 package http
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
@@ -8,8 +9,10 @@ import (
 	"github.com/sicozz/papyrus/domain/dtos"
 	"github.com/sicozz/papyrus/utils"
 	"github.com/sicozz/papyrus/utils/constants"
+	"gopkg.in/go-playground/validator.v9"
 )
 
+// TODO: Sort functions by endpoint order
 // DirHandler will initialize the dir/ resources endpoint
 type DirHandler struct {
 	DUsecase domain.DirUsecase
@@ -20,11 +23,20 @@ func NewDirHandler(e *echo.Echo, du domain.DirUsecase) {
 	logger := utils.NewAggregatedLogger(constants.Delivery, constants.Dir)
 	handler := &DirHandler{du, logger}
 	e.GET("/dir", handler.GetAll)
-	// e.POST("/dir", handler.Store)
-	// e.PATCH("/dir", handler.Update)
-	// e.DELETE("/dir/:uuid", handler.Delete)
-	// e.GET("/dir/:uuid", handler.GetByUuid)
-	// e.PATCH("/dir/:uuid/move", handler.Move)
+	e.POST("/dir", handler.Store)
+	e.PATCH("/dir/:uuid", handler.Update)
+	e.GET("/dir/:uuid", handler.GetByUuid)
+	e.DELETE("/dir/:uuid", handler.Delete)
+	e.PATCH("/dir/:uuid/move", handler.Move)
+}
+
+func isRequestValid(p any) (bool, error) {
+	validate := validator.New()
+	err := validate.Struct(p)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 func (h *DirHandler) GetAll(c echo.Context) error {
@@ -38,4 +50,128 @@ func (h *DirHandler) GetAll(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, dirs)
+}
+
+func (h *DirHandler) GetByUuid(c echo.Context) error {
+	// TODO: VALIDATE uuid string compliance with uuid syntax
+	h.log.Inf("REQ: get by uuid")
+	ctx := c.Request().Context()
+	uuid := c.Param("uuid")
+	dir, rErr := h.DUsecase.GetByUuid(ctx, uuid)
+
+	if rErr != nil {
+		errBody := dtos.NewErrDto("Dir fetch failed")
+		return c.JSON(rErr.GetStatus(), errBody)
+	}
+
+	return c.JSON(http.StatusOK, dir)
+}
+
+func (h *DirHandler) Store(c echo.Context) (err error) {
+	h.log.Inf("REQ: store")
+	var dir domain.Dir
+	err = c.Bind(&dir)
+	if err != nil {
+		errBody := dtos.NewErrDto(err.Error())
+		return c.JSON(http.StatusBadRequest, errBody)
+	}
+
+	if ok, err := isRequestValid(&dir); !ok {
+		errBody, err := dtos.NewValidationErrDto(err.Error())
+		if err != nil {
+			errParse := dtos.NewErrDto(err.Error())
+			return c.JSON(http.StatusBadRequest, errParse)
+		}
+		return c.JSON(http.StatusBadRequest, errBody)
+	}
+
+	ctx := c.Request().Context()
+	rErr := h.DUsecase.Store(ctx, &dir)
+	if rErr != nil {
+		errBody := dtos.NewErrDto(rErr.Error())
+		return c.JSON(rErr.GetStatus(), errBody)
+	}
+
+	return c.JSON(http.StatusCreated, dir)
+}
+
+func (h *DirHandler) Update(c echo.Context) error {
+	h.log.Inf("REQ: update")
+	ctx := c.Request().Context()
+	uuid := c.Param("uuid")
+
+	// TODO: Change domain entities recvrs for dedicated dtos EVERYWHERE!
+	var dUpDto dtos.DirUpdateDto
+	err := c.Bind(&dUpDto)
+	if err != nil {
+		errBody := dtos.NewErrDto(fmt.Sprint("Req body binding failed: ", err))
+		return c.JSON(http.StatusBadRequest, errBody)
+	}
+
+	if ok, err := isRequestValid(&dUpDto); !ok {
+		errBody, err := dtos.NewValidationErrDto(err.Error())
+		if err != nil {
+			errValid := dtos.NewErrDto(fmt.Sprint("Req body validation failed: ", err))
+			return c.JSON(http.StatusBadRequest, errValid)
+		}
+		return c.JSON(http.StatusBadRequest, errBody)
+	}
+
+	dir := domain.Dir{
+		Name: dUpDto.Name,
+	}
+
+	rErr := h.DUsecase.Update(ctx, uuid, &dir)
+	if rErr != nil {
+		errBody := dtos.NewErrDto(rErr.Error())
+		return c.JSON(rErr.GetStatus(), errBody)
+	}
+
+	return c.NoContent(http.StatusOK)
+}
+
+func (h *DirHandler) Delete(c echo.Context) error {
+	h.log.Inf("REQ: delete")
+	// TODO: VALIDATE uuid string compliance with uuid syntax
+	ctx := c.Request().Context()
+	uuid := c.Param("uuid")
+	rErr := h.DUsecase.Delete(ctx, uuid)
+
+	if rErr != nil {
+		errBody := dtos.NewErrDto(rErr.Error())
+		return c.JSON(rErr.GetStatus(), errBody)
+	}
+
+	return c.NoContent(http.StatusOK)
+}
+
+func (h *DirHandler) Move(c echo.Context) error {
+	// WARN: Add validation to avoid ciclical references
+	h.log.Inf("REQ: move")
+	ctx := c.Request().Context()
+	uuid := c.Param("uuid")
+
+	var dMDto dtos.DirMoveDto
+	err := c.Bind(&dMDto)
+	if err != nil {
+		errBody := dtos.NewErrDto(fmt.Sprint("Req body binding failed: ", err))
+		return c.JSON(http.StatusBadRequest, errBody)
+	}
+
+	if ok, err := isRequestValid(&dMDto); !ok {
+		errBody, err := dtos.NewValidationErrDto(err.Error())
+		if err != nil {
+			errValid := dtos.NewErrDto(fmt.Sprint("Req body validation failed: ", err))
+			return c.JSON(http.StatusBadRequest, errValid)
+		}
+		return c.JSON(http.StatusBadRequest, errBody)
+	}
+
+	rErr := h.DUsecase.Move(ctx, uuid, dMDto.ParentDir)
+	if rErr != nil {
+		errBody := dtos.NewErrDto(rErr.Error())
+		return c.JSON(rErr.GetStatus(), errBody)
+	}
+
+	return c.NoContent(http.StatusOK)
 }

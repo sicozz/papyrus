@@ -164,6 +164,11 @@ func (u *userUsecase) Store(c context.Context, user *domain.User) (rErr domain.R
 	user.State = s
 
 	err = u.userRepo.Store(ctx, user)
+	if err != nil {
+		err = errors.New("User creation failed")
+		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+		return
+	}
 	return
 }
 

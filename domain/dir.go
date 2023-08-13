@@ -6,7 +6,7 @@ import "context"
 type Dir struct {
 	Uuid      string `json:"uuid"`
 	Name      string `json:"name" validate:"required,ascii"`
-	ParentDir string `json:"parent_dir" validate:"required,ascii"`
+	ParentDir string `json:"parent_dir" validate:"required,ascii,uuid"`
 	Path      string `json:"path"`
 	Nchild    int    `json:"nchild"`
 }
@@ -19,21 +19,23 @@ type DirUsecase interface {
 	 */
 	// TODO: Add root dir migration
 	GetAll(c context.Context) ([]Dir, RequestErr)
-	// GetByUuid(c context.Context, uuid string) (Dir, RequestErr)
-	// Store(c context.Context, d *Dir) RequestErr
-	// Update(c context.Context) RequestErr
-	// Delete(c context.Context) RequestErr
-	// Move(c context.Context) RequestErr
+	GetByUuid(c context.Context, uuid string) (Dir, RequestErr)
+	Store(c context.Context, d *Dir) RequestErr
+	Update(c context.Context, uuid string, dUp *Dir) RequestErr
+	Delete(c context.Context, uuid string) RequestErr
+	Move(c context.Context, uuid string, nPUuid string) RequestErr
 }
 
 // DirRepository represents the dir's repository contract
 type DirRepository interface {
 	GetAll(ctx context.Context) ([]Dir, error)
-	// GetByUuid(ctx context.Context, uuid string) (Dir, error)
-	// ExistsByUuid(ctx context.Context, uuid string) bool
+	GetByUuid(ctx context.Context, uuid string) (Dir, error)
+	ExistByUuid(ctx context.Context, uuid string) bool
 	// ExistsByName(ctx context.Context, name string) bool
-	// Store(ctx context.Context, d *Dir) error
-	// Delete(ctx context.Context, uuid string) error
-	// ChgName(ctx context.Context, uuid string, nName string) error
-	// ChgParentDir(ctx context.Context, uuid string, nPUuid string) error
+	Store(ctx context.Context, d *Dir) error
+	Delete(ctx context.Context, uuid string) error
+	ChgName(ctx context.Context, uuid string, nName string) error
+	ChgParentDir(ctx context.Context, uuid string, nPUuid string) error
+	IncNchild(ctx context.Context, uuid string, nNchild int) error
+	DecNchild(ctx context.Context, uuid string, nNchild int) error
 }

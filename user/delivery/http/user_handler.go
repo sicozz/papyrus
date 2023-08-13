@@ -96,6 +96,7 @@ func (h *UserHandler) Delete(c echo.Context) error {
 	ctx := c.Request().Context()
 	uname := c.Param("uname")
 	rErr := h.UUsecase.Delete(ctx, uname)
+
 	if rErr != nil {
 		errBody := dtos.NewErrDto(rErr.Error())
 		return c.JSON(rErr.GetStatus(), errBody)

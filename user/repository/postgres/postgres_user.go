@@ -166,6 +166,11 @@ func (r *postgresUserRepository) Store(ctx context.Context, u *domain.User) (err
 		u.State.Code,
 	).Scan(&u.Uuid)
 
+	if err != nil {
+		r.log.Err("IN [Store]: could not scan rows ->", err)
+		return
+	}
+
 	return
 }
 

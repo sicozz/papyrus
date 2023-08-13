@@ -12,16 +12,16 @@ import (
 	"gopkg.in/go-playground/validator.v9"
 )
 
-// UserHandler will initialize the users/ resources endpoint
+// UserHandler will initialize the user/ resources endpoint
 type UserHandler struct {
 	UUsecase domain.UserUsecase
 	log      utils.AggregatedLogger
 }
 
-func NewUserHandler(e *echo.Echo, us domain.UserUsecase) {
+func NewUserHandler(e *echo.Echo, uu domain.UserUsecase) {
 	logger := utils.NewAggregatedLogger(constants.Delivery, constants.User)
-	handler := &UserHandler{us, logger}
-	e.GET("/user", handler.Fetch)
+	handler := &UserHandler{uu, logger}
+	e.GET("/user", handler.GetAll)
 	e.POST("/user", handler.Store)
 	e.GET("/user/:uname", handler.GetByUsername)
 	e.DELETE("/user/:uname", handler.Delete)
@@ -38,10 +38,10 @@ func isRequestValid(u any) (bool, error) {
 	return true, nil
 }
 
-func (h *UserHandler) Fetch(c echo.Context) error {
-	h.log.Info("REQ: fetch")
+func (h *UserHandler) GetAll(c echo.Context) error {
+	h.log.Inf("REQ: get all")
 	ctx := c.Request().Context()
-	users, rErr := h.UUsecase.Fetch(ctx)
+	users, rErr := h.UUsecase.GetAll(ctx)
 	if rErr != nil {
 		errBody := dtos.NewErrDto("User fetch failed")
 		return c.JSON(rErr.GetStatus(), errBody)
@@ -51,7 +51,7 @@ func (h *UserHandler) Fetch(c echo.Context) error {
 }
 
 func (h *UserHandler) GetByUsername(c echo.Context) error {
-	h.log.Info("REQ: get by username")
+	h.log.Inf("REQ: get by username")
 	ctx := c.Request().Context()
 	uname := c.Param("uname")
 	user, rErr := h.UUsecase.GetByUsername(ctx, uname)
@@ -64,7 +64,7 @@ func (h *UserHandler) GetByUsername(c echo.Context) error {
 }
 
 func (h *UserHandler) Store(c echo.Context) (err error) {
-	h.log.Info("REQ: store")
+	h.log.Inf("REQ: store")
 	var user domain.User
 	err = c.Bind(&user)
 	if err != nil {
@@ -92,7 +92,7 @@ func (h *UserHandler) Store(c echo.Context) (err error) {
 }
 
 func (h *UserHandler) Delete(c echo.Context) error {
-	h.log.Info("REQ: delete")
+	h.log.Inf("REQ: delete")
 	ctx := c.Request().Context()
 	uname := c.Param("uname")
 	rErr := h.UUsecase.Delete(ctx, uname)
@@ -105,7 +105,7 @@ func (h *UserHandler) Delete(c echo.Context) error {
 }
 
 func (h *UserHandler) Login(c echo.Context) error {
-	h.log.Info("REQ: login")
+	h.log.Inf("REQ: login")
 	ctx := c.Request().Context()
 	var lDto dtos.LoginDto
 	err := c.Bind(&lDto)
@@ -133,7 +133,7 @@ func (h *UserHandler) Login(c echo.Context) error {
 }
 
 func (h *UserHandler) Update(c echo.Context) error {
-	h.log.Info("REQ: update")
+	h.log.Inf("REQ: update")
 	ctx := c.Request().Context()
 	uname := c.Param("uname")
 

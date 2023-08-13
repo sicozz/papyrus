@@ -2,7 +2,7 @@ package domain
 
 import "context"
 
-// User is representing the User data struct
+// User represents the User data struct
 type User struct {
 	Uuid     string    `json:"uuid"`
 	Username string    `json:"username" validate:"required,ascii"`
@@ -16,15 +16,15 @@ type User struct {
 
 // UserUsecase represents the user's usecases
 type UserUsecase interface {
-	Fetch(c context.Context) ([]User, RequestErr)
+	GetAll(c context.Context) ([]User, RequestErr)
 	// GetByUuid(c context.Context, uuid string) (User, error)
 	// GetByEmail(c context.Context, email string) (User, error)
 	GetByUsername(c context.Context, uname string) (User, RequestErr)
-	// Update(c context.Context, u *User) error
+	// TODO: Change *User recievers to *dto used in handler
 	Store(c context.Context, u *User) RequestErr
+	Update(c context.Context, uname string, uUp *User) RequestErr
 	Delete(c context.Context, uname string) RequestErr
 	Login(c context.Context, uname string, passwd string) (User, RequestErr)
-	Update(c context.Context, uname string, uUp *User) RequestErr
 }
 
 // UserRepository represents the user's repository contract

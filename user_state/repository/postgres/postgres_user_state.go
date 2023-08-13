@@ -28,14 +28,14 @@ func NewPostgresUserStateRepository(conn *sql.DB) domain.UserStateRepository {
 func (r *postgresUserStateRepository) fetch(ctx context.Context, query string, args ...interface{}) (res []domain.UserState, err error) {
 	rows, err := r.Conn.QueryContext(ctx, query, args...)
 	if err != nil {
-		r.log.Error(err)
+		r.log.Err(err)
 		return nil, err
 	}
 
 	defer func() {
 		errRow := rows.Close()
 		if errRow != nil {
-			r.log.Error(errRow)
+			r.log.Err(errRow)
 		}
 	}()
 
@@ -49,7 +49,7 @@ func (r *postgresUserStateRepository) fetch(ctx context.Context, query string, a
 		)
 
 		if err != nil {
-			r.log.Error(err)
+			r.log.Err(err)
 			return nil, err
 		}
 		res = append(res, t)
@@ -62,12 +62,12 @@ func (r *postgresUserStateRepository) GetByCode(ctx context.Context, code int64)
 	query := `SELECT code, description FROM user_state WHERE code=$1`
 	states, err := r.fetch(ctx, query, code)
 	if err != nil {
-		r.log.Error(err)
+		r.log.Err(err)
 		return domain.UserState{}, err
 	}
 
 	if l := len(states); l != 1 {
-		r.log.Error("Could not find user_state with code: ", code)
+		r.log.Err("Could not find user_state with code: ", code)
 		return domain.UserState{}, err
 	}
 
@@ -79,12 +79,12 @@ func (r *postgresUserStateRepository) GetByDescription(ctx context.Context, desc
 	query := `SELECT code, description FROM user_state WHERE description=$1`
 	states, err := r.fetch(ctx, query, desc)
 	if err != nil {
-		r.log.Error(err)
+		r.log.Err(err)
 		return domain.UserState{}, err
 	}
 
 	if l := len(states); l != 1 {
-		r.log.Error("Could not find user_state with description: ", desc)
+		r.log.Err("Could not find user_state with description: ", desc)
 		err = errors.New(fmt.Sprint("No user__state with description: ", desc))
 		return domain.UserState{}, err
 	}

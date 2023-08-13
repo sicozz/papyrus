@@ -1,0 +1,3 @@
+ALTER TABLE dir
+ADD path VARCHAR(1024),
+ADD nchild INTEGER;

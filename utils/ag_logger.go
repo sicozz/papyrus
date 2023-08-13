@@ -16,10 +16,9 @@ const (
 )
 
 type AggregatedLogger interface {
-	// TODO: rename functions to shorthand
-	Info(...any)
-	Warn(...any)
-	Error(...any)
+	Inf(...any)
+	Wrn(...any)
+	Err(...any)
 }
 
 type AgLog struct {
@@ -38,15 +37,15 @@ func (f AgLog) log(la *log.Logger, v []any) {
 	return
 }
 
-func (f AgLog) Info(v ...any) {
+func (f AgLog) Inf(v ...any) {
 	f.log(f.infoLogger, v)
 }
 
-func (f AgLog) Warn(v ...any) {
+func (f AgLog) Wrn(v ...any) {
 	f.log(f.warnLogger, v)
 }
 
-func (f AgLog) Error(v ...any) {
+func (f AgLog) Err(v ...any) {
 	f.log(f.errorLogger, v)
 }
 

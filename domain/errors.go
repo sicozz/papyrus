@@ -15,6 +15,7 @@ var (
 	ErrBadParamInput = errors.New("given Param is not valid")
 )
 
+// RequestErr is meant to be the error returned from the usecases
 type RequestErr interface {
 	GetStatus() int
 	error
@@ -33,6 +34,7 @@ func (u uCaseErr) Error() string {
 	return u.Err.Error()
 }
 
+// Create a basic usecase error
 func NewUCaseErr(status int, err error) uCaseErr {
 	return uCaseErr{status, err}
 }

@@ -25,14 +25,14 @@ func NewPostgresUserRepository(conn *sql.DB) domain.UserRepository {
 func (r *postgresUserRepository) fetch(ctx context.Context, query string, args ...interface{}) (res []domain.User, err error) {
 	rows, err := r.Conn.QueryContext(ctx, query, args...)
 	if err != nil {
-		r.log.Error(err)
+		r.log.Err(err)
 		return nil, err
 	}
 
 	defer func() {
 		errRow := rows.Close()
 		if errRow != nil {
-			r.log.Error(errRow)
+			r.log.Err(errRow)
 		}
 	}()
 
@@ -54,7 +54,7 @@ func (r *postgresUserRepository) fetch(ctx context.Context, query string, args .
 		)
 
 		if err != nil {
-			r.log.Error("IN [fetch]:", err)
+			r.log.Err("IN [fetch]:", err)
 			return nil, err
 		}
 		t.Role = domain.Role{
@@ -86,7 +86,7 @@ func (r *postgresUserRepository) GetAll(ctx context.Context) (res []domain.User,
 	return
 }
 
-// Get user by id
+// Get user by username
 func (r *postgresUserRepository) GetByUsername(ctx context.Context, uname string) (res domain.User, err error) {
 	// TODO: Refactor operations that expect only 1 row
 	query :=
@@ -117,7 +117,7 @@ func (r *postgresUserRepository) ExistByUname(ctx context.Context, uname string)
 	query := `SELECT COUNT(*) > 0 FROM user_ WHERE username = $1`
 	stmt, err := r.Conn.PrepareContext(ctx, query)
 	if err != nil {
-		r.log.Error("IN [ExistByUname]: could not prepare context ->", err)
+		r.log.Err("IN [ExistByUname]: could not prepare context ->", err)
 		return
 	}
 	defer stmt.Close()
@@ -132,7 +132,7 @@ func (r *postgresUserRepository) ExistByEmail(ctx context.Context, email string)
 	query := `SELECT COUNT(*) > 0 FROM user_ WHERE email = $1`
 	stmt, err := r.Conn.PrepareContext(ctx, query)
 	if err != nil {
-		r.log.Error("IN [ExistByEmail]: could not prepare context ->", err)
+		r.log.Err("IN [ExistByEmail]: could not prepare context ->", err)
 		return
 	}
 	defer stmt.Close()
@@ -150,7 +150,7 @@ func (r *postgresUserRepository) Store(ctx context.Context, u *domain.User) (err
 		RETURNING uuid`
 	stmt, err := r.Conn.PrepareContext(ctx, query)
 	if err != nil {
-		r.log.Error("IN [Store]: could not prepare context ->", err)
+		r.log.Err("IN [Store]: could not prepare context ->", err)
 		return
 	}
 	defer stmt.Close()
@@ -174,7 +174,7 @@ func (r *postgresUserRepository) Delete(ctx context.Context, uname string) (err 
 	query := `DELETE FROM user_ WHERE username=$1 RETURNING uuid`
 	stmt, err := r.Conn.PrepareContext(ctx, query)
 	if err != nil {
-		r.log.Error("IN [Delete]: could not prepare context ->", err)
+		r.log.Err("IN [Delete]: could not prepare context ->", err)
 		return
 	}
 	defer stmt.Close()

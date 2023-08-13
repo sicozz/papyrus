@@ -17,4 +17,5 @@ const (
 	User      Domain = "USER"
 	Role      Domain = "ROLE"
 	UserState Domain = "USER_STATE"
+	Dir       Domain = "DIR"
 )

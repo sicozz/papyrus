@@ -10,6 +10,9 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	_ "github.com/lib/pq"
+	_dirHttpDelivery "github.com/sicozz/papyrus/dir/delivery/http"
+	_dirRepo "github.com/sicozz/papyrus/dir/repository/postgres"
+	_dirUsecase "github.com/sicozz/papyrus/dir/usecase"
 	_roleRepo "github.com/sicozz/papyrus/role/repository/postgres"
 	_userHttpDelivery "github.com/sicozz/papyrus/user/delivery/http"
 	_userRepo "github.com/sicozz/papyrus/user/repository/postgres"
@@ -73,17 +76,13 @@ func main() {
 	usr := _userStateRepo.NewPostgresUserStateRepository(dbConn)
 	uu := _userUsecase.NewUserUsecase(ur, rr, usr, timeoutContext)
 	_userHttpDelivery.NewUserHandler(e, uu)
+
+	dr := _dirRepo.NewPostgresDirRepository(dbConn)
+	du := _dirUsecase.NewDirUsecase(dr, timeoutContext)
+	_dirHttpDelivery.NewDirHandler(e, du)
+
 	e.Logger.Fatal(e.Start(":9090"))
 	/**
-	* TODO: - Improve error management and logging
 	* TODO: - Add unit testing for everything created
-	* TODO: - Add logs and make them good (change log flags)
 	**/
-	/**
-	* TODO: Add field to dir: number of children
-	* This is meant to cache the number of children and it will reduce the
-	* computational cost
-	* TODO: Add field to dir: path
-	* Same as the last one, cache to improve computation
-	 */
 }

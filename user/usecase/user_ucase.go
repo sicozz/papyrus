@@ -46,7 +46,7 @@ func (u *userUsecase) fillUserDetails(ctx context.Context, users []domain.User) 
 	// get roles
 	roles, err := u.roleRepo.GetAll(ctx)
 	if err != nil {
-		u.log.Error("Could not get roles to fill user details", err)
+		u.log.Error("IN [fillUserDetails]: could not get roles ->", err)
 	}
 
 	mapRoles := map[int64]domain.Role{}
@@ -57,7 +57,7 @@ func (u *userUsecase) fillUserDetails(ctx context.Context, users []domain.User) 
 	// get user_states
 	states, err := u.userStateRepo.GetAll(ctx)
 	if err != nil {
-		u.log.Error("Could not get user_states to fill user details", err)
+		u.log.Error("IN [fillUserDetails]: could not get user_states ->", err)
 	}
 
 	mapStates := map[int64]domain.UserState{}
@@ -83,16 +83,16 @@ func (u *userUsecase) Fetch(c context.Context) (res []domain.User, rErr domain.R
 	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
 	defer cancel()
 
-	res, err := u.userRepo.Fetch(ctx)
+	res, err := u.userRepo.GetAll(ctx)
 	if err != nil {
-		u.log.Error("Error inside Fetch function")
+		u.log.Error("IN [Fetch]: could not get users ->", err)
 		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
 		return
 	}
 
 	err = u.fillUserDetails(ctx, res)
 	if err != nil {
-		u.log.Error("Error filling user details")
+		u.log.Error("IN [Fetch]: could not fill user details ->", err)
 		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
 		return
 	}
@@ -113,7 +113,7 @@ func (u *userUsecase) GetByUsername(c context.Context, uname string) (res domain
 
 	res, err := u.userRepo.GetByUsername(ctx, uname)
 	if err != nil {
-		u.log.Error("Error inside Fetch function", err)
+		u.log.Error("IN [GetByUsername]: could not get user ->", err)
 		err = errors.New(fmt.Sprint("User fetch failed. username: ", uname))
 		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
 		return domain.User{}, rErr
@@ -124,7 +124,7 @@ func (u *userUsecase) GetByUsername(c context.Context, uname string) (res domain
 	err = u.fillUserDetails(ctx, resArr)
 	res = resArr[0]
 	if err != nil {
-		u.log.Error("Error filling user details")
+		u.log.Error("IN [GetByUsername]: could not fill user details ->", err)
 		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
 		return
 	}
@@ -179,7 +179,7 @@ func (u *userUsecase) Delete(c context.Context, uname string) (rErr domain.Reque
 
 	err := u.userRepo.Delete(ctx, uname)
 	if err != nil {
-		u.log.Error("User deletion failed. username: ", uname)
+		u.log.Error("IN [Delete]: could not delete user {", uname, "} ->", err)
 		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
 		return
 	}
@@ -200,6 +200,7 @@ func (u *userUsecase) Update(c context.Context, uname string, uUp *domain.User) 
 	if uUp.Email != "" {
 		err := u.userRepo.ChgEmail(ctx, uname, uUp.Email)
 		if err != nil {
+			u.log.Error("IN [Update]: could not change email ->", err)
 			err = errors.New(fmt.Sprint("User patch failed: ", err))
 			rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
 			return
@@ -209,6 +210,7 @@ func (u *userUsecase) Update(c context.Context, uname string, uUp *domain.User) 
 	if uUp.Name != "" {
 		err := u.userRepo.ChgName(ctx, uname, uUp.Name)
 		if err != nil {
+			u.log.Error("IN [Update]: could not change name ->", err)
 			err = errors.New(fmt.Sprint("User patch failed: ", err))
 			rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
 			return
@@ -218,6 +220,7 @@ func (u *userUsecase) Update(c context.Context, uname string, uUp *domain.User) 
 	if uUp.Lastname != "" {
 		err := u.userRepo.ChgLstname(ctx, uname, uUp.Lastname)
 		if err != nil {
+			u.log.Error("IN [Update]: could not change lastname ->", err)
 			err = errors.New(fmt.Sprint("User patch failed: ", err))
 			rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
 			return
@@ -227,13 +230,14 @@ func (u *userUsecase) Update(c context.Context, uname string, uUp *domain.User) 
 	if uUp.Role.Description != "" {
 		r, err := u.roleRepo.GetByDescription(ctx, uUp.Role.Description)
 		if err != nil {
-			u.log.Error("Role not found: ", err)
+			u.log.Error("IN [Update]: could not get role ->", err)
 			err = errors.New(fmt.Sprint("Role not found"))
 			rErr = domain.NewUCaseErr(http.StatusNotFound, err)
 			return
 		}
 		err = u.userRepo.ChgRole(ctx, uname, r)
 		if err != nil {
+			u.log.Error("IN [Update]: could not change role ->", err)
 			err = errors.New(fmt.Sprint("User patch failed: ", err))
 			rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
 			return
@@ -243,13 +247,14 @@ func (u *userUsecase) Update(c context.Context, uname string, uUp *domain.User) 
 	if uUp.State.Description != "" {
 		s, err := u.userStateRepo.GetByDescription(ctx, uUp.State.Description)
 		if err != nil {
-			u.log.Error("User_state not found", err)
+			u.log.Error("IN [Update]: could not get user_state ->", err)
 			err = errors.New(fmt.Sprint("User_state not found"))
 			rErr = domain.NewUCaseErr(http.StatusNotFound, err)
 		}
 
 		err = u.userRepo.ChgState(ctx, uname, s)
 		if err != nil {
+			u.log.Error("IN [Update]: could not change user_state ->", err)
 			err = errors.New(fmt.Sprint("User patch failed: ", err))
 			rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
 			return
@@ -266,7 +271,6 @@ func (u *userUsecase) Login(c context.Context, uname string, passwd string) (res
 
 	res, err := u.userRepo.Login(ctx, uname, passwd)
 	if err != nil {
-		u.log.Error("Error inside Login function")
 		rErr = domain.NewUCaseErr(http.StatusUnauthorized, err)
 		return
 	}
@@ -276,7 +280,7 @@ func (u *userUsecase) Login(c context.Context, uname string, passwd string) (res
 	err = u.fillUserDetails(ctx, resArr)
 	res = resArr[0]
 	if err != nil {
-		u.log.Error("Error filling user details")
+		u.log.Error("IN [Login]: could not fill user details ->", err)
 		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
 		return
 	}

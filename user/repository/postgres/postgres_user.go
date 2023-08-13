@@ -54,7 +54,7 @@ func (r *postgresUserRepository) fetch(ctx context.Context, query string, args .
 		)
 
 		if err != nil {
-			r.log.Error(err)
+			r.log.Error("IN [fetch]:", err)
 			return nil, err
 		}
 		t.Role = domain.Role{
@@ -70,8 +70,7 @@ func (r *postgresUserRepository) fetch(ctx context.Context, query string, args .
 }
 
 // Retrieve all users
-func (r *postgresUserRepository) Fetch(ctx context.Context) (res []domain.User, err error) {
-	// TODO: Rename this Fetch to GetAll
+func (r *postgresUserRepository) GetAll(ctx context.Context) (res []domain.User, err error) {
 	query :=
 		`SELECT uuid, username, email, password, name, lastname, role, state
 		FROM user_`
@@ -118,7 +117,7 @@ func (r *postgresUserRepository) ExistByUname(ctx context.Context, uname string)
 	query := `SELECT COUNT(*) > 0 FROM user_ WHERE username = $1`
 	stmt, err := r.Conn.PrepareContext(ctx, query)
 	if err != nil {
-		r.log.Error("Context preparation failed", err)
+		r.log.Error("IN [ExistByUname]: could not prepare context ->", err)
 		return
 	}
 	defer stmt.Close()
@@ -133,7 +132,7 @@ func (r *postgresUserRepository) ExistByEmail(ctx context.Context, email string)
 	query := `SELECT COUNT(*) > 0 FROM user_ WHERE email = $1`
 	stmt, err := r.Conn.PrepareContext(ctx, query)
 	if err != nil {
-		r.log.Error("Context preparation failed", err)
+		r.log.Error("IN [ExistByEmail]: could not prepare context ->", err)
 		return
 	}
 	defer stmt.Close()
@@ -151,7 +150,7 @@ func (r *postgresUserRepository) Store(ctx context.Context, u *domain.User) (err
 		RETURNING uuid`
 	stmt, err := r.Conn.PrepareContext(ctx, query)
 	if err != nil {
-		r.log.Error(err)
+		r.log.Error("IN [Store]: could not prepare context ->", err)
 		return
 	}
 	defer stmt.Close()
@@ -175,7 +174,7 @@ func (r *postgresUserRepository) Delete(ctx context.Context, uname string) (err 
 	query := `DELETE FROM user_ WHERE username=$1 RETURNING uuid`
 	stmt, err := r.Conn.PrepareContext(ctx, query)
 	if err != nil {
-		r.log.Error(err)
+		r.log.Error("IN [Delete]: could not prepare context ->", err)
 		return
 	}
 	defer stmt.Close()

@@ -30,7 +30,7 @@ type UserUsecase interface {
 // UserRepository represents the user's repository contract
 type UserRepository interface {
 	// TODO reorganize functions
-	Fetch(ctx context.Context) ([]User, error)
+	GetAll(ctx context.Context) ([]User, error)
 	// GetByUuid(ctx context.Context, uuid string) (User, error)
 	// GetByEmail(ctx context.Context, email string) (User, error)
 	GetByUsername(ctx context.Context, uname string) (User, error)

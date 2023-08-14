@@ -81,6 +81,7 @@ func (u *dirUsecase) Store(c context.Context, dir *domain.Dir) (rErr domain.Requ
 	dirs := []string{parentDir.Path, dir.Name}
 	dir.Path = strings.Join(dirs, string(os.PathSeparator))
 	dir.Nchild = 0
+	dir.Depth = parentDir.Depth + 1
 
 	/* TODO: WARN: Make the storage of the dir and increment of parent_dir.nchild a transaction */
 	err = u.dirRepo.Store(ctx, dir)
@@ -173,8 +174,7 @@ func (u *dirUsecase) Delete(c context.Context, uuid string) (rErr domain.Request
 }
 
 func (u *dirUsecase) Move(c context.Context, uuid string, nPUuid string) (rErr domain.RequestErr) {
-	// TODO: Increment child number
-	// TODO: Update path number
+	// TODO: Update path
 	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
 	defer cancel()
 
@@ -200,10 +200,37 @@ func (u *dirUsecase) Move(c context.Context, uuid string, nPUuid string) (rErr d
 
 	/* TODO: Add validation validate unique name in parent_dir */
 	/* WARN: VALIDATE THAT ROOT FOLDER IS NOT MOVED */
+	nDir, err := u.dirRepo.GetByUuid(ctx, nPUuid)
+	if err != nil {
+		u.log.Err("IN [Move]: could get new parent dir {", uuid, "} ->", err)
+		err := errors.New("Could not fetch dir")
+		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+		return
+	}
 
+	// TODO: REFACTOR: Unify the move operation as a db transaction
 	err = u.dirRepo.ChgParentDir(ctx, uuid, nPUuid)
 	if err != nil {
 		u.log.Err("IN [Move]: could not change parent dir ->", err)
+		err = errors.New(fmt.Sprint("Dir patch failed: ", err))
+		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+		return
+	}
+
+	dirs := []string{nDir.Path, dir.Name}
+	nPath := strings.Join(dirs, string(os.PathSeparator))
+	u.log.Wrn("PATH>>>\t", nPath)
+	err = u.dirRepo.ChgPath(ctx, uuid, nPath)
+	if err != nil {
+		u.log.Err("IN [Move]: could not change dir path ->", err)
+		err = errors.New(fmt.Sprint("Dir patch failed: ", err))
+		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+		return
+	}
+
+	err = u.dirRepo.ChgDepth(ctx, uuid, nDir.Depth+1)
+	if err != nil {
+		u.log.Err("IN [Move]: could not change dir path ->", err)
 		err = errors.New(fmt.Sprint("Dir patch failed: ", err))
 		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
 		return

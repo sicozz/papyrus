@@ -9,6 +9,7 @@ type Dir struct {
 	ParentDir string `json:"parent_dir" validate:"required,ascii,uuid"`
 	Path      string `json:"path"`
 	Nchild    int    `json:"nchild"`
+	Depth     int    `json:"depth"`
 }
 
 // DirUsecase represents the dir's usecases
@@ -35,7 +36,11 @@ type DirRepository interface {
 	Store(ctx context.Context, d *Dir) error
 	Delete(ctx context.Context, uuid string) error
 	ChgName(ctx context.Context, uuid string, nName string) error
+
+	// Refactor this group of functions
 	ChgParentDir(ctx context.Context, uuid string, nPUuid string) error
 	IncNchild(ctx context.Context, uuid string, nNchild int) error
 	DecNchild(ctx context.Context, uuid string, nNchild int) error
+	ChgPath(ctx context.Context, uuid string, nPath string) error
+	ChgDepth(ctx context.Context, uuid string, nDepth int) error
 }

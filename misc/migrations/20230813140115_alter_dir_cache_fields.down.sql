@@ -1,3 +1,4 @@
 ALTER TABLE dir
 DROP path,
-DROP nchild;
+DROP nchild,
+DROP depth;

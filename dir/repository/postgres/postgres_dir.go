@@ -46,6 +46,7 @@ func (r *postgresDirRepository) GetAll(ctx context.Context) (res []domain.Dir, e
 			&t.ParentDir,
 			&t.Path,
 			&t.Nchild,
+			&t.Depth,
 		)
 
 		if err != nil {
@@ -88,6 +89,7 @@ func (r *postgresDirRepository) GetByUuid(ctx context.Context, uuid string) (res
 		&res.ParentDir,
 		&res.Path,
 		&res.Nchild,
+		&res.Depth,
 	)
 
 	if err != nil {
@@ -101,8 +103,8 @@ func (r *postgresDirRepository) GetByUuid(ctx context.Context, uuid string) (res
 // Store a new dir
 func (r *postgresDirRepository) Store(ctx context.Context, d *domain.Dir) (err error) {
 	query :=
-		`INSERT INTO dir (name, parent_dir, path, nchild)
-		VALUES ($1, $2, $3, $4)
+		`INSERT INTO dir (name, parent_dir, path, nchild, depth)
+		VALUES ($1, $2, $3, $4, $5)
 		RETURNING uuid`
 	stmt, err := r.Conn.PrepareContext(ctx, query)
 	if err != nil {
@@ -117,6 +119,7 @@ func (r *postgresDirRepository) Store(ctx context.Context, d *domain.Dir) (err e
 		d.ParentDir,
 		d.Path,
 		d.Nchild,
+		d.Depth,
 	).Scan(&d.Uuid)
 
 	if err != nil {
@@ -197,6 +200,34 @@ func (r *postgresDirRepository) DecNchild(ctx context.Context, uuid string, nNch
 	defer stmt.Close()
 
 	_, err = stmt.QueryContext(ctx, nNchild, uuid)
+
+	return
+}
+
+func (r *postgresDirRepository) ChgPath(ctx context.Context, uuid string, nPath string) (err error) {
+	query := `UPDATE dir SET path=$1 WHERE uuid=$2`
+	stmt, err := r.Conn.PrepareContext(ctx, query)
+	if err != nil {
+		r.log.Err("IN [ChgPath]: could not prepare context ->", err)
+		return
+	}
+	defer stmt.Close()
+
+	_, err = stmt.QueryContext(ctx, nPath, uuid)
+
+	return
+}
+
+func (r *postgresDirRepository) ChgDepth(ctx context.Context, uuid string, nDepth int) (err error) {
+	query := `UPDATE dir SET depth=$1 WHERE uuid=$2`
+	stmt, err := r.Conn.PrepareContext(ctx, query)
+	if err != nil {
+		r.log.Err("IN [ChgDepth]: could not prepare context ->", err)
+		return
+	}
+	defer stmt.Close()
+
+	_, err = stmt.QueryContext(ctx, nDepth, uuid)
 
 	return
 }

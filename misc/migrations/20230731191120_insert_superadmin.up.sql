@@ -6,5 +6,5 @@ VALUES (
 	'admin',
 	'admin',
 	3,
-	1
+	2
 );

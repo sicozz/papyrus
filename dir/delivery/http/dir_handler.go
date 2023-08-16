@@ -49,7 +49,12 @@ func (h *DirHandler) GetAll(c echo.Context) error {
 		return c.JSON(rErr.GetStatus(), errBody)
 	}
 
-	return c.JSON(http.StatusOK, dirs)
+	dirDtos := make([]dtos.DirGetDto, len(dirs), len(dirs))
+	for i, dir := range dirs {
+		dirDtos[i] = dtos.NewDirGetDto(dir)
+	}
+
+	return c.JSON(http.StatusOK, dirDtos)
 }
 
 func (h *DirHandler) GetByUuid(c echo.Context) error {

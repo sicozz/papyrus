@@ -25,9 +25,9 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-
-networks:
-  papyrus-net:
-    driver: bridge
-    ipam:
-      driver: default
+        # 
+        # networks:
+        #   papyrus-net:
+        #     driver: bridge
+        #     ipam:
+        #       driver: default

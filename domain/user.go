@@ -1,6 +1,8 @@
 package domain
 
-import "context"
+import (
+	"context"
+)
 
 // User represents the User data struct
 type User struct {
@@ -25,6 +27,7 @@ type UserUsecase interface {
 	Update(c context.Context, uname string, uUp *User) RequestErr
 	Delete(c context.Context, uname string) RequestErr
 	Login(c context.Context, uname string, passwd string) (User, RequestErr)
+	ChgPasswd(ctx context.Context, uuid string, data ChgPasswd) RequestErr
 }
 
 // UserRepository represents the user's repository contract
@@ -33,7 +36,9 @@ type UserRepository interface {
 	GetAll(ctx context.Context) ([]User, error)
 	// GetByUuid(ctx context.Context, uuid string) (User, error)
 	// GetByEmail(ctx context.Context, email string) (User, error)
+	GetByUuid(ctx context.Context, uuid string) (User, error)
 	GetByUsername(ctx context.Context, uname string) (User, error)
+	ExistByUuid(ctx context.Context, uuid string) bool
 	ExistByUname(ctx context.Context, uname string) bool
 	ExistByEmail(ctx context.Context, email string) bool
 	Store(ctx context.Context, u *User) error
@@ -44,4 +49,5 @@ type UserRepository interface {
 	ChgLstname(ctx context.Context, uname string, nLname string) error
 	ChgRole(ctx context.Context, uname string, ro Role) error
 	ChgState(ctx context.Context, uname string, st UserState) error
+	ChgPasswd(ctx context.Context, uuid string, nPasswd string) error
 }

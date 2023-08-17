@@ -269,6 +269,47 @@ func (u *userUsecase) Update(c context.Context, uname string, uUp *domain.User) 
 	return
 }
 
+func (u *userUsecase) ChgPasswd(c context.Context, uuid string, data domain.ChgPasswd) (rErr domain.RequestErr) {
+	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
+	defer cancel()
+
+	if data.NPasswd != data.ReNPasswd {
+		err := errors.New("New passwords dont match")
+		rErr = domain.NewUCaseErr(http.StatusNotAcceptable, err)
+		return
+	}
+
+	if exists := u.userRepo.ExistByUuid(ctx, uuid); !exists {
+		err := errors.New(fmt.Sprint("User not found. uuid: ", uuid))
+		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
+		return
+	}
+
+	user, err := u.userRepo.GetByUuid(ctx, uuid)
+	if err != nil {
+		u.log.Err("IN [ChgPasswd]: could not get user ->", err)
+		err = errors.New(fmt.Sprint("User patch failed. uuid: ", uuid))
+		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
+		return
+	}
+
+	if user.Password != data.Passwd {
+		err = errors.New("Wrong password")
+		rErr = domain.NewUCaseErr(http.StatusNotAcceptable, err)
+		return
+	}
+
+	err = u.userRepo.ChgPasswd(ctx, uuid, data.NPasswd)
+	if err != nil {
+		u.log.Err("IN [ChgPasswd]: could not change password ->", err)
+		err = errors.New(fmt.Sprint("User patch failed: ", err))
+		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+		return
+	}
+
+	return
+}
+
 func (u *userUsecase) Login(c context.Context, uname string, passwd string) (res domain.User, rErr domain.RequestErr) {
 	// Refactor flluserdetails
 	ctx, cancel := context.WithTimeout(c, u.contextTimeout)

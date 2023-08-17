@@ -26,6 +26,7 @@ func NewUserHandler(e *echo.Echo, uu domain.UserUsecase) {
 	e.GET("/user/:uname", handler.GetByUsername)
 	e.DELETE("/user/:uname", handler.Delete)
 	e.PATCH("/user/:uname", handler.Update)
+	e.PATCH("/user/:uuid/chg_password", handler.ChgPasswd)
 	e.POST("/login", handler.Login)
 }
 
@@ -163,6 +164,36 @@ func (h *UserHandler) Update(c echo.Context) error {
 	}
 
 	rErr := h.UUsecase.Update(ctx, uname, &user)
+	if rErr != nil {
+		errBody := dtos.NewErrDto(rErr.Error())
+		return c.JSON(rErr.GetStatus(), errBody)
+	}
+
+	return c.NoContent(http.StatusOK)
+}
+
+func (h *UserHandler) ChgPasswd(c echo.Context) error {
+	h.log.Inf("REQ: change password")
+	ctx := c.Request().Context()
+	uuid := c.Param("uuid")
+
+	var data domain.ChgPasswd
+	err := c.Bind(&data)
+	if err != nil {
+		errBody := dtos.NewErrDto(fmt.Sprint("Req body binding failed: ", err))
+		return c.JSON(http.StatusBadRequest, errBody)
+	}
+
+	if ok, err := isRequestValid(&data); !ok {
+		errBody, err := dtos.NewValidationErrDto(err.Error())
+		if err != nil {
+			errValid := dtos.NewErrDto(fmt.Sprint("Req body validation failed: ", err))
+			return c.JSON(http.StatusBadRequest, errValid)
+		}
+		return c.JSON(http.StatusBadRequest, errBody)
+	}
+
+	rErr := h.UUsecase.ChgPasswd(ctx, uuid, data)
 	if rErr != nil {
 		errBody := dtos.NewErrDto(rErr.Error())
 		return c.JSON(rErr.GetStatus(), errBody)

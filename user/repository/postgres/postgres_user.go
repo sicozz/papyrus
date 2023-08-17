@@ -86,7 +86,36 @@ func (r *postgresUserRepository) GetAll(ctx context.Context) (res []domain.User,
 	return
 }
 
-// Get user by username
+func (r *postgresUserRepository) GetByUuid(ctx context.Context, uuid string) (res domain.User, err error) {
+	// TODO: Add role and state columns
+	query :=
+		`SELECT uuid, username, email, password, name, lastname
+		FROM user_
+		WHERE uuid = $1`
+	stmt, err := r.Conn.PrepareContext(ctx, query)
+	if err != nil {
+		r.log.Err("IN [GetByUuid]: could not prepare context ->", err)
+		return
+	}
+	defer stmt.Close()
+
+	err = stmt.QueryRowContext(ctx, uuid).Scan(
+		&res.Uuid,
+		&res.Username,
+		&res.Email,
+		&res.Password,
+		&res.Name,
+		&res.Lastname,
+	)
+
+	if err != nil {
+		r.log.Err("IN [GetByUuid]: could not scan rows ->", err)
+		return
+	}
+
+	return
+}
+
 func (r *postgresUserRepository) GetByUsername(ctx context.Context, uname string) (res domain.User, err error) {
 	// TODO: Refactor operations that expect only 1 row
 	query :=
@@ -112,7 +141,6 @@ func (r *postgresUserRepository) GetByUsername(ctx context.Context, uname string
 	return
 }
 
-// Know if a user has already taken a username
 func (r *postgresUserRepository) ExistByUname(ctx context.Context, uname string) (res bool) {
 	query := `SELECT COUNT(*) > 0 FROM user_ WHERE username = $1`
 	stmt, err := r.Conn.PrepareContext(ctx, query)
@@ -127,7 +155,20 @@ func (r *postgresUserRepository) ExistByUname(ctx context.Context, uname string)
 	return
 }
 
-// Know if a user has already taken an email
+func (r *postgresUserRepository) ExistByUuid(ctx context.Context, uuid string) (res bool) {
+	query := `SELECT COUNT(*) > 0 FROM user_ WHERE uuid = $1`
+	stmt, err := r.Conn.PrepareContext(ctx, query)
+	if err != nil {
+		r.log.Err("IN [ExistByUuid]: could not prepare context ->", err)
+		return
+	}
+	defer stmt.Close()
+
+	err = stmt.QueryRowContext(ctx, uuid).Scan(&res)
+
+	return
+}
+
 func (r *postgresUserRepository) ExistByEmail(ctx context.Context, email string) (res bool) {
 	query := `SELECT COUNT(*) > 0 FROM user_ WHERE email = $1`
 	stmt, err := r.Conn.PrepareContext(ctx, query)
@@ -216,6 +257,21 @@ func (r *postgresUserRepository) ChgLstname(ctx context.Context, uname string, n
 	query := `UPDATE user_ SET lastname=$1 WHERE username=$2`
 
 	_, err = r.fetch(ctx, query, nLname, uname)
+
+	return
+}
+
+// Change user password
+func (r *postgresUserRepository) ChgPasswd(ctx context.Context, uuid string, nPasswd string) (err error) {
+	query := `UPDATE user_ SET password=$1 WHERE uuid=$2`
+	stmt, err := r.Conn.PrepareContext(ctx, query)
+	if err != nil {
+		r.log.Err("IN [ChgPasswd]: could not prepare context ->", err)
+		return
+	}
+	defer stmt.Close()
+
+	_, err = stmt.QueryContext(ctx, nPasswd, uuid)
 
 	return
 }

@@ -26,6 +26,7 @@ func NewDirGetDto(dir domain.Dir) DirGetDto {
 		Uuid:      dir.Uuid,
 		Name:      dir.Name,
 		ParentDir: dir.ParentDir,
+		Path:      dir.Path,
 		Nchild:    dir.Nchild,
 		Depth:     dir.Depth,
 		Type:      dirGetDtoType,

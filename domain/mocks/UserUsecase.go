@@ -22,6 +22,52 @@ func (_m *UserUsecase) EXPECT() *UserUsecase_Expecter {
 	return &UserUsecase_Expecter{mock: &_m.Mock}
 }
 
+// ChgPasswd provides a mock function with given fields: ctx, uuid, data
+func (_m *UserUsecase) ChgPasswd(ctx context.Context, uuid string, data domain.ChgPasswd) domain.RequestErr {
+	ret := _m.Called(ctx, uuid, data)
+
+	var r0 domain.RequestErr
+	if rf, ok := ret.Get(0).(func(context.Context, string, domain.ChgPasswd) domain.RequestErr); ok {
+		r0 = rf(ctx, uuid, data)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(domain.RequestErr)
+		}
+	}
+
+	return r0
+}
+
+// UserUsecase_ChgPasswd_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ChgPasswd'
+type UserUsecase_ChgPasswd_Call struct {
+	*mock.Call
+}
+
+// ChgPasswd is a helper method to define mock.On call
+//   - ctx context.Context
+//   - uuid string
+//   - data domain.ChgPasswd
+func (_e *UserUsecase_Expecter) ChgPasswd(ctx interface{}, uuid interface{}, data interface{}) *UserUsecase_ChgPasswd_Call {
+	return &UserUsecase_ChgPasswd_Call{Call: _e.mock.On("ChgPasswd", ctx, uuid, data)}
+}
+
+func (_c *UserUsecase_ChgPasswd_Call) Run(run func(ctx context.Context, uuid string, data domain.ChgPasswd)) *UserUsecase_ChgPasswd_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].(domain.ChgPasswd))
+	})
+	return _c
+}
+
+func (_c *UserUsecase_ChgPasswd_Call) Return(_a0 domain.RequestErr) *UserUsecase_ChgPasswd_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *UserUsecase_ChgPasswd_Call) RunAndReturn(run func(context.Context, string, domain.ChgPasswd) domain.RequestErr) *UserUsecase_ChgPasswd_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // Delete provides a mock function with given fields: c, uname
 func (_m *UserUsecase) Delete(c context.Context, uname string) domain.RequestErr {
 	ret := _m.Called(c, uname)

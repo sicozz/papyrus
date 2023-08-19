@@ -10,3 +10,5 @@ packages:
     interfaces:
       UserRepository:
       UserUsecase:
+      RoleRepository:
+      UserStateRepository:

@@ -154,6 +154,50 @@ func (_c *UserRepository_ChgName_Call) RunAndReturn(run func(context.Context, st
 	return _c
 }
 
+// ChgPasswd provides a mock function with given fields: ctx, uuid, nPasswd
+func (_m *UserRepository) ChgPasswd(ctx context.Context, uuid string, nPasswd string) error {
+	ret := _m.Called(ctx, uuid, nPasswd)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) error); ok {
+		r0 = rf(ctx, uuid, nPasswd)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// UserRepository_ChgPasswd_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ChgPasswd'
+type UserRepository_ChgPasswd_Call struct {
+	*mock.Call
+}
+
+// ChgPasswd is a helper method to define mock.On call
+//   - ctx context.Context
+//   - uuid string
+//   - nPasswd string
+func (_e *UserRepository_Expecter) ChgPasswd(ctx interface{}, uuid interface{}, nPasswd interface{}) *UserRepository_ChgPasswd_Call {
+	return &UserRepository_ChgPasswd_Call{Call: _e.mock.On("ChgPasswd", ctx, uuid, nPasswd)}
+}
+
+func (_c *UserRepository_ChgPasswd_Call) Run(run func(ctx context.Context, uuid string, nPasswd string)) *UserRepository_ChgPasswd_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].(string))
+	})
+	return _c
+}
+
+func (_c *UserRepository_ChgPasswd_Call) Return(_a0 error) *UserRepository_ChgPasswd_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *UserRepository_ChgPasswd_Call) RunAndReturn(run func(context.Context, string, string) error) *UserRepository_ChgPasswd_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // ChgRole provides a mock function with given fields: ctx, uname, ro
 func (_m *UserRepository) ChgRole(ctx context.Context, uname string, ro domain.Role) error {
 	ret := _m.Called(ctx, uname, ro)
@@ -371,6 +415,49 @@ func (_c *UserRepository_ExistByUname_Call) RunAndReturn(run func(context.Contex
 	return _c
 }
 
+// ExistByUuid provides a mock function with given fields: ctx, uuid
+func (_m *UserRepository) ExistByUuid(ctx context.Context, uuid string) bool {
+	ret := _m.Called(ctx, uuid)
+
+	var r0 bool
+	if rf, ok := ret.Get(0).(func(context.Context, string) bool); ok {
+		r0 = rf(ctx, uuid)
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+
+	return r0
+}
+
+// UserRepository_ExistByUuid_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ExistByUuid'
+type UserRepository_ExistByUuid_Call struct {
+	*mock.Call
+}
+
+// ExistByUuid is a helper method to define mock.On call
+//   - ctx context.Context
+//   - uuid string
+func (_e *UserRepository_Expecter) ExistByUuid(ctx interface{}, uuid interface{}) *UserRepository_ExistByUuid_Call {
+	return &UserRepository_ExistByUuid_Call{Call: _e.mock.On("ExistByUuid", ctx, uuid)}
+}
+
+func (_c *UserRepository_ExistByUuid_Call) Run(run func(ctx context.Context, uuid string)) *UserRepository_ExistByUuid_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string))
+	})
+	return _c
+}
+
+func (_c *UserRepository_ExistByUuid_Call) Return(_a0 bool) *UserRepository_ExistByUuid_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *UserRepository_ExistByUuid_Call) RunAndReturn(run func(context.Context, string) bool) *UserRepository_ExistByUuid_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetAll provides a mock function with given fields: ctx
 func (_m *UserRepository) GetAll(ctx context.Context) ([]domain.User, error) {
 	ret := _m.Called(ctx)
@@ -474,6 +561,59 @@ func (_c *UserRepository_GetByUsername_Call) Return(_a0 domain.User, _a1 error) 
 }
 
 func (_c *UserRepository_GetByUsername_Call) RunAndReturn(run func(context.Context, string) (domain.User, error)) *UserRepository_GetByUsername_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetByUuid provides a mock function with given fields: ctx, uuid
+func (_m *UserRepository) GetByUuid(ctx context.Context, uuid string) (domain.User, error) {
+	ret := _m.Called(ctx, uuid)
+
+	var r0 domain.User
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string) (domain.User, error)); ok {
+		return rf(ctx, uuid)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string) domain.User); ok {
+		r0 = rf(ctx, uuid)
+	} else {
+		r0 = ret.Get(0).(domain.User)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, uuid)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// UserRepository_GetByUuid_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetByUuid'
+type UserRepository_GetByUuid_Call struct {
+	*mock.Call
+}
+
+// GetByUuid is a helper method to define mock.On call
+//   - ctx context.Context
+//   - uuid string
+func (_e *UserRepository_Expecter) GetByUuid(ctx interface{}, uuid interface{}) *UserRepository_GetByUuid_Call {
+	return &UserRepository_GetByUuid_Call{Call: _e.mock.On("GetByUuid", ctx, uuid)}
+}
+
+func (_c *UserRepository_GetByUuid_Call) Run(run func(ctx context.Context, uuid string)) *UserRepository_GetByUuid_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string))
+	})
+	return _c
+}
+
+func (_c *UserRepository_GetByUuid_Call) Return(_a0 domain.User, _a1 error) *UserRepository_GetByUuid_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *UserRepository_GetByUuid_Call) RunAndReturn(run func(context.Context, string) (domain.User, error)) *UserRepository_GetByUuid_Call {
 	_c.Call.Return(run)
 	return _c
 }

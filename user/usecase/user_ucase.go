@@ -278,7 +278,7 @@ func (u *userUsecase) Update(c context.Context, uuid string, uUp *domain.User) (
 	if uUp.Username != "" {
 		if exists := u.userRepo.ExistByUname(ctx, uUp.Username); exists {
 			err := errors.New(fmt.Sprint("Username already taken: ", uname))
-			rErr = domain.NewUCaseErr(http.StatusNotFound, err)
+			rErr = domain.NewUCaseErr(http.StatusNotAcceptable, err)
 			return
 		}
 		err := u.userRepo.ChgUsername(ctx, uname, uUp.Username)

@@ -5,7 +5,8 @@ CREATE DATABASE papyrus;
 CREATE TABLE dir (
     uuid        UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
     name        VARCHAR(256)  NOT NULL,
-    parent_dir  UUID          REFERENCES dir
+    parent_dir  UUID          REFERENCES dir,
+    CONSTRAINT different_uuid_parent_dir CHECK (uuid <> parent_dir)
 );
 
 CREATE TABLE role (

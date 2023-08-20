@@ -84,8 +84,6 @@ func main() {
 	e.Logger.Fatal(e.Start(":9090"))
 	/**
 	* TODO: Add unit testing for everything created
-	* TODO: Add omitempty validation for possible but not allowed "" strings
-	* TODO: Add constaraint in database to not allow same name in parent_dir
 	* TODO: Make a deep check and desing of fs constraints, enforce them in DB and in app-code
 	**/
 }

@@ -1,6 +1,6 @@
 INSERT INTO user_ (uuid, username, email, password, name, lastname, role, state)
 SELECT
-    '11111111-1111-1111-1111-111111111111',
+    '00000000-0000-0000-0000-000000000001',
     'pps_admin',
 	'pps_admin@mail.com',
 	'pps_admin',

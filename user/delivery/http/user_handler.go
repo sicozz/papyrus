@@ -25,7 +25,7 @@ func NewUserHandler(e *echo.Echo, uu domain.UserUsecase) {
 	e.POST("/user", handler.Store)
 	e.GET("/user/:uname", handler.GetByUsername)
 	e.DELETE("/user/:uname", handler.Delete)
-	e.PATCH("/user/:uname", handler.Update)
+	e.PATCH("/user/:uuid", handler.Update)
 	e.PATCH("/user/:uuid/chg_password", handler.ChgPasswd)
 	e.POST("/login", handler.Login)
 }
@@ -137,7 +137,7 @@ func (h *UserHandler) Login(c echo.Context) error {
 func (h *UserHandler) Update(c echo.Context) error {
 	h.log.Inf("REQ: update")
 	ctx := c.Request().Context()
-	uname := c.Param("uname")
+	uuid := c.Param("uuid")
 
 	var uUpDto dtos.UserUpdateDto
 	err := c.Bind(&uUpDto)
@@ -156,6 +156,7 @@ func (h *UserHandler) Update(c echo.Context) error {
 	}
 
 	user := domain.User{
+		Username: uUpDto.UserName,
 		Name:     uUpDto.Name,
 		Lastname: uUpDto.Lastname,
 		Email:    uUpDto.Email,
@@ -163,7 +164,7 @@ func (h *UserHandler) Update(c echo.Context) error {
 		State:    domain.UserState{Description: uUpDto.State},
 	}
 
-	rErr := h.UUsecase.Update(ctx, uname, &user)
+	rErr := h.UUsecase.Update(ctx, uuid, &user)
 	if rErr != nil {
 		errBody := dtos.NewErrDto(rErr.Error())
 		return c.JSON(rErr.GetStatus(), errBody)

@@ -83,8 +83,6 @@ func main() {
 
 	e.Logger.Fatal(e.Start(":9090"))
 	/**
-	* TODO: Return uuid on dir.store
-	* TODO: Edit migrations so fk aro not hardcoded (use subselects)
 	* TODO: Add unit testing for everything created
 	* TODO: Add omitempty validation for possible but not allowed "" strings
 	* TODO: Add constaraint in database to not allow same name in parent_dir

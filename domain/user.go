@@ -24,7 +24,7 @@ type UserUsecase interface {
 	GetByUsername(c context.Context, uname string) (User, RequestErr)
 	// TODO: Change *User recievers to *dto used in handler
 	Store(c context.Context, u *User) RequestErr
-	Update(c context.Context, uname string, uUp *User) RequestErr
+	Update(c context.Context, uuid string, uUp *User) RequestErr
 	Delete(c context.Context, uname string) RequestErr
 	Login(c context.Context, uname string, passwd string) (User, RequestErr)
 	ChgPasswd(ctx context.Context, uuid string, data ChgPasswd) RequestErr
@@ -44,6 +44,7 @@ type UserRepository interface {
 	Store(ctx context.Context, u *User) error
 	Delete(ctx context.Context, uuid string) error
 	Login(ctx context.Context, uname string, passwd string) (User, error)
+	ChgUsername(ctx context.Context, uname string, nUname string) error
 	ChgEmail(ctx context.Context, uname string, email string) error
 	ChgName(ctx context.Context, uname string, nName string) error
 	ChgLstname(ctx context.Context, uname string, nLname string) error

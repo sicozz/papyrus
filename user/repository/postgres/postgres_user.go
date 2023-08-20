@@ -261,6 +261,20 @@ func (r *postgresUserRepository) ChgLstname(ctx context.Context, uname string, n
 	return
 }
 
+func (r *postgresUserRepository) ChgUsername(ctx context.Context, uname string, nUname string) (err error) {
+	query := `UPDATE user_ SET username=$1 WHERE username=$2`
+	stmt, err := r.Conn.PrepareContext(ctx, query)
+	if err != nil {
+		r.log.Err("IN [ChgUsername]: could not prepare context ->", err)
+		return
+	}
+	defer stmt.Close()
+
+	_, err = stmt.QueryContext(ctx, nUname, uname)
+
+	return
+}
+
 // Change user password
 func (r *postgresUserRepository) ChgPasswd(ctx context.Context, uuid string, nPasswd string) (err error) {
 	query := `UPDATE user_ SET password=$1 WHERE uuid=$2`

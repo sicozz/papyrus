@@ -192,15 +192,24 @@ func (u *userUsecase) Delete(c context.Context, uname string) (rErr domain.Reque
 	return
 }
 
-func (u *userUsecase) Update(c context.Context, uname string, uUp *domain.User) (rErr domain.RequestErr) {
+func (u *userUsecase) Update(c context.Context, uuid string, uUp *domain.User) (rErr domain.RequestErr) {
 	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
 	defer cancel()
 
-	if exists := u.userRepo.ExistByUname(ctx, uname); !exists {
-		err := errors.New(fmt.Sprint("User not found. username: ", uname))
+	if exists := u.userRepo.ExistByUuid(ctx, uuid); !exists {
+		err := errors.New(fmt.Sprint("User not found. uuid: ", uuid))
 		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
 		return
 	}
+
+	user, err := u.userRepo.GetByUuid(ctx, uuid)
+	if err != nil {
+		u.log.Err("IN [Update]: could not get user ->", err)
+		err = errors.New(fmt.Sprint("User patch failed. uuid: ", uuid))
+		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
+		return
+	}
+	uname := user.Username
 
 	if uUp.Email != "" {
 		err := u.userRepo.ChgEmail(ctx, uname, uUp.Email)
@@ -260,6 +269,21 @@ func (u *userUsecase) Update(c context.Context, uname string, uUp *domain.User) 
 		err = u.userRepo.ChgState(ctx, uname, s)
 		if err != nil {
 			u.log.Err("IN [Update]: could not change user_state ->", err)
+			err = errors.New(fmt.Sprint("User patch failed: ", err))
+			rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+			return
+		}
+	}
+
+	if uUp.Username != "" {
+		if exists := u.userRepo.ExistByUname(ctx, uUp.Username); exists {
+			err := errors.New(fmt.Sprint("Username already taken: ", uname))
+			rErr = domain.NewUCaseErr(http.StatusNotFound, err)
+			return
+		}
+		err := u.userRepo.ChgUsername(ctx, uname, uUp.Username)
+		if err != nil {
+			u.log.Err("IN [Update]: could not change user username ->", err)
 			err = errors.New(fmt.Sprint("User patch failed: ", err))
 			rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
 			return

@@ -33,7 +33,7 @@ func (r *postgresDirRepository) GetAll(ctx context.Context) (res []domain.Dir, e
 	defer func() {
 		errRow := rows.Close()
 		if errRow != nil {
-			r.log.Err("IN [GetAll]: could not close *rows ->", err)
+			r.log.Err("IN [GetAll] failed to close *rows ->", err)
 		}
 	}()
 
@@ -50,7 +50,7 @@ func (r *postgresDirRepository) GetAll(ctx context.Context) (res []domain.Dir, e
 		)
 
 		if err != nil {
-			r.log.Err("IN [GetAll]: could not scan dir ->", err)
+			r.log.Err("IN [GetAll] failed to scan dir ->", err)
 		}
 		res = append(res, t)
 	}
@@ -63,7 +63,7 @@ func (r *postgresDirRepository) ExistByUuid(ctx context.Context, uuid string) (r
 	query := `SELECT COUNT(*) > 0 FROM dir WHERE uuid = $1`
 	stmt, err := r.Conn.PrepareContext(ctx, query)
 	if err != nil {
-		r.log.Err("IN [ExistByUuid]: could not prepare context ->", err)
+		r.log.Err("IN [ExistByUuid] failed to prepare context ->", err)
 		return
 	}
 	defer stmt.Close()
@@ -78,7 +78,7 @@ func (r *postgresDirRepository) GetByUuid(ctx context.Context, uuid string) (res
 	query := `SELECT * FROM dir WHERE uuid = $1`
 	stmt, err := r.Conn.PrepareContext(ctx, query)
 	if err != nil {
-		r.log.Err("IN [GetByUuid]: could not prepare context ->", err)
+		r.log.Err("IN [GetByUuid] failed to prepare context ->", err)
 		return
 	}
 	defer stmt.Close()
@@ -93,7 +93,7 @@ func (r *postgresDirRepository) GetByUuid(ctx context.Context, uuid string) (res
 	)
 
 	if err != nil {
-		r.log.Err("IN [GetByUuid]: could not scan rows ->", err)
+		r.log.Err("IN [GetByUuid] failed to scan rows ->", err)
 		return
 	}
 
@@ -108,7 +108,7 @@ func (r *postgresDirRepository) Store(ctx context.Context, d *domain.Dir) (err e
 		RETURNING uuid`
 	stmt, err := r.Conn.PrepareContext(ctx, query)
 	if err != nil {
-		r.log.Err("IN [Store]: could not prepare context ->", err)
+		r.log.Err("IN [Store] failed to prepare context ->", err)
 		return
 	}
 	defer stmt.Close()
@@ -123,7 +123,7 @@ func (r *postgresDirRepository) Store(ctx context.Context, d *domain.Dir) (err e
 	).Scan(&d.Uuid)
 
 	if err != nil {
-		r.log.Err("IN [Store]: could not scan rows ->", err)
+		r.log.Err("IN [Store] failed to scan rows ->", err)
 		return
 	}
 
@@ -135,14 +135,14 @@ func (r *postgresDirRepository) Delete(ctx context.Context, uuid string) (err er
 	query := `DELETE FROM dir WHERE uuid=$1 RETURNING uuid`
 	stmt, err := r.Conn.PrepareContext(ctx, query)
 	if err != nil {
-		r.log.Err("IN [Delete]: could not prepare context ->", err)
+		r.log.Err("IN [Delete] failed to prepare context ->", err)
 		return
 	}
 	defer stmt.Close()
 
 	err = stmt.QueryRowContext(ctx, uuid).Scan(&uuid)
 	if uuid == "" && err == nil {
-		err = errors.New("Could not delete user")
+		err = errors.New("Failed to delete dir")
 	}
 
 	return
@@ -152,7 +152,7 @@ func (r *postgresDirRepository) ChgName(ctx context.Context, uuid string, nName 
 	query := `UPDATE dir SET name=$1 WHERE uuid=$2`
 	stmt, err := r.Conn.PrepareContext(ctx, query)
 	if err != nil {
-		r.log.Err("IN [ChgName]: could not prepare context ->", err)
+		r.log.Err("IN [ChgName] failed to prepare context ->", err)
 		return
 	}
 	defer stmt.Close()
@@ -166,7 +166,7 @@ func (r *postgresDirRepository) ChgParentDir(ctx context.Context, uuid string, n
 	query := `UPDATE dir SET parent_dir=$1 WHERE uuid=$2`
 	stmt, err := r.Conn.PrepareContext(ctx, query)
 	if err != nil {
-		r.log.Err("IN [ChgParentDir]: could not prepare context ->", err)
+		r.log.Err("IN [ChgParentDir] failed to prepare context ->", err)
 		return
 	}
 	defer stmt.Close()
@@ -180,7 +180,7 @@ func (r *postgresDirRepository) IncNchild(ctx context.Context, uuid string, nNch
 	query := `UPDATE dir SET nchild=nchild + $1 WHERE uuid=$2`
 	stmt, err := r.Conn.PrepareContext(ctx, query)
 	if err != nil {
-		r.log.Err("IN [IncNchild]: could not prepare context ->", err)
+		r.log.Err("IN [IncNchild] failed to prepare context ->", err)
 		return
 	}
 	defer stmt.Close()
@@ -194,7 +194,7 @@ func (r *postgresDirRepository) DecNchild(ctx context.Context, uuid string, nNch
 	query := `UPDATE dir SET nchild=nchild - $1 WHERE uuid=$2`
 	stmt, err := r.Conn.PrepareContext(ctx, query)
 	if err != nil {
-		r.log.Err("IN [DecNchild]: could not prepare context ->", err)
+		r.log.Err("IN [DecNchild] failed to prepare context ->", err)
 		return
 	}
 	defer stmt.Close()
@@ -208,7 +208,7 @@ func (r *postgresDirRepository) ChgPath(ctx context.Context, uuid string, nPath 
 	query := `UPDATE dir SET path=$1 WHERE uuid=$2`
 	stmt, err := r.Conn.PrepareContext(ctx, query)
 	if err != nil {
-		r.log.Err("IN [ChgPath]: could not prepare context ->", err)
+		r.log.Err("IN [ChgPath] failed to prepare context ->", err)
 		return
 	}
 	defer stmt.Close()
@@ -222,7 +222,7 @@ func (r *postgresDirRepository) ChgDepth(ctx context.Context, uuid string, nDept
 	query := `UPDATE dir SET depth=$1 WHERE uuid=$2`
 	stmt, err := r.Conn.PrepareContext(ctx, query)
 	if err != nil {
-		r.log.Err("IN [ChgDepth]: could not prepare context ->", err)
+		r.log.Err("IN [ChgDepth] failed to prepare context ->", err)
 		return
 	}
 	defer stmt.Close()

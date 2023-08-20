@@ -137,7 +137,17 @@ func (h *UserHandler) Login(c echo.Context) error {
 func (h *UserHandler) Update(c echo.Context) error {
 	h.log.Inf("REQ: update")
 	ctx := c.Request().Context()
+
 	uuid := c.Param("uuid")
+	if valid := utils.IsValidUUID(uuid); !valid {
+		errBody := dtos.NewErrDto("Uuid does not conform to the uuid format")
+		return c.JSON(http.StatusBadRequest, errBody)
+	}
+
+	if valid := utils.IsValidUUID(uuid); !valid {
+		errBody := dtos.NewErrDto("Uuid does not conform to the uuid format")
+		return c.JSON(http.StatusBadRequest, errBody)
+	}
 
 	var uUpDto dtos.UserUpdateDto
 	err := c.Bind(&uUpDto)
@@ -176,7 +186,17 @@ func (h *UserHandler) Update(c echo.Context) error {
 func (h *UserHandler) ChgPasswd(c echo.Context) error {
 	h.log.Inf("REQ: change password")
 	ctx := c.Request().Context()
+
 	uuid := c.Param("uuid")
+	if valid := utils.IsValidUUID(uuid); !valid {
+		errBody := dtos.NewErrDto("Uuid does not conform to the uuid format")
+		return c.JSON(http.StatusBadRequest, errBody)
+	}
+
+	if valid := utils.IsValidUUID(uuid); !valid {
+		errBody := dtos.NewErrDto("Uuid does not conform to the uuid format")
+		return c.JSON(http.StatusBadRequest, errBody)
+	}
 
 	var data domain.ChgPasswd
 	err := c.Bind(&data)

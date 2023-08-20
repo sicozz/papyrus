@@ -46,7 +46,7 @@ func (u *userUsecase) fillUserDetails(ctx context.Context, users []domain.User) 
 	// get roles
 	roles, err := u.roleRepo.GetAll(ctx)
 	if err != nil {
-		u.log.Err("IN [fillUserDetails]: could not get roles ->", err)
+		u.log.Err("IN [fillUserDetails] failed to get roles ->", err)
 	}
 
 	mapRoles := map[int64]domain.Role{}
@@ -57,7 +57,7 @@ func (u *userUsecase) fillUserDetails(ctx context.Context, users []domain.User) 
 	// get user_states
 	states, err := u.userStateRepo.GetAll(ctx)
 	if err != nil {
-		u.log.Err("IN [fillUserDetails]: could not get user_states ->", err)
+		u.log.Err("IN [fillUserDetails] failed to get user_states ->", err)
 	}
 
 	mapStates := map[int64]domain.UserState{}
@@ -85,14 +85,14 @@ func (u *userUsecase) GetAll(c context.Context) (res []domain.User, rErr domain.
 
 	res, err := u.userRepo.GetAll(ctx)
 	if err != nil {
-		u.log.Err("IN [GetAll]: could not get users ->", err)
+		u.log.Err("IN [GetAll] failed to get users ->", err)
 		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
 		return
 	}
 
 	err = u.fillUserDetails(ctx, res)
 	if err != nil {
-		u.log.Err("IN [GetAll]: could not fill user details ->", err)
+		u.log.Err("IN [GetAll] failed to fill user details ->", err)
 		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
 		return
 	}
@@ -101,7 +101,6 @@ func (u *userUsecase) GetAll(c context.Context) (res []domain.User, rErr domain.
 }
 
 func (u *userUsecase) GetByUsername(c context.Context, uname string) (res domain.User, rErr domain.RequestErr) {
-	// Refactor filluserdetails
 	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
 	defer cancel()
 
@@ -113,25 +112,17 @@ func (u *userUsecase) GetByUsername(c context.Context, uname string) (res domain
 
 	res, err := u.userRepo.GetByUsername(ctx, uname)
 	if err != nil {
-		u.log.Err("IN [GetByUsername]: could not get user ->", err)
+		u.log.Err("IN [GetByUsername] failed to get user ->", err)
 		err = errors.New(fmt.Sprint("User fetch failed. username: ", uname))
 		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
 		return domain.User{}, rErr
 	}
 
-	resArr := make([]domain.User, 1)
-	resArr[0] = res
-	err = u.fillUserDetails(ctx, resArr)
-	res = resArr[0]
-	if err != nil {
-		u.log.Err("IN [GetByUsername]: could not fill user details ->", err)
-		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
-		return
-	}
 	return
 }
 
 func (u *userUsecase) Store(c context.Context, user *domain.User) (rErr domain.RequestErr) {
+	// TODO: dynamic role and status i.e. dont use defRoleDesc
 	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
 	defer cancel()
 
@@ -184,7 +175,7 @@ func (u *userUsecase) Delete(c context.Context, uname string) (rErr domain.Reque
 
 	err := u.userRepo.Delete(ctx, uname)
 	if err != nil {
-		u.log.Err("IN [Delete]: could not delete user {", uname, "} ->", err)
+		u.log.Err("IN [Delete] failed to delete user {", uname, "} ->", err)
 		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
 		return
 	}
@@ -204,7 +195,7 @@ func (u *userUsecase) Update(c context.Context, uuid string, uUp *domain.User) (
 
 	user, err := u.userRepo.GetByUuid(ctx, uuid)
 	if err != nil {
-		u.log.Err("IN [Update]: could not get user ->", err)
+		u.log.Err("IN [Update] failed to get user ->", err)
 		err = errors.New(fmt.Sprint("User patch failed. uuid: ", uuid))
 		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
 		return
@@ -214,7 +205,7 @@ func (u *userUsecase) Update(c context.Context, uuid string, uUp *domain.User) (
 	if uUp.Email != "" {
 		err := u.userRepo.ChgEmail(ctx, uname, uUp.Email)
 		if err != nil {
-			u.log.Err("IN [Update]: could not change email ->", err)
+			u.log.Err("IN [Update] failed to change email ->", err)
 			err = errors.New(fmt.Sprint("User patch failed: ", err))
 			rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
 			return
@@ -224,7 +215,7 @@ func (u *userUsecase) Update(c context.Context, uuid string, uUp *domain.User) (
 	if uUp.Name != "" {
 		err := u.userRepo.ChgName(ctx, uname, uUp.Name)
 		if err != nil {
-			u.log.Err("IN [Update]: could not change name ->", err)
+			u.log.Err("IN [Update] failed to change name ->", err)
 			err = errors.New(fmt.Sprint("User patch failed: ", err))
 			rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
 			return
@@ -234,7 +225,7 @@ func (u *userUsecase) Update(c context.Context, uuid string, uUp *domain.User) (
 	if uUp.Lastname != "" {
 		err := u.userRepo.ChgLstname(ctx, uname, uUp.Lastname)
 		if err != nil {
-			u.log.Err("IN [Update]: could not change lastname ->", err)
+			u.log.Err("IN [Update] failed to change lastname ->", err)
 			err = errors.New(fmt.Sprint("User patch failed: ", err))
 			rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
 			return
@@ -244,14 +235,14 @@ func (u *userUsecase) Update(c context.Context, uuid string, uUp *domain.User) (
 	if uUp.Role.Description != "" {
 		r, err := u.roleRepo.GetByDescription(ctx, uUp.Role.Description)
 		if err != nil {
-			u.log.Err("IN [Update]: could not get role ->", err)
+			u.log.Err("IN [Update] failed to get role ->", err)
 			err = errors.New(fmt.Sprint("Role not found"))
 			rErr = domain.NewUCaseErr(http.StatusNotFound, err)
 			return
 		}
 		err = u.userRepo.ChgRole(ctx, uname, r)
 		if err != nil {
-			u.log.Err("IN [Update]: could not change role ->", err)
+			u.log.Err("IN [Update] failed to change role ->", err)
 			err = errors.New(fmt.Sprint("User patch failed: ", err))
 			rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
 			return
@@ -261,14 +252,14 @@ func (u *userUsecase) Update(c context.Context, uuid string, uUp *domain.User) (
 	if uUp.State.Description != "" {
 		s, err := u.userStateRepo.GetByDescription(ctx, uUp.State.Description)
 		if err != nil {
-			u.log.Err("IN [Update]: could not get user_state ->", err)
+			u.log.Err("IN [Update] failed to get user_state ->", err)
 			err = errors.New(fmt.Sprint("User_state not found"))
 			rErr = domain.NewUCaseErr(http.StatusNotFound, err)
 		}
 
 		err = u.userRepo.ChgState(ctx, uname, s)
 		if err != nil {
-			u.log.Err("IN [Update]: could not change user_state ->", err)
+			u.log.Err("IN [Update] failed to change user_state ->", err)
 			err = errors.New(fmt.Sprint("User patch failed: ", err))
 			rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
 			return
@@ -283,7 +274,7 @@ func (u *userUsecase) Update(c context.Context, uuid string, uUp *domain.User) (
 		}
 		err := u.userRepo.ChgUsername(ctx, uname, uUp.Username)
 		if err != nil {
-			u.log.Err("IN [Update]: could not change user username ->", err)
+			u.log.Err("IN [Update] failed to change user username ->", err)
 			err = errors.New(fmt.Sprint("User patch failed: ", err))
 			rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
 			return
@@ -311,7 +302,7 @@ func (u *userUsecase) ChgPasswd(c context.Context, uuid string, data domain.ChgP
 
 	user, err := u.userRepo.GetByUuid(ctx, uuid)
 	if err != nil {
-		u.log.Err("IN [ChgPasswd]: could not get user ->", err)
+		u.log.Err("IN [ChgPasswd] failed to get user ->", err)
 		err = errors.New(fmt.Sprint("User patch failed. uuid: ", uuid))
 		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
 		return
@@ -325,7 +316,7 @@ func (u *userUsecase) ChgPasswd(c context.Context, uuid string, data domain.ChgP
 
 	err = u.userRepo.ChgPasswd(ctx, uuid, data.NPasswd)
 	if err != nil {
-		u.log.Err("IN [ChgPasswd]: could not change password ->", err)
+		u.log.Err("IN [ChgPasswd] failed to change password ->", err)
 		err = errors.New(fmt.Sprint("User patch failed: ", err))
 		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
 		return
@@ -335,7 +326,6 @@ func (u *userUsecase) ChgPasswd(c context.Context, uuid string, data domain.ChgP
 }
 
 func (u *userUsecase) Login(c context.Context, uname string, passwd string) (res domain.User, rErr domain.RequestErr) {
-	// Refactor flluserdetails
 	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
 	defer cancel()
 
@@ -345,14 +335,5 @@ func (u *userUsecase) Login(c context.Context, uname string, passwd string) (res
 		return
 	}
 
-	resArr := make([]domain.User, 1)
-	resArr[0] = res
-	err = u.fillUserDetails(ctx, resArr)
-	res = resArr[0]
-	if err != nil {
-		u.log.Err("IN [Login]: could not fill user details ->", err)
-		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
-		return
-	}
 	return
 }

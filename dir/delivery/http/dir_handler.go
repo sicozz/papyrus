@@ -58,10 +58,20 @@ func (h *DirHandler) GetAll(c echo.Context) error {
 }
 
 func (h *DirHandler) GetByUuid(c echo.Context) error {
-	// TODO: VALIDATE uuid string compliance with uuid syntax
 	h.log.Inf("REQ: get by uuid")
 	ctx := c.Request().Context()
+
 	uuid := c.Param("uuid")
+	if valid := utils.IsValidUUID(uuid); !valid {
+		errBody := dtos.NewErrDto("Uuid does not conform to the uuid format")
+		return c.JSON(http.StatusBadRequest, errBody)
+	}
+
+	if valid := utils.IsValidUUID(uuid); !valid {
+		errBody := dtos.NewErrDto("Uuid does not conform to the uuid format")
+		return c.JSON(http.StatusBadRequest, errBody)
+	}
+
 	dir, rErr := h.DUsecase.GetByUuid(ctx, uuid)
 
 	if rErr != nil {
@@ -103,7 +113,12 @@ func (h *DirHandler) Store(c echo.Context) (err error) {
 func (h *DirHandler) Update(c echo.Context) error {
 	h.log.Inf("REQ: update")
 	ctx := c.Request().Context()
+
 	uuid := c.Param("uuid")
+	if valid := utils.IsValidUUID(uuid); !valid {
+		errBody := dtos.NewErrDto("Uuid does not conform to the uuid format")
+		return c.JSON(http.StatusBadRequest, errBody)
+	}
 
 	// TODO: Change domain entities recvrs for dedicated dtos EVERYWHERE!
 	var dUpDto dtos.DirUpdateDto
@@ -137,9 +152,13 @@ func (h *DirHandler) Update(c echo.Context) error {
 
 func (h *DirHandler) Delete(c echo.Context) error {
 	h.log.Inf("REQ: delete")
-	// TODO: VALIDATE uuid string compliance with uuid syntax
 	ctx := c.Request().Context()
 	uuid := c.Param("uuid")
+	if valid := utils.IsValidUUID(uuid); !valid {
+		errBody := dtos.NewErrDto("Uuid does not conform to the uuid format")
+		return c.JSON(http.StatusBadRequest, errBody)
+	}
+
 	rErr := h.DUsecase.Delete(ctx, uuid)
 
 	if rErr != nil {
@@ -154,7 +173,12 @@ func (h *DirHandler) Move(c echo.Context) error {
 	// WARN: Add validation to avoid ciclical references
 	h.log.Inf("REQ: move")
 	ctx := c.Request().Context()
+
 	uuid := c.Param("uuid")
+	if valid := utils.IsValidUUID(uuid); !valid {
+		errBody := dtos.NewErrDto("Uuid does not conform to the uuid format")
+		return c.JSON(http.StatusBadRequest, errBody)
+	}
 
 	var dMDto dtos.DirMoveDto
 	err := c.Bind(&dMDto)

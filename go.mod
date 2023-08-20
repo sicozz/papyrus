@@ -3,6 +3,7 @@ module github.com/sicozz/papyrus
 go 1.20
 
 require (
+	github.com/google/uuid v1.1.2
 	github.com/labstack/echo/v4 v4.10.2
 	github.com/lib/pq v1.10.9
 	github.com/spf13/viper v1.16.0

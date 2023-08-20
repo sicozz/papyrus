@@ -61,6 +61,15 @@ build: ## Builds binary
 		./app/
 	@ echo "done"
 
+build-debug: ## Builds binary with debugging flags
+	@ printf "Building aplication... "
+	@ go build \
+		-gcflags="all=-N -l" \
+		-trimpath  \
+		-o engine \
+		./app/
+	@ echo "done"
+
 build-race: ## Builds binary (with -race flag)
 	@ printf "Building aplication with race flag... "
 	@ go build \

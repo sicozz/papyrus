@@ -9,7 +9,6 @@ import (
 
 	"github.com/sicozz/papyrus/domain"
 	"github.com/sicozz/papyrus/domain/dtos"
-	"github.com/sicozz/papyrus/domain/mapper"
 	"github.com/sicozz/papyrus/utils"
 	"github.com/sicozz/papyrus/utils/constants"
 )
@@ -81,7 +80,7 @@ func (u *userUsecase) fillUserDetails(ctx context.Context, users []domain.User) 
 	return
 }
 
-func (u *userUsecase) GetAll(c context.Context) (res []dtos.UserGetDto, rErr domain.RequestErr) {
+func (u *userUsecase) GetAll(c context.Context) (res []domain.User, rErr domain.RequestErr) {
 	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
 	defer cancel()
 
@@ -92,15 +91,11 @@ func (u *userUsecase) GetAll(c context.Context) (res []dtos.UserGetDto, rErr dom
 		return
 	}
 
-	res = make([]dtos.UserGetDto, len(users))
-	for i, u := range users {
-		res[i] = mapper.MapUserToUserGetDto(u)
-	}
-
+	res = users
 	return
 }
 
-func (u *userUsecase) GetByUsername(c context.Context, uname string) (res dtos.UserGetDto, rErr domain.RequestErr) {
+func (u *userUsecase) GetByUsername(c context.Context, uname string) (res domain.User, rErr domain.RequestErr) {
 	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
 	defer cancel()
 
@@ -110,20 +105,18 @@ func (u *userUsecase) GetByUsername(c context.Context, uname string) (res dtos.U
 		return
 	}
 
-	user, err := u.userRepo.GetByUsername(ctx, uname)
+	res, err := u.userRepo.GetByUsername(ctx, uname)
 	if err != nil {
 		u.log.Err("IN [GetByUsername] failed to get user ->", err)
 		err = errors.New(fmt.Sprint("User fetch failed. username: ", uname))
 		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
-		return dtos.UserGetDto{}, rErr
+		return domain.User{}, rErr
 	}
-
-	res = mapper.MapUserToUserGetDto(user)
 
 	return
 }
 
-func (u *userUsecase) Store(c context.Context, user *domain.User) (res dtos.UserGetDto, rErr domain.RequestErr) {
+func (u *userUsecase) Store(c context.Context, user *domain.User) (res domain.User, rErr domain.RequestErr) {
 	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
 	defer cancel()
 
@@ -169,7 +162,7 @@ func (u *userUsecase) Store(c context.Context, user *domain.User) (res dtos.User
 		return
 	}
 
-	res = mapper.MapUserToUserGetDto(nUser)
+	res = nUser
 
 	return
 }
@@ -336,7 +329,7 @@ func (u *userUsecase) ChgPasswd(c context.Context, uuid string, data dtos.ChgPas
 	return
 }
 
-func (u *userUsecase) Login(c context.Context, uname string, passwd string) (res dtos.UserGetDto, rErr domain.RequestErr) {
+func (u *userUsecase) Login(c context.Context, uname string, passwd string) (res domain.User, rErr domain.RequestErr) {
 	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
 	defer cancel()
 
@@ -353,7 +346,7 @@ func (u *userUsecase) Login(c context.Context, uname string, passwd string) (res
 		return
 	}
 
-	res = mapper.MapUserToUserGetDto(user)
+	res = user
 
 	return
 }

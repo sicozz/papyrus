@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/sicozz/papyrus/domain"
+	"github.com/sicozz/papyrus/domain/dtos"
 	"github.com/sicozz/papyrus/utils"
 	"github.com/sicozz/papyrus/utils/constants"
 )
@@ -284,7 +285,7 @@ func (u *userUsecase) Update(c context.Context, uuid string, uUp *domain.User) (
 	return
 }
 
-func (u *userUsecase) ChgPasswd(c context.Context, uuid string, data domain.ChgPasswd) (rErr domain.RequestErr) {
+func (u *userUsecase) ChgPasswd(c context.Context, uuid string, data dtos.ChgPasswdDto) (rErr domain.RequestErr) {
 	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
 	defer cancel()
 
@@ -329,9 +330,16 @@ func (u *userUsecase) Login(c context.Context, uname string, passwd string) (res
 	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
 	defer cancel()
 
-	res, err := u.userRepo.Login(ctx, uname, passwd)
-	if err != nil {
+	if auth := u.userRepo.Auth(ctx, uname, passwd); !auth {
+		err := errors.New("Wrong username or password")
 		rErr = domain.NewUCaseErr(http.StatusUnauthorized, err)
+		return
+	}
+
+	res, err := u.userRepo.GetByUsername(ctx, uname)
+	if err != nil {
+		u.log.Err("IN [Login] failed to get user -> ", err)
+		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
 		return
 	}
 

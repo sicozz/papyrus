@@ -7,6 +7,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/sicozz/papyrus/domain"
 	"github.com/sicozz/papyrus/domain/dtos"
+	"github.com/sicozz/papyrus/domain/mapper"
 	"github.com/sicozz/papyrus/utils"
 	"github.com/sicozz/papyrus/utils/constants"
 	"gopkg.in/go-playground/validator.v9"
@@ -51,7 +52,7 @@ func (h *DirHandler) GetAll(c echo.Context) error {
 
 	dirDtos := make([]dtos.DirGetDto, len(dirs), len(dirs))
 	for i, dir := range dirs {
-		dirDtos[i] = dtos.NewDirGetDto(dir)
+		dirDtos[i] = mapper.MapDirToDirGetDto(dir)
 	}
 
 	return c.JSON(http.StatusOK, dirDtos)

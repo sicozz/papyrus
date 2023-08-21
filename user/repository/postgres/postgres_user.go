@@ -372,7 +372,7 @@ func (r *postgresUserRepository) ChgState(ctx context.Context, uname string, st 
 }
 
 // Authenticate a user
-func (r *postgresUserRepository) Login(ctx context.Context, uname string, passwd string) (res domain.User, err error) {
+func (r *postgresUserRepository) Auth(ctx context.Context, uname string, passwd string) (res bool) {
 	query := `SELECT COUNT(*) > 0 FROM user_ WHERE username = $1 AND password = $2`
 	stmt, err := r.Conn.PrepareContext(ctx, query)
 	if err != nil {
@@ -381,13 +381,7 @@ func (r *postgresUserRepository) Login(ctx context.Context, uname string, passwd
 	}
 	defer stmt.Close()
 
-	var match bool
-	err = stmt.QueryRowContext(ctx, uname, passwd).Scan(&match)
+	err = stmt.QueryRowContext(ctx, uname, passwd).Scan(&res)
 
-	if !match {
-		err = errors.New("Wrong username or password")
-		return
-	}
-
-	return r.GetByUsername(ctx, uname)
+	return
 }

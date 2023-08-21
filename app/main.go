@@ -83,8 +83,6 @@ func main() {
 
 	e.Logger.Fatal(e.Start(":9090"))
 	/**
-	* TODO: Set non nullable constraints in sql
-	* TODO: Create UserGetDto
 	* TODO: Add unit testing for everything created
 	* TODO: Make a deep check and desing of fs constraints, enforce them in DB and in app-code
 	**/

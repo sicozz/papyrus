@@ -2,6 +2,8 @@ package domain
 
 import (
 	"context"
+
+	"github.com/sicozz/papyrus/domain/dtos"
 )
 
 // User represents the User data struct
@@ -27,7 +29,7 @@ type UserUsecase interface {
 	Update(c context.Context, uuid string, uUp *User) RequestErr
 	Delete(c context.Context, uname string) RequestErr
 	Login(c context.Context, uname string, passwd string) (User, RequestErr)
-	ChgPasswd(ctx context.Context, uuid string, data ChgPasswd) RequestErr
+	ChgPasswd(ctx context.Context, uuid string, data dtos.ChgPasswdDto) RequestErr
 }
 
 // UserRepository represents the user's repository contract
@@ -43,7 +45,7 @@ type UserRepository interface {
 	ExistByEmail(ctx context.Context, email string) bool
 	Store(ctx context.Context, u *User) error
 	Delete(ctx context.Context, uuid string) error
-	Login(ctx context.Context, uname string, passwd string) (User, error)
+	Auth(ctx context.Context, uname string, passwd string) bool
 	ChgUsername(ctx context.Context, uname string, nUname string) error
 	ChgEmail(ctx context.Context, uname string, email string) error
 	ChgName(ctx context.Context, uname string, nName string) error

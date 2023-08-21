@@ -66,7 +66,6 @@ func (r *postgresUserRepository) GetAll(ctx context.Context) (res []domain.User,
 			&t.State.Description,
 		)
 
-		// TODO: Rename msgs with 'could not' to 'failed to'
 		if err != nil {
 			r.log.Err("IN [GetAll]: failed to scan user ->", err)
 			return nil, err

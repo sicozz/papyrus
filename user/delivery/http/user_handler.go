@@ -83,13 +83,13 @@ func (h *UserHandler) Store(c echo.Context) (err error) {
 	}
 
 	ctx := c.Request().Context()
-	rErr := h.UUsecase.Store(ctx, &user)
+	nUser, rErr := h.UUsecase.Store(ctx, &user)
 	if rErr != nil {
 		errBody := dtos.NewErrDto(rErr.Error())
 		return c.JSON(rErr.GetStatus(), errBody)
 	}
 
-	return c.JSON(http.StatusCreated, user)
+	return c.JSON(http.StatusCreated, nUser)
 }
 
 func (h *UserHandler) Delete(c echo.Context) error {
@@ -144,11 +144,6 @@ func (h *UserHandler) Update(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, errBody)
 	}
 
-	if valid := utils.IsValidUUID(uuid); !valid {
-		errBody := dtos.NewErrDto("Uuid does not conform to the uuid format")
-		return c.JSON(http.StatusBadRequest, errBody)
-	}
-
 	var uUpDto dtos.UserUpdateDto
 	err := c.Bind(&uUpDto)
 	if err != nil {
@@ -165,16 +160,7 @@ func (h *UserHandler) Update(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, errBody)
 	}
 
-	user := domain.User{
-		Username: uUpDto.UserName,
-		Name:     uUpDto.Name,
-		Lastname: uUpDto.Lastname,
-		Email:    uUpDto.Email,
-		Role:     domain.Role{Description: uUpDto.Role},
-		State:    domain.UserState{Description: uUpDto.State},
-	}
-
-	rErr := h.UUsecase.Update(ctx, uuid, &user)
+	rErr := h.UUsecase.Update(ctx, uuid, uUpDto)
 	if rErr != nil {
 		errBody := dtos.NewErrDto(rErr.Error())
 		return c.JSON(rErr.GetStatus(), errBody)

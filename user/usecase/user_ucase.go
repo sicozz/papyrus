@@ -9,6 +9,7 @@ import (
 
 	"github.com/sicozz/papyrus/domain"
 	"github.com/sicozz/papyrus/domain/dtos"
+	"github.com/sicozz/papyrus/domain/mapper"
 	"github.com/sicozz/papyrus/utils"
 	"github.com/sicozz/papyrus/utils/constants"
 )
@@ -80,28 +81,26 @@ func (u *userUsecase) fillUserDetails(ctx context.Context, users []domain.User) 
 	return
 }
 
-func (u *userUsecase) GetAll(c context.Context) (res []domain.User, rErr domain.RequestErr) {
+func (u *userUsecase) GetAll(c context.Context) (res []dtos.UserGetDto, rErr domain.RequestErr) {
 	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
 	defer cancel()
 
-	res, err := u.userRepo.GetAll(ctx)
+	users, err := u.userRepo.GetAll(ctx)
 	if err != nil {
 		u.log.Err("IN [GetAll] failed to get users ->", err)
 		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
 		return
 	}
 
-	err = u.fillUserDetails(ctx, res)
-	if err != nil {
-		u.log.Err("IN [GetAll] failed to fill user details ->", err)
-		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
-		return
+	res = make([]dtos.UserGetDto, len(users))
+	for i, u := range users {
+		res[i] = mapper.MapUserToUserGetDto(u)
 	}
 
 	return
 }
 
-func (u *userUsecase) GetByUsername(c context.Context, uname string) (res domain.User, rErr domain.RequestErr) {
+func (u *userUsecase) GetByUsername(c context.Context, uname string) (res dtos.UserGetDto, rErr domain.RequestErr) {
 	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
 	defer cancel()
 
@@ -111,19 +110,20 @@ func (u *userUsecase) GetByUsername(c context.Context, uname string) (res domain
 		return
 	}
 
-	res, err := u.userRepo.GetByUsername(ctx, uname)
+	user, err := u.userRepo.GetByUsername(ctx, uname)
 	if err != nil {
 		u.log.Err("IN [GetByUsername] failed to get user ->", err)
 		err = errors.New(fmt.Sprint("User fetch failed. username: ", uname))
 		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
-		return domain.User{}, rErr
+		return dtos.UserGetDto{}, rErr
 	}
+
+	res = mapper.MapUserToUserGetDto(user)
 
 	return
 }
 
-func (u *userUsecase) Store(c context.Context, user *domain.User) (rErr domain.RequestErr) {
-	// TODO: dynamic role and status i.e. dont use defRoleDesc
+func (u *userUsecase) Store(c context.Context, user *domain.User) (res dtos.UserGetDto, rErr domain.RequestErr) {
 	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
 	defer cancel()
 
@@ -161,6 +161,16 @@ func (u *userUsecase) Store(c context.Context, user *domain.User) (rErr domain.R
 		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
 		return
 	}
+
+	nUser, err := u.userRepo.GetByUsername(ctx, user.Username)
+	if err != nil {
+		err = errors.New("User creation failed")
+		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+		return
+	}
+
+	res = mapper.MapUserToUserGetDto(nUser)
+
 	return
 }
 
@@ -184,7 +194,7 @@ func (u *userUsecase) Delete(c context.Context, uname string) (rErr domain.Reque
 	return
 }
 
-func (u *userUsecase) Update(c context.Context, uuid string, uUp *domain.User) (rErr domain.RequestErr) {
+func (u *userUsecase) Update(c context.Context, uuid string, uUp dtos.UserUpdateDto) (rErr domain.RequestErr) {
 	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
 	defer cancel()
 
@@ -233,8 +243,8 @@ func (u *userUsecase) Update(c context.Context, uuid string, uUp *domain.User) (
 		}
 	}
 
-	if uUp.Role.Description != "" {
-		r, err := u.roleRepo.GetByDescription(ctx, uUp.Role.Description)
+	if uUp.Role != "" {
+		r, err := u.roleRepo.GetByDescription(ctx, uUp.Role)
 		if err != nil {
 			u.log.Err("IN [Update] failed to get role ->", err)
 			err = errors.New(fmt.Sprint("Role not found"))
@@ -250,8 +260,8 @@ func (u *userUsecase) Update(c context.Context, uuid string, uUp *domain.User) (
 		}
 	}
 
-	if uUp.State.Description != "" {
-		s, err := u.userStateRepo.GetByDescription(ctx, uUp.State.Description)
+	if uUp.State != "" {
+		s, err := u.userStateRepo.GetByDescription(ctx, uUp.State)
 		if err != nil {
 			u.log.Err("IN [Update] failed to get user_state ->", err)
 			err = errors.New(fmt.Sprint("User_state not found"))
@@ -326,7 +336,7 @@ func (u *userUsecase) ChgPasswd(c context.Context, uuid string, data dtos.ChgPas
 	return
 }
 
-func (u *userUsecase) Login(c context.Context, uname string, passwd string) (res domain.User, rErr domain.RequestErr) {
+func (u *userUsecase) Login(c context.Context, uname string, passwd string) (res dtos.UserGetDto, rErr domain.RequestErr) {
 	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
 	defer cancel()
 
@@ -336,12 +346,14 @@ func (u *userUsecase) Login(c context.Context, uname string, passwd string) (res
 		return
 	}
 
-	res, err := u.userRepo.GetByUsername(ctx, uname)
+	user, err := u.userRepo.GetByUsername(ctx, uname)
 	if err != nil {
 		u.log.Err("IN [Login] failed to get user -> ", err)
 		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
 		return
 	}
+
+	res = mapper.MapUserToUserGetDto(user)
 
 	return
 }

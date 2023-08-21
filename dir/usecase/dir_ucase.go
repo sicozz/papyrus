@@ -174,7 +174,6 @@ func (u *dirUsecase) Delete(c context.Context, uuid string) (rErr domain.Request
 }
 
 func (u *dirUsecase) Move(c context.Context, uuid string, nPUuid string) (rErr domain.RequestErr) {
-	// TODO: Update path
 	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
 	defer cancel()
 
@@ -251,6 +250,36 @@ func (u *dirUsecase) Move(c context.Context, uuid string, nPUuid string) (rErr d
 		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
 		return
 	}
+
+	return
+}
+
+func (u *dirUsecase) Duplicate(c context.Context, uuid string, destUuid string) (res domain.Dir, rErr domain.RequestErr) {
+	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
+	defer cancel()
+
+	dirs, err := u.dirRepo.GetAll(ctx)
+	if err != nil {
+		u.log.Err("IN [Duplicate] failed to get dirs ->", err)
+		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+		return
+	}
+
+	neoDir, dupDirs, err := domain.Duplicate(uuid, destUuid, dirs)
+	u.dirRepo.IncNchild(ctx, destUuid, 1)
+	for _, d := range dupDirs {
+		u.dirRepo.Insert(ctx, *d)
+	}
+
+	res = *neoDir
+
+	// neoDirs := []domain.Dir{}
+	// for _, d := range dupDirs {
+	// 	neoDirs = append(neoDirs, *d)
+	// }
+
+	// newDirs := append(dirs, neoDirs...)
+	// u.log.Inf(fmt.Sprintf(">>>New fs: %+v", newDirs))
 
 	return
 }

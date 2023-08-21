@@ -70,7 +70,9 @@ func main() {
 	e := echo.New()
 	e.Use(middleware.CORS())
 
-	timeoutContext := time.Duration(viper.GetInt("context.timeout")) * time.Second
+	// TODO: Check if this enables debuggin and later change it to something reasonable
+	// timeoutContext := time.Duration(viper.GetInt("context.timeout")) * time.Second
+	timeoutContext := time.Duration(viper.GetInt("context.timeout")) * time.Second * 300
 	rr := _roleRepo.NewPostgresRoleRepository(dbConn)
 	ur := _userRepo.NewPostgresUserRepository(dbConn)
 	usr := _userStateRepo.NewPostgresUserStateRepository(dbConn)

@@ -29,6 +29,8 @@ func NewDirHandler(e *echo.Echo, du domain.DirUsecase) {
 	e.GET("/dir/:uuid", handler.GetByUuid)
 	e.DELETE("/dir/:uuid", handler.Delete)
 	e.PATCH("/dir/:uuid/move", handler.Move)
+
+	e.POST("/dir/duplicate", handler.Duplicate)
 }
 
 func isRequestValid(p any) (bool, error) {
@@ -204,4 +206,34 @@ func (h *DirHandler) Move(c echo.Context) error {
 	}
 
 	return c.NoContent(http.StatusOK)
+}
+
+func (h *DirHandler) Duplicate(c echo.Context) error {
+	// WARN: Add validation to avoid ciclical references
+	h.log.Inf("REQ: duplicate")
+	ctx := c.Request().Context()
+
+	var dDDto dtos.DirDuplicateDto
+	err := c.Bind(&dDDto)
+	if err != nil {
+		errBody := dtos.NewErrDto(fmt.Sprint("Req body binding failed: ", err))
+		return c.JSON(http.StatusBadRequest, errBody)
+	}
+
+	if ok, err := isRequestValid(&dDDto); !ok {
+		errBody, err := dtos.NewValidationErrDto(err.Error())
+		if err != nil {
+			errValid := dtos.NewErrDto(fmt.Sprint("Req body validation failed: ", err))
+			return c.JSON(http.StatusBadRequest, errValid)
+		}
+		return c.JSON(http.StatusBadRequest, errBody)
+	}
+
+	res, rErr := h.DUsecase.Duplicate(ctx, dDDto.Uuid, dDDto.ParentDir)
+	if rErr != nil {
+		errBody := dtos.NewErrDto(rErr.Error())
+		return c.JSON(rErr.GetStatus(), errBody)
+	}
+
+	return c.JSON(http.StatusOK, res)
 }

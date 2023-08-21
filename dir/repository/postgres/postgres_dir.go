@@ -231,3 +231,32 @@ func (r *postgresDirRepository) ChgDepth(ctx context.Context, uuid string, nDept
 
 	return
 }
+
+func (r *postgresDirRepository) Insert(ctx context.Context, dir domain.Dir) (err error) {
+	query :=
+		`INSERT INTO dir (uuid, name, parent_dir, path, nchild, depth)
+		VALUES ($1, $2, $3, $4, $5, $6)`
+	stmt, err := r.Conn.PrepareContext(ctx, query)
+	if err != nil {
+		r.log.Err("IN [Insert] failed to prepare context ->", err)
+		return
+	}
+	defer stmt.Close()
+
+	_, err = stmt.QueryContext(
+		ctx,
+		dir.Uuid,
+		dir.Name,
+		dir.ParentDir,
+		dir.Path,
+		dir.Nchild,
+		dir.Depth,
+	)
+
+	if err != nil {
+		r.log.Err("IN [Insert] failed execute insert ->", err)
+		return
+	}
+
+	return
+}

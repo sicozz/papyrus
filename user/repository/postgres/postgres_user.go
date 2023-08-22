@@ -323,8 +323,8 @@ func (r *postgresUserRepository) ChgUsername(ctx context.Context, uname string, 
 }
 
 // Change user password
-func (r *postgresUserRepository) ChgPasswd(ctx context.Context, uuid string, nPasswd string) (err error) {
-	query := `UPDATE user_ SET lastname=$1 WHERE username=$2`
+func (r *postgresUserRepository) ChgPasswd(ctx context.Context, uname string, nPasswd string) (err error) {
+	query := `UPDATE user_ SET password=$1 WHERE username=$2`
 
 	stmt, err := r.Conn.PrepareContext(ctx, query)
 	if err != nil {
@@ -333,7 +333,7 @@ func (r *postgresUserRepository) ChgPasswd(ctx context.Context, uuid string, nPa
 	}
 	defer stmt.Close()
 
-	_, err = stmt.ExecContext(ctx, nPasswd, uuid)
+	_, err = stmt.ExecContext(ctx, nPasswd, uname)
 
 	return
 }

@@ -31,7 +31,7 @@ type DirUsecase interface {
 	Update(c context.Context, uuid string, dUp *Dir) RequestErr
 	Delete(c context.Context, uuid string) RequestErr
 	Move(c context.Context, uuid string, nPUuid string) RequestErr
-	Duplicate(c context.Context, uuid string, destUuid string) (Dir, RequestErr)
+	Duplicate(c context.Context, uuid string, nName string, destUuid string) (Dir, RequestErr)
 }
 
 // DirRepository represents the dir's repository contract
@@ -103,7 +103,7 @@ func RefreshChildren(uuid string, dirs []*Dir) (err error) {
 	return nil
 }
 
-func duplicateTopDown(srcUuid string, dstUuid string, dirs []Dir) (head *Dir, neoDirs []*Dir, err error) {
+func duplicateTopDown(srcUuid string, nName string, dstUuid string, dirs []Dir) (head *Dir, neoDirs []*Dir, err error) {
 	dirSet := []*Dir{}
 	for _, d := range dirs {
 		tD := d
@@ -111,6 +111,7 @@ func duplicateTopDown(srcUuid string, dstUuid string, dirs []Dir) (head *Dir, ne
 	}
 
 	srcDir, err := FindDirByUuid(srcUuid, dirSet)
+	srcDir.Name = nName
 	if err != nil {
 		return nil, nil, err
 	}
@@ -155,8 +156,8 @@ func duplicateTopDown(srcUuid string, dstUuid string, dirs []Dir) (head *Dir, ne
 }
 
 // TODO: This function works as a wrapper but is no necessary. Delete it later
-func Duplicate(srcUuid string, dstUuid string, dirs []Dir) (neoDir *Dir, dupDirs []*Dir, err error) {
-	neoDir, neoDirs, err := duplicateTopDown(srcUuid, dstUuid, dirs)
+func Duplicate(srcUuid string, nName string, dstUuid string, dirs []Dir) (neoDir *Dir, dupDirs []*Dir, err error) {
+	neoDir, neoDirs, err := duplicateTopDown(srcUuid, nName, dstUuid, dirs)
 	if err != nil {
 		return nil, nil, err
 	}

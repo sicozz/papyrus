@@ -21,7 +21,7 @@ CREATE TABLE user_state (
 
 CREATE TABLE user_ (
     uuid      UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
-    username  VARCHAR(32)  UNIQUE NOT NULL,
+    username  VARCHAR(32)  NOT NULL,
     email     VARCHAR(64)  UNIQUE NOT NULL,
     password  VARCHAR(32)  NOT NULL,
     name      VARCHAR(32)  NOT NULL,

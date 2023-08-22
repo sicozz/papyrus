@@ -229,7 +229,7 @@ func (h *DirHandler) Duplicate(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, errBody)
 	}
 
-	res, rErr := h.DUsecase.Duplicate(ctx, dDDto.Uuid, dDDto.ParentDir)
+	res, rErr := h.DUsecase.Duplicate(ctx, dDDto.Uuid, dDDto.Name, dDDto.ParentDir)
 	if rErr != nil {
 		errBody := dtos.NewErrDto(rErr.Error())
 		return c.JSON(rErr.GetStatus(), errBody)

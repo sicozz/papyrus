@@ -254,7 +254,7 @@ func (u *dirUsecase) Move(c context.Context, uuid string, nPUuid string) (rErr d
 	return
 }
 
-func (u *dirUsecase) Duplicate(c context.Context, uuid string, destUuid string) (res domain.Dir, rErr domain.RequestErr) {
+func (u *dirUsecase) Duplicate(c context.Context, uuid string, nName string, destUuid string) (res domain.Dir, rErr domain.RequestErr) {
 	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
 	defer cancel()
 
@@ -265,7 +265,7 @@ func (u *dirUsecase) Duplicate(c context.Context, uuid string, destUuid string) 
 		return
 	}
 
-	neoDir, dupDirs, err := domain.Duplicate(uuid, destUuid, dirs)
+	neoDir, dupDirs, err := domain.Duplicate(uuid, nName, destUuid, dirs)
 	u.dirRepo.IncNchild(ctx, destUuid, 1)
 	for _, d := range dupDirs {
 		u.dirRepo.Insert(ctx, *d)

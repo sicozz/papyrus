@@ -271,11 +271,11 @@ func (u *userUsecase) Update(c context.Context, uuid string, uUp dtos.UserUpdate
 	}
 
 	if uUp.Username != "" {
-		if exists := u.userRepo.ExistByUname(ctx, uUp.Username); exists {
-			err := errors.New(fmt.Sprint("Username already taken: ", uname))
-			rErr = domain.NewUCaseErr(http.StatusNotAcceptable, err)
-			return
-		}
+		// if exists := u.userRepo.ExistByUname(ctx, uUp.Username); exists {
+		// 	err := errors.New(fmt.Sprint("Username already taken: ", uname))
+		// 	rErr = domain.NewUCaseErr(http.StatusNotAcceptable, err)
+		// 	return
+		// }
 		err := u.userRepo.ChgUsername(ctx, uname, uUp.Username)
 		if err != nil {
 			u.log.Err("IN [Update] failed to change user username ->", err)
@@ -312,13 +312,13 @@ func (u *userUsecase) ChgPasswd(c context.Context, uuid string, data dtos.ChgPas
 		return
 	}
 
-	if user.Password != data.Passwd {
+	if auth := u.userRepo.Auth(ctx, user.Username, data.Passwd); !auth {
 		err = errors.New("Wrong password")
 		rErr = domain.NewUCaseErr(http.StatusNotAcceptable, err)
 		return
 	}
 
-	err = u.userRepo.ChgPasswd(ctx, uuid, data.NPasswd)
+	err = u.userRepo.ChgPasswd(ctx, user.Username, data.NPasswd)
 	if err != nil {
 		u.log.Err("IN [ChgPasswd] failed to change password ->", err)
 		err = errors.New(fmt.Sprint("User patch failed: ", err))

@@ -340,7 +340,7 @@ func (r *postgresUserRepository) ChgPasswd(ctx context.Context, uuid string, nPa
 
 // Change user role
 func (r *postgresUserRepository) ChgRole(ctx context.Context, uname string, ro domain.Role) (err error) {
-	query := `UPDATE user_ SET lastname=$1 WHERE username=$2`
+	query := `UPDATE user_ SET role=$1 WHERE username=$2`
 
 	stmt, err := r.Conn.PrepareContext(ctx, query)
 	if err != nil {
@@ -360,7 +360,7 @@ func (r *postgresUserRepository) ChgState(ctx context.Context, uname string, st 
 
 	stmt, err := r.Conn.PrepareContext(ctx, query)
 	if err != nil {
-		r.log.Err("IN [ChgRole] failed to prepare context ->", err)
+		r.log.Err("IN [ChgState] failed to prepare context ->", err)
 		return
 	}
 	defer stmt.Close()

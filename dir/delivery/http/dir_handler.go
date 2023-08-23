@@ -31,6 +31,7 @@ func NewDirHandler(e *echo.Echo, du domain.DirUsecase) {
 	e.PATCH("/dir/:uuid/move", handler.Move)
 
 	e.POST("/dir/duplicate", handler.Duplicate)
+	e.POST("/file/upload", handler.StoreDoc)
 }
 
 func isRequestValid(p any) (bool, error) {
@@ -236,4 +237,34 @@ func (h *DirHandler) Duplicate(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, res)
+}
+
+func (h *DirHandler) StoreDoc(c echo.Context) (err error) {
+	h.log.Inf("REQ: store doc")
+	var dir domain.Dir
+	err = c.Bind(&dir)
+	if err != nil {
+		errBody := dtos.NewErrDto(err.Error())
+		return c.JSON(http.StatusBadRequest, errBody)
+	}
+
+	if ok, err := isRequestValid(&dir); !ok {
+		errBody, err := dtos.NewValidationErrDto(err.Error())
+		if err != nil {
+			errParse := dtos.NewErrDto(err.Error())
+			return c.JSON(http.StatusBadRequest, errParse)
+		}
+		return c.JSON(http.StatusBadRequest, errBody)
+	}
+
+	dir.Name = "_" + dir.Name
+
+	ctx := c.Request().Context()
+	rErr := h.DUsecase.Store(ctx, &dir)
+	if rErr != nil {
+		errBody := dtos.NewErrDto(rErr.Error())
+		return c.JSON(rErr.GetStatus(), errBody)
+	}
+
+	return c.JSON(http.StatusCreated, dir)
 }

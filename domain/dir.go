@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	gUuid "github.com/google/uuid"
+	"github.com/sicozz/papyrus/domain/dtos"
 )
 
 // Dir represents the Directory data strict
@@ -25,13 +26,13 @@ type DirUsecase interface {
 	* We are leaving it for later, when we recv some feedback, to decide if it
 	* is necessary or we can implement it later
 	 */
-	GetAll(c context.Context) ([]Dir, RequestErr)
-	GetByUuid(c context.Context, uuid string) (Dir, RequestErr)
-	Store(c context.Context, d *Dir) RequestErr
-	Update(c context.Context, uuid string, dUp *Dir) RequestErr
+	GetAll(c context.Context) ([]dtos.DirGetDto, RequestErr)
+	GetByUuid(c context.Context, uuid string) (dtos.DirGetDto, RequestErr)
+	Store(c context.Context, d dtos.DirStoreDto) (dtos.DirGetDto, RequestErr)
+	Update(c context.Context, uuid string, p dtos.DirUpdateDto) RequestErr
 	Delete(c context.Context, uuid string) RequestErr
 	Move(c context.Context, uuid string, nPUuid string) RequestErr
-	Duplicate(c context.Context, uuid string, nName string, destUuid string) (Dir, RequestErr)
+	Duplicate(c context.Context, uuid string, nName string, destUuid string) (dtos.DirGetDto, RequestErr)
 }
 
 // DirRepository represents the dir's repository contract

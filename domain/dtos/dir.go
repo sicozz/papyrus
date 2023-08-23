@@ -19,6 +19,11 @@ type DirGetDto struct {
 	Open      bool   `json:"open"`
 }
 
+type DirStoreDto struct {
+	Name      string `json:"name" validate:"required,ascii"`
+	ParentDir string `json:"parent_dir" validate:"required,ascii,uuid"`
+}
+
 type DirUpdateDto struct {
 	Name string `json:"name"`
 }

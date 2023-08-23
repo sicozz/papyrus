@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"github.com/sicozz/papyrus/domain"
+	"github.com/sicozz/papyrus/domain/dtos"
+	"github.com/sicozz/papyrus/domain/mapper"
 	"github.com/sicozz/papyrus/utils"
 	"github.com/sicozz/papyrus/utils/constants"
 )
@@ -30,45 +32,52 @@ func NewDirUsecase(dr domain.DirRepository, timeout time.Duration) domain.DirUse
 	}
 }
 
-func (u *dirUsecase) GetAll(c context.Context) (res []domain.Dir, rErr domain.RequestErr) {
+func (u *dirUsecase) GetAll(c context.Context) (res []dtos.DirGetDto, rErr domain.RequestErr) {
 	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
 	defer cancel()
 
-	res, err := u.dirRepo.GetAll(ctx)
+	dirs, err := u.dirRepo.GetAll(ctx)
 	if err != nil {
 		u.log.Err("IN [GetAll]: could not get dirs ->", err)
 		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
 		return
 	}
 
+	res = make([]dtos.DirGetDto, len(dirs), len(dirs))
+	for i, d := range dirs {
+		res[i] = mapper.MapDirToDirGetDto(d)
+	}
+
 	return
 }
 
-func (u *dirUsecase) GetByUuid(c context.Context, uuid string) (res domain.Dir, rErr domain.RequestErr) {
+func (u *dirUsecase) GetByUuid(c context.Context, uuid string) (res dtos.DirGetDto, rErr domain.RequestErr) {
 	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
 	defer cancel()
 
-	res, err := u.dirRepo.GetByUuid(ctx, uuid)
+	dir, err := u.dirRepo.GetByUuid(ctx, uuid)
 	if err != nil {
 		u.log.Err("IN [GetByUuid]: could not get dir ->", err)
 		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
 		return
 	}
 
+	res = mapper.MapDirToDirGetDto(dir)
+
 	return
 }
 
-func (u *dirUsecase) Store(c context.Context, dir *domain.Dir) (rErr domain.RequestErr) {
+func (u *dirUsecase) Store(c context.Context, p dtos.DirStoreDto) (res dtos.DirGetDto, rErr domain.RequestErr) {
 	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
 	defer cancel()
 
-	if exists := u.dirRepo.ExistByUuid(ctx, dir.ParentDir); !exists {
+	if exists := u.dirRepo.ExistByUuid(ctx, p.ParentDir); !exists {
 		err := errors.New("Parent dir not found")
 		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
 		return
 	}
 
-	parentDir, err := u.dirRepo.GetByUuid(ctx, dir.ParentDir)
+	parentDir, err := u.dirRepo.GetByUuid(ctx, p.ParentDir)
 	if err != nil {
 		err := errors.New("Could not fetch parent dir")
 		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
@@ -78,13 +87,14 @@ func (u *dirUsecase) Store(c context.Context, dir *domain.Dir) (rErr domain.Requ
 	/*
 		TODO: Validate name not taken in parent_dir
 	*/
+	dir := mapper.MapDirStoreDtoToDir(p)
 	dirs := []string{parentDir.Path, dir.Name}
 	dir.Path = strings.Join(dirs, string(os.PathSeparator))
 	dir.Nchild = 0
 	dir.Depth = parentDir.Depth + 1
 
 	/* TODO: WARN: Make the storage of the dir and increment of parent_dir.nchild a transaction */
-	err = u.dirRepo.Store(ctx, dir)
+	err = u.dirRepo.Store(ctx, &dir)
 	if err != nil {
 		err = errors.New("Dir creation failed")
 		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
@@ -98,10 +108,12 @@ func (u *dirUsecase) Store(c context.Context, dir *domain.Dir) (rErr domain.Requ
 		return
 	}
 
+	res = mapper.MapDirToDirGetDto(dir)
+
 	return
 }
 
-func (u *dirUsecase) Update(c context.Context, uuid string, dUp *domain.Dir) (rErr domain.RequestErr) {
+func (u *dirUsecase) Update(c context.Context, uuid string, p dtos.DirUpdateDto) (rErr domain.RequestErr) {
 	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
 	defer cancel()
 
@@ -113,11 +125,11 @@ func (u *dirUsecase) Update(c context.Context, uuid string, dUp *domain.Dir) (rE
 	/* TODO: Add validation validate unique name in parent_dir */
 	/* WARN: VALIDATE THAT ROOT FOLDER IS NOT CHANGED */
 
-	if dUp.Name == "" {
+	if p.Name == "" {
 		return
 	}
 
-	err := u.dirRepo.ChgName(ctx, uuid, dUp.Name)
+	err := u.dirRepo.ChgName(ctx, uuid, p.Name)
 	if err != nil {
 		u.log.Err("IN [Update]: could not change name ->", err)
 		err = errors.New(fmt.Sprint("Dir patch failed: ", err))
@@ -254,7 +266,7 @@ func (u *dirUsecase) Move(c context.Context, uuid string, nPUuid string) (rErr d
 	return
 }
 
-func (u *dirUsecase) Duplicate(c context.Context, uuid string, nName string, destUuid string) (res domain.Dir, rErr domain.RequestErr) {
+func (u *dirUsecase) Duplicate(c context.Context, uuid string, nName string, destUuid string) (res dtos.DirGetDto, rErr domain.RequestErr) {
 	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
 	defer cancel()
 
@@ -271,7 +283,7 @@ func (u *dirUsecase) Duplicate(c context.Context, uuid string, nName string, des
 		u.dirRepo.Insert(ctx, *d)
 	}
 
-	res = *neoDir
+	res = mapper.MapDirToDirGetDto(*neoDir)
 
 	// neoDirs := []domain.Dir{}
 	// for _, d := range dupDirs {

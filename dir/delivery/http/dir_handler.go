@@ -7,7 +7,6 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/sicozz/papyrus/domain"
 	"github.com/sicozz/papyrus/domain/dtos"
-	"github.com/sicozz/papyrus/domain/mapper"
 	"github.com/sicozz/papyrus/utils"
 	"github.com/sicozz/papyrus/utils/constants"
 	"gopkg.in/go-playground/validator.v9"
@@ -53,12 +52,7 @@ func (h *DirHandler) GetAll(c echo.Context) error {
 		return c.JSON(rErr.GetStatus(), errBody)
 	}
 
-	dirDtos := make([]dtos.DirGetDto, len(dirs), len(dirs))
-	for i, dir := range dirs {
-		dirDtos[i] = mapper.MapDirToDirGetDto(dir)
-	}
-
-	return c.JSON(http.StatusOK, dirDtos)
+	return c.JSON(http.StatusOK, dirs)
 }
 
 func (h *DirHandler) GetByUuid(c echo.Context) error {
@@ -88,14 +82,14 @@ func (h *DirHandler) GetByUuid(c echo.Context) error {
 
 func (h *DirHandler) Store(c echo.Context) (err error) {
 	h.log.Inf("REQ: store")
-	var dir domain.Dir
-	err = c.Bind(&dir)
+	var p dtos.DirStoreDto
+	err = c.Bind(&p)
 	if err != nil {
 		errBody := dtos.NewErrDto(err.Error())
 		return c.JSON(http.StatusBadRequest, errBody)
 	}
 
-	if ok, err := isRequestValid(&dir); !ok {
+	if ok, err := isRequestValid(&p); !ok {
 		errBody, err := dtos.NewValidationErrDto(err.Error())
 		if err != nil {
 			errParse := dtos.NewErrDto(err.Error())
@@ -105,7 +99,7 @@ func (h *DirHandler) Store(c echo.Context) (err error) {
 	}
 
 	ctx := c.Request().Context()
-	rErr := h.DUsecase.Store(ctx, &dir)
+	dir, rErr := h.DUsecase.Store(ctx, p)
 	if rErr != nil {
 		errBody := dtos.NewErrDto(rErr.Error())
 		return c.JSON(rErr.GetStatus(), errBody)
@@ -125,14 +119,14 @@ func (h *DirHandler) Update(c echo.Context) error {
 	}
 
 	// TODO: Change domain entities recvrs for dedicated dtos EVERYWHERE!
-	var dUpDto dtos.DirUpdateDto
-	err := c.Bind(&dUpDto)
+	var p dtos.DirUpdateDto
+	err := c.Bind(&p)
 	if err != nil {
 		errBody := dtos.NewErrDto(fmt.Sprint("Req body binding failed: ", err))
 		return c.JSON(http.StatusBadRequest, errBody)
 	}
 
-	if ok, err := isRequestValid(&dUpDto); !ok {
+	if ok, err := isRequestValid(&p); !ok {
 		errBody, err := dtos.NewValidationErrDto(err.Error())
 		if err != nil {
 			errValid := dtos.NewErrDto(fmt.Sprint("Req body validation failed: ", err))
@@ -141,11 +135,7 @@ func (h *DirHandler) Update(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, errBody)
 	}
 
-	dir := domain.Dir{
-		Name: dUpDto.Name,
-	}
-
-	rErr := h.DUsecase.Update(ctx, uuid, &dir)
+	rErr := h.DUsecase.Update(ctx, uuid, p)
 	if rErr != nil {
 		errBody := dtos.NewErrDto(rErr.Error())
 		return c.JSON(rErr.GetStatus(), errBody)
@@ -241,14 +231,14 @@ func (h *DirHandler) Duplicate(c echo.Context) error {
 
 func (h *DirHandler) StoreDoc(c echo.Context) (err error) {
 	h.log.Inf("REQ: store doc")
-	var dir domain.Dir
-	err = c.Bind(&dir)
+	var p dtos.DirStoreDto
+	err = c.Bind(&p)
 	if err != nil {
 		errBody := dtos.NewErrDto(err.Error())
 		return c.JSON(http.StatusBadRequest, errBody)
 	}
 
-	if ok, err := isRequestValid(&dir); !ok {
+	if ok, err := isRequestValid(&p); !ok {
 		errBody, err := dtos.NewValidationErrDto(err.Error())
 		if err != nil {
 			errParse := dtos.NewErrDto(err.Error())
@@ -257,10 +247,10 @@ func (h *DirHandler) StoreDoc(c echo.Context) (err error) {
 		return c.JSON(http.StatusBadRequest, errBody)
 	}
 
-	dir.Name = "_" + dir.Name
+	p.Name = "_" + p.Name
 
 	ctx := c.Request().Context()
-	rErr := h.DUsecase.Store(ctx, &dir)
+	dir, rErr := h.DUsecase.Store(ctx, p)
 	if rErr != nil {
 		errBody := dtos.NewErrDto(rErr.Error())
 		return c.JSON(rErr.GetStatus(), errBody)

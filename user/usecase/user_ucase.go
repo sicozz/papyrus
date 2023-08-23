@@ -9,6 +9,7 @@ import (
 
 	"github.com/sicozz/papyrus/domain"
 	"github.com/sicozz/papyrus/domain/dtos"
+	"github.com/sicozz/papyrus/domain/mapper"
 	"github.com/sicozz/papyrus/utils"
 	"github.com/sicozz/papyrus/utils/constants"
 )
@@ -38,49 +39,7 @@ func NewUserUsecase(ur domain.UserRepository, rr domain.RoleRepository, usr doma
 	}
 }
 
-/*
-* In this function below, I'm using errgroup with the pipeline pattern
-* Look how this works in this package explanation
-* in godoc: https://godoc.org/golang.org/x/sync/errgroup#ex-Group--Pipeline
- */
-func (u *userUsecase) fillUserDetails(ctx context.Context, users []domain.User) (err error) {
-	// get roles
-	roles, err := u.roleRepo.GetAll(ctx)
-	if err != nil {
-		u.log.Err("IN [fillUserDetails] failed to get roles ->", err)
-	}
-
-	mapRoles := map[int64]domain.Role{}
-	for _, role := range roles { //nolint
-		mapRoles[role.Code] = role
-	}
-
-	// get user_states
-	states, err := u.userStateRepo.GetAll(ctx)
-	if err != nil {
-		u.log.Err("IN [fillUserDetails] failed to get user_states ->", err)
-	}
-
-	mapStates := map[int64]domain.UserState{}
-	for _, state := range states { //nolint
-		mapStates[state.Code] = state
-	}
-
-	// merge the user's data
-	for idx, user := range users { //nolint
-		if r, ok := mapRoles[user.Role.Code]; ok {
-			users[idx].Role = r
-		}
-
-		if s, ok := mapStates[user.State.Code]; ok {
-			users[idx].State = s
-		}
-	}
-
-	return
-}
-
-func (u *userUsecase) GetAll(c context.Context) (res []domain.User, rErr domain.RequestErr) {
+func (u *userUsecase) GetAll(c context.Context) (res []dtos.UserGetDto, rErr domain.RequestErr) {
 	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
 	defer cancel()
 
@@ -91,11 +50,14 @@ func (u *userUsecase) GetAll(c context.Context) (res []domain.User, rErr domain.
 		return
 	}
 
-	res = users
+	res = make([]dtos.UserGetDto, len(users), len(users))
+	for i, u := range users {
+		res[i] = mapper.MapUserToUserGetDto(u)
+	}
 	return
 }
 
-func (u *userUsecase) GetByUsername(c context.Context, uname string) (res domain.User, rErr domain.RequestErr) {
+func (u *userUsecase) GetByUsername(c context.Context, uname string) (res dtos.UserGetDto, rErr domain.RequestErr) {
 	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
 	defer cancel()
 
@@ -105,18 +67,20 @@ func (u *userUsecase) GetByUsername(c context.Context, uname string) (res domain
 		return
 	}
 
-	res, err := u.userRepo.GetByUsername(ctx, uname)
+	user, err := u.userRepo.GetByUsername(ctx, uname)
 	if err != nil {
 		u.log.Err("IN [GetByUsername] failed to get user ->", err)
 		err = errors.New(fmt.Sprint("User fetch failed. username: ", uname))
 		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
-		return domain.User{}, rErr
+		return dtos.UserGetDto{}, rErr
 	}
+
+	res = mapper.MapUserToUserGetDto(user)
 
 	return
 }
 
-func (u *userUsecase) Store(c context.Context, user *domain.User) (res domain.User, rErr domain.RequestErr) {
+func (u *userUsecase) Store(c context.Context, user *domain.User) (res dtos.UserGetDto, rErr domain.RequestErr) {
 	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
 	defer cancel()
 
@@ -162,7 +126,7 @@ func (u *userUsecase) Store(c context.Context, user *domain.User) (res domain.Us
 		return
 	}
 
-	res = nUser
+	res = mapper.MapUserToUserGetDto(nUser)
 
 	return
 }
@@ -329,7 +293,7 @@ func (u *userUsecase) ChgPasswd(c context.Context, uuid string, data dtos.ChgPas
 	return
 }
 
-func (u *userUsecase) Login(c context.Context, uname string, passwd string) (res domain.User, rErr domain.RequestErr) {
+func (u *userUsecase) Login(c context.Context, uname string, passwd string) (res dtos.UserGetDto, rErr domain.RequestErr) {
 	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
 	defer cancel()
 
@@ -346,7 +310,7 @@ func (u *userUsecase) Login(c context.Context, uname string, passwd string) (res
 		return
 	}
 
-	res = user
+	res = mapper.MapUserToUserGetDto(user)
 
 	return
 }

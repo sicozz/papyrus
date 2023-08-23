@@ -33,7 +33,13 @@ func MapUserToUserGetDto(u domain.User) dtos.UserGetDto {
 		Email:    u.Email,
 		Name:     u.Name,
 		Lastname: u.Lastname,
-		Role:     u.Role.Description,
-		State:    u.State.Description,
+		Role: dtos.RoleDto{
+			Code:        u.Role.Code,
+			Description: u.Role.Description,
+		},
+		State: dtos.UStateDto{
+			Code:        u.State.Code,
+			Description: u.State.Description,
+		},
 	}
 }

@@ -20,14 +20,14 @@ type User struct {
 
 // UserUsecase represents the user's usecases
 type UserUsecase interface {
-	GetAll(c context.Context) ([]User, RequestErr)
+	GetAll(c context.Context) ([]dtos.UserGetDto, RequestErr)
 	// GetByUuid(c context.Context, uuid string) (User, error)
 	// GetByEmail(c context.Context, email string) (User, error)
-	GetByUsername(c context.Context, uname string) (User, RequestErr)
-	Store(c context.Context, u *User) (User, RequestErr)
+	GetByUsername(c context.Context, uname string) (dtos.UserGetDto, RequestErr)
+	Store(c context.Context, u *User) (dtos.UserGetDto, RequestErr)
 	Update(c context.Context, uuid string, d dtos.UserUpdateDto) RequestErr
 	Delete(c context.Context, uname string) RequestErr
-	Login(c context.Context, uname string, passwd string) (User, RequestErr)
+	Login(c context.Context, uname string, passwd string) (dtos.UserGetDto, RequestErr)
 	ChgPasswd(ctx context.Context, uuid string, data dtos.ChgPasswdDto) RequestErr
 }
 

@@ -28,7 +28,7 @@ type UserUsecase interface {
 	Update(c context.Context, uuid string, d dtos.UserUpdateDto) RequestErr
 	Delete(c context.Context, uname string) RequestErr
 	Login(c context.Context, uname string, passwd string) (dtos.UserGetDto, RequestErr)
-	ChgPasswd(ctx context.Context, uuid string, data dtos.ChgPasswdDto) RequestErr
+	ChgPasswd(ctx context.Context, uuid string, data dtos.UserChgPasswdDto) RequestErr
 }
 
 // UserRepository represents the user's repository contract

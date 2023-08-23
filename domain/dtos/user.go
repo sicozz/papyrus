@@ -20,3 +20,18 @@ type UStateDto struct {
 	Code        int64  `json:"code"`
 	Description string `json:"description"`
 }
+
+type UserUpdateDto struct {
+	Username string `json:"username"`
+	Name     string `json:"name"`
+	Lastname string `json:"lastname"`
+	Email    string `json:"email" validate:"omitempty,email,ascii"`
+	Role     string `json:"role"`
+	State    string `json:"state"`
+}
+
+type UserChgPasswdDto struct {
+	Passwd    string `json:"password" validate:"required"`
+	NPasswd   string `json:"new_password" validate:"required"`
+	ReNPasswd string `json:"re_new_password" validate:"required"`
+}

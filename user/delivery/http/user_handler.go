@@ -184,7 +184,7 @@ func (h *UserHandler) ChgPasswd(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, errBody)
 	}
 
-	var data dtos.ChgPasswdDto
+	var data dtos.UserChgPasswdDto
 	err := c.Bind(&data)
 	if err != nil {
 		errBody := dtos.NewErrDto(fmt.Sprint("Req body binding failed: ", err))

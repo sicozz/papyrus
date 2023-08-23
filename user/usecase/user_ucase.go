@@ -252,7 +252,7 @@ func (u *userUsecase) Update(c context.Context, uuid string, uUp dtos.UserUpdate
 	return
 }
 
-func (u *userUsecase) ChgPasswd(c context.Context, uuid string, data dtos.ChgPasswdDto) (rErr domain.RequestErr) {
+func (u *userUsecase) ChgPasswd(c context.Context, uuid string, data dtos.UserChgPasswdDto) (rErr domain.RequestErr) {
 	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
 	defer cancel()
 

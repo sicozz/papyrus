@@ -18,3 +18,17 @@ type DirGetDto struct {
 	Visible   bool   `json:"visible"`
 	Open      bool   `json:"open"`
 }
+
+type DirUpdateDto struct {
+	Name string `json:"name"`
+}
+
+type DirDuplicateDto struct {
+	Uuid      string `json:"uuid" validate:"uuid"`
+	ParentDir string `json:"parent_dir" validate:"uuid"`
+	Name      string `json:"name" validate:"ascii"`
+}
+
+type DirMoveDto struct {
+	ParentDir string `json:"parent_dir" validate:"omitempty,uuid"`
+}

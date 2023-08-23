@@ -21,6 +21,16 @@ type UStateDto struct {
 	Description string `json:"description"`
 }
 
+type UserStore struct {
+	Username string `json:"username" validate:"required,ascii"`
+	Email    string `json:"email" validate:"required,email,ascii"`
+	Password string `json:"password" validate:"required,ascii"`
+	Name     string `json:"name" validate:"required,ascii"`
+	Lastname string `json:"lastname" validate:"required,ascii"`
+	Role     string `json:"role"`
+	State    string `json:"state"`
+}
+
 type UserUpdateDto struct {
 	Username string `json:"username"`
 	Name     string `json:"name"`

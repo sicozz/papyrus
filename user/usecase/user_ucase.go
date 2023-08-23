@@ -80,9 +80,11 @@ func (u *userUsecase) GetByUsername(c context.Context, uname string) (res dtos.U
 	return
 }
 
-func (u *userUsecase) Store(c context.Context, user *domain.User) (res dtos.UserGetDto, rErr domain.RequestErr) {
+func (u *userUsecase) Store(c context.Context, p dtos.UserStore) (res dtos.UserGetDto, rErr domain.RequestErr) {
 	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
 	defer cancel()
+
+	user := mapper.MapUserStoreDtoToUser(p)
 
 	if exists := u.userRepo.ExistByUname(ctx, user.Username); exists {
 		err := errors.New("Username already taken")
@@ -112,21 +114,14 @@ func (u *userUsecase) Store(c context.Context, user *domain.User) (res dtos.User
 	}
 	user.State = s
 
-	err = u.userRepo.Store(ctx, user)
+	err = u.userRepo.Store(ctx, &user)
 	if err != nil {
 		err = errors.New("User creation failed")
 		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
 		return
 	}
 
-	nUser, err := u.userRepo.GetByUsername(ctx, user.Username)
-	if err != nil {
-		err = errors.New("User creation failed")
-		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
-		return
-	}
-
-	res = mapper.MapUserToUserGetDto(nUser)
+	res = mapper.MapUserToUserGetDto(user)
 
 	return
 }

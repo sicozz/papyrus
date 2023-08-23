@@ -24,7 +24,7 @@ type UserUsecase interface {
 	// GetByUuid(c context.Context, uuid string) (User, error)
 	// GetByEmail(c context.Context, email string) (User, error)
 	GetByUsername(c context.Context, uname string) (dtos.UserGetDto, RequestErr)
-	Store(c context.Context, u *User) (dtos.UserGetDto, RequestErr)
+	Store(c context.Context, p dtos.UserStore) (dtos.UserGetDto, RequestErr)
 	Update(c context.Context, uuid string, d dtos.UserUpdateDto) RequestErr
 	Delete(c context.Context, uname string) RequestErr
 	Login(c context.Context, uname string, passwd string) (dtos.UserGetDto, RequestErr)

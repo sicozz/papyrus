@@ -23,3 +23,15 @@ func MapUserToUserGetDto(u domain.User) dtos.UserGetDto {
 		},
 	}
 }
+
+// Transform a dir entity into a dir dto
+func MapUserStoreDtoToUser(u dtos.UserStore) domain.User {
+	return domain.User{
+		Username: u.Username,
+		Email:    u.Email,
+		Name:     u.Name,
+		Lastname: u.Lastname,
+		Role:     domain.Role{},
+		State:    domain.UserState{},
+	}
+}

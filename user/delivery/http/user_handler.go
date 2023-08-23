@@ -66,14 +66,14 @@ func (h *UserHandler) GetByUsername(c echo.Context) error {
 
 func (h *UserHandler) Store(c echo.Context) (err error) {
 	h.log.Inf("REQ: store")
-	var user domain.User
-	err = c.Bind(&user)
+	var p dtos.UserStore
+	err = c.Bind(&p)
 	if err != nil {
 		errBody := dtos.NewErrDto(err.Error())
 		return c.JSON(http.StatusBadRequest, errBody)
 	}
 
-	if ok, err := isRequestValid(&user); !ok {
+	if ok, err := isRequestValid(&p); !ok {
 		errBody, err := dtos.NewValidationErrDto(err.Error())
 		if err != nil {
 			errParse := dtos.NewErrDto(err.Error())
@@ -83,7 +83,7 @@ func (h *UserHandler) Store(c echo.Context) (err error) {
 	}
 
 	ctx := c.Request().Context()
-	nUser, rErr := h.UUsecase.Store(ctx, &user)
+	nUser, rErr := h.UUsecase.Store(ctx, p)
 	if rErr != nil {
 		errBody := dtos.NewErrDto(rErr.Error())
 		return c.JSON(rErr.GetStatus(), errBody)

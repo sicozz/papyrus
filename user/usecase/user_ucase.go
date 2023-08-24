@@ -61,7 +61,7 @@ func (u *userUsecase) GetByUsername(c context.Context, uname string) (res dtos.U
 	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
 	defer cancel()
 
-	if exists := u.userRepo.ExistByUname(ctx, uname); !exists {
+	if exists := u.userRepo.ExistsByUname(ctx, uname); !exists {
 		err := errors.New(fmt.Sprint("User not found. username: ", uname))
 		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
 		return
@@ -86,29 +86,38 @@ func (u *userUsecase) Store(c context.Context, p dtos.UserStore) (res dtos.UserG
 
 	user := mapper.MapUserStoreDtoToUser(p)
 
-	if exists := u.userRepo.ExistByUname(ctx, user.Username); exists {
+	if exists := u.userRepo.ExistsByUname(ctx, user.Username); exists {
 		err := errors.New("Username already taken")
 		rErr = domain.NewUCaseErr(http.StatusConflict, err)
 		return
 	}
 
-	if exists := u.userRepo.ExistByEmail(ctx, user.Email); exists {
+	if exists := u.userRepo.ExistsByEmail(ctx, user.Email); exists {
 		err := errors.New("Email already taken")
 		rErr = domain.NewUCaseErr(http.StatusConflict, err)
 		return
 	}
 
-	r, err := u.roleRepo.GetByDescription(ctx, defRoleDesc)
+	roleDesc := defRoleDesc
+	if p.Role != "" {
+		roleDesc = p.Role
+	}
+	r, err := u.roleRepo.GetByDescription(ctx, roleDesc)
 	if err != nil {
-		err = errors.New("Base role fetch failed")
+		err = errors.New("Role not found")
 		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
 		return
 	}
 	user.Role = r
 
-	s, err := u.userStateRepo.GetByDescription(ctx, defUserStateDesc)
+
+	stateDesc := defUserStateDesc
+	if p.State != "" {
+		stateDesc = p.State
+	}
+	s, err := u.userStateRepo.GetByDescription(ctx, stateDesc)
 	if err != nil {
-		err = errors.New("Base role fetch failed")
+		err = errors.New("User_state not found")
 		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
 		return
 	}
@@ -130,7 +139,7 @@ func (u *userUsecase) Delete(c context.Context, uname string) (rErr domain.Reque
 	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
 	defer cancel()
 
-	if exists := u.userRepo.ExistByUname(ctx, uname); !exists {
+	if exists := u.userRepo.ExistsByUname(ctx, uname); !exists {
 		err := errors.New(fmt.Sprint("User not found. username: ", uname))
 		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
 		return
@@ -146,11 +155,11 @@ func (u *userUsecase) Delete(c context.Context, uname string) (rErr domain.Reque
 	return
 }
 
-func (u *userUsecase) Update(c context.Context, uuid string, uUp dtos.UserUpdateDto) (rErr domain.RequestErr) {
+func (u *userUsecase) Update(c context.Context, uuid string, p dtos.UserUpdateDto) (rErr domain.RequestErr) {
 	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
 	defer cancel()
 
-	if exists := u.userRepo.ExistByUuid(ctx, uuid); !exists {
+	if exists := u.userRepo.ExistsByUuid(ctx, uuid); !exists {
 		err := errors.New(fmt.Sprint("User not found. uuid: ", uuid))
 		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
 		return
@@ -160,88 +169,44 @@ func (u *userUsecase) Update(c context.Context, uuid string, uUp dtos.UserUpdate
 	if err != nil {
 		u.log.Err("IN [Update] failed to get user ->", err)
 		err = errors.New(fmt.Sprint("User patch failed. uuid: ", uuid))
-		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
+		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
 		return
 	}
-	uname := user.Username
 
-	if uUp.Email != "" {
-		err := u.userRepo.ChgEmail(ctx, uname, uUp.Email)
-		if err != nil {
-			u.log.Err("IN [Update] failed to change email ->", err)
-			err = errors.New(fmt.Sprint("User patch failed: ", err))
-			rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
-			return
-		}
+	taken := u.userRepo.ExistsByUname(ctx, p.Username)
+	if taken && p.Username != user.Username {
+		err := errors.New(fmt.Sprint("Username already taken: ", p.Username))
+		rErr = domain.NewUCaseErr(http.StatusNotAcceptable, err)
+		return
 	}
 
-	if uUp.Name != "" {
-		err := u.userRepo.ChgName(ctx, uname, uUp.Name)
-		if err != nil {
-			u.log.Err("IN [Update] failed to change name ->", err)
-			err = errors.New(fmt.Sprint("User patch failed: ", err))
-			rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
-			return
-		}
+	taken = u.userRepo.ExistsByEmail(ctx, p.Email)
+	if taken && p.Email != user.Email {
+		err := errors.New(fmt.Sprint("Email already taken: ", p.Email))
+		rErr = domain.NewUCaseErr(http.StatusNotAcceptable, err)
+		return
 	}
 
-	if uUp.Lastname != "" {
-		err := u.userRepo.ChgLstname(ctx, uname, uUp.Lastname)
-		if err != nil {
-			u.log.Err("IN [Update] failed to change lastname ->", err)
-			err = errors.New(fmt.Sprint("User patch failed: ", err))
-			rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
-			return
-		}
-	}
-
-	if uUp.Role != "" {
-		r, err := u.roleRepo.GetByDescription(ctx, uUp.Role)
-		if err != nil {
-			u.log.Err("IN [Update] failed to get role ->", err)
-			err = errors.New(fmt.Sprint("Role not found"))
+	if p.Role != "" {
+		if exists := u.roleRepo.ExistsByDescription(ctx, p.Role); !exists {
+			err := errors.New(fmt.Sprint("Role not found. description: ", p.Role))
 			rErr = domain.NewUCaseErr(http.StatusNotFound, err)
 			return
 		}
-		err = u.userRepo.ChgRole(ctx, uname, r)
-		if err != nil {
-			u.log.Err("IN [Update] failed to change role ->", err)
-			err = errors.New(fmt.Sprint("User patch failed: ", err))
-			rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
-			return
-		}
 	}
 
-	if uUp.State != "" {
-		s, err := u.userStateRepo.GetByDescription(ctx, uUp.State)
-		if err != nil {
-			u.log.Err("IN [Update] failed to get user_state ->", err)
-			err = errors.New(fmt.Sprint("User_state not found"))
+	if p.State != "" {
+		if exists := u.userStateRepo.ExistsByDescription(ctx, p.State); !exists {
+			err := errors.New(fmt.Sprint("State not found. description: ", p.State))
 			rErr = domain.NewUCaseErr(http.StatusNotFound, err)
-		}
-
-		err = u.userRepo.ChgState(ctx, uname, s)
-		if err != nil {
-			u.log.Err("IN [Update] failed to change user_state ->", err)
-			err = errors.New(fmt.Sprint("User patch failed: ", err))
-			rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
 			return
 		}
 	}
 
-	if uUp.Username != "" {
-		// if exists := u.userRepo.ExistByUname(ctx, uUp.Username); exists {
-		// 	err := errors.New(fmt.Sprint("Username already taken: ", uname))
-		// 	rErr = domain.NewUCaseErr(http.StatusNotAcceptable, err)
-		// 	return
-		// }
-		err := u.userRepo.ChgUsername(ctx, uname, uUp.Username)
-		if err != nil {
-			u.log.Err("IN [Update] failed to change user username ->", err)
-			err = errors.New(fmt.Sprint("User patch failed: ", err))
-			rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
-			return
-		}
+	err = u.userRepo.Update(ctx, uuid, p)
+	if err != nil {
+		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+		return
 	}
 
 	return
@@ -257,7 +222,7 @@ func (u *userUsecase) ChgPasswd(c context.Context, uuid string, data dtos.UserCh
 		return
 	}
 
-	if exists := u.userRepo.ExistByUuid(ctx, uuid); !exists {
+	if exists := u.userRepo.ExistsByUuid(ctx, uuid); !exists {
 		err := errors.New(fmt.Sprint("User not found. uuid: ", uuid))
 		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
 		return

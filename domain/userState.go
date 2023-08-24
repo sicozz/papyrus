@@ -13,4 +13,5 @@ type UserStateRepository interface {
 	GetByCode(ctx context.Context, code int64) (UserState, error)
 	GetAll(ctx context.Context) ([]UserState, error)
 	GetByDescription(ctx context.Context, desc string) (UserState, error)
+	ExistsByDescription(ctx context.Context, desc string) bool
 }

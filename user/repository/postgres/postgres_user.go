@@ -6,6 +6,7 @@ import (
 	"errors"
 
 	"github.com/sicozz/papyrus/domain"
+	"github.com/sicozz/papyrus/domain/dtos"
 	"github.com/sicozz/papyrus/utils"
 	"github.com/sicozz/papyrus/utils/constants"
 )
@@ -167,7 +168,7 @@ func (r *postgresUserRepository) GetByUsername(ctx context.Context, uname string
 	return
 }
 
-func (r *postgresUserRepository) ExistByUname(ctx context.Context, uname string) (res bool) {
+func (r *postgresUserRepository) ExistsByUname(ctx context.Context, uname string) (res bool) {
 	query := `SELECT COUNT(*) > 0 FROM user_ WHERE username = $1`
 	stmt, err := r.Conn.PrepareContext(ctx, query)
 	if err != nil {
@@ -181,7 +182,7 @@ func (r *postgresUserRepository) ExistByUname(ctx context.Context, uname string)
 	return
 }
 
-func (r *postgresUserRepository) ExistByUuid(ctx context.Context, uuid string) (res bool) {
+func (r *postgresUserRepository) ExistsByUuid(ctx context.Context, uuid string) (res bool) {
 	query := `SELECT COUNT(*) > 0 FROM user_ WHERE uuid = $1`
 	stmt, err := r.Conn.PrepareContext(ctx, query)
 	if err != nil {
@@ -195,7 +196,7 @@ func (r *postgresUserRepository) ExistByUuid(ctx context.Context, uuid string) (
 	return
 }
 
-func (r *postgresUserRepository) ExistByEmail(ctx context.Context, email string) (res bool) {
+func (r *postgresUserRepository) ExistsByEmail(ctx context.Context, email string) (res bool) {
 	query := `SELECT COUNT(*) > 0 FROM user_ WHERE email = $1`
 	stmt, err := r.Conn.PrepareContext(ctx, query)
 	if err != nil {
@@ -381,6 +382,98 @@ func (r *postgresUserRepository) Auth(ctx context.Context, uname string, passwd 
 	defer stmt.Close()
 
 	err = stmt.QueryRowContext(ctx, uname, passwd).Scan(&res)
+
+	return
+}
+
+// Update user data
+func (r *postgresUserRepository) Update(ctx context.Context, uuid string, p dtos.UserUpdateDto) (err error) {
+	defaultErr := errors.New("Failed to update user data")
+	tx, err := r.Conn.Begin()
+	if err != nil {
+		r.log.Err("IN [Update] failed to begin transaction -> ", err)
+		return defaultErr
+	}
+	defer tx.Rollback()
+
+	// User.Username
+	if p.Username != "" {
+		usernameQuery := `UPDATE user_ SET username = $1 WHERE uuid = $2`
+		_, err = tx.ExecContext(ctx, usernameQuery, p.Username, uuid)
+
+		if err != nil {
+			r.log.Err("IN [Update] failed to update username -> ", err)
+			return defaultErr
+		}
+	}
+
+	// User.Name
+	if p.Name != "" {
+		nameQuery := `UPDATE user_ SET name = $1 WHERE uuid = $2`
+		_, err = tx.ExecContext(ctx, nameQuery, p.Name, uuid)
+
+		if err != nil {
+			r.log.Err("IN [Update] failed to update name -> ", err)
+			return defaultErr
+		}
+	}
+
+	// User.Lastname
+	if p.Lastname != "" {
+		lastnameQuery := `UPDATE user_ SET lastname = $1 WHERE uuid = $2`
+		_, err = tx.ExecContext(ctx, lastnameQuery, p.Lastname, uuid)
+
+		if err != nil {
+			r.log.Err("IN [Update] failed to update lastname -> ", err)
+			return defaultErr
+		}
+	}
+
+	// User.Role
+	if p.Role != "" {
+		var roleCode int64
+		getRoleCodeQuery := `SELECT code FROM role WHERE description = $1`
+		err = tx.QueryRowContext(ctx, getRoleCodeQuery, p.Role).Scan(&roleCode)
+
+		if err != nil {
+			r.log.Err("IN [Update] failed to get role code -> ", err)
+			return defaultErr
+		}
+
+		roleQuery := `UPDATE user_ SET role = $1 WHERE uuid = $2`
+		_, err = tx.ExecContext(ctx, roleQuery, roleCode, uuid)
+
+		if err != nil {
+			r.log.Err("IN [Update] failed to update role -> ", err)
+			return defaultErr
+		}
+	}
+
+	// User.State
+	if p.State != "" {
+		var stateCode int64
+		getStateCodeQuery := `SELECT code FROM user_state WHERE description = $1`
+		err = tx.QueryRowContext(ctx, getStateCodeQuery, p.State).Scan(&stateCode)
+
+		if err != nil {
+			r.log.Err("IN [Update] failed to get user_state code -> ", err)
+			return defaultErr
+		}
+
+		stateQuery := `UPDATE user_ SET state = $1 WHERE uuid = $2`
+		_, err = tx.ExecContext(ctx, stateQuery, stateCode, uuid)
+
+		if err != nil {
+			r.log.Err("IN [Update] failed to update state -> ", err)
+			return defaultErr
+		}
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		r.log.Err("IN [Update] failed to commit changes -> ", err)
+		return defaultErr
+	}
 
 	return
 }

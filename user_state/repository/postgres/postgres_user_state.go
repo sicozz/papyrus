@@ -97,3 +97,17 @@ func (r *postgresUserStateRepository) GetAll(ctx context.Context) ([]domain.User
 	query := `SELECT code, description FROM user_state`
 	return r.fetch(ctx, query)
 }
+
+func (r *postgresUserStateRepository) ExistsByDescription(ctx context.Context, desc string) (res bool) {
+	query := `SELECT COUNT(*) > 0 FROM user_state WHERE description = $1`
+	stmt, err := r.Conn.PrepareContext(ctx, query)
+	if err != nil {
+		r.log.Err("IN [ExistByUuid] failed to prepare context ->", err)
+		return
+	}
+	defer stmt.Close()
+
+	err = stmt.QueryRowContext(ctx, desc).Scan(&res)
+
+	return
+}

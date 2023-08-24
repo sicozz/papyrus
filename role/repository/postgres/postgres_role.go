@@ -97,3 +97,17 @@ func (r *postgresRoleRepository) GetAll(ctx context.Context) ([]domain.Role, err
 	query := `SELECT code, description FROM role`
 	return r.fetch(ctx, query)
 }
+
+func (r *postgresRoleRepository) ExistsByDescription(ctx context.Context, desc string) (res bool) {
+	query := `SELECT COUNT(*) > 0 FROM role WHERE description = $1`
+	stmt, err := r.Conn.PrepareContext(ctx, query)
+	if err != nil {
+		r.log.Err("IN [ExistByUuid] failed to prepare context ->", err)
+		return
+	}
+	defer stmt.Close()
+
+	err = stmt.QueryRowContext(ctx, desc).Scan(&res)
+
+	return
+}

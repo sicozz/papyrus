@@ -9,7 +9,6 @@ import (
 	"github.com/sicozz/papyrus/domain/dtos"
 	"github.com/sicozz/papyrus/utils"
 	"github.com/sicozz/papyrus/utils/constants"
-	"gopkg.in/go-playground/validator.v9"
 )
 
 // TODO: Sort functions by endpoint order
@@ -31,15 +30,6 @@ func NewDirHandler(e *echo.Echo, du domain.DirUsecase) {
 
 	e.POST("/dir/duplicate", handler.Duplicate)
 	e.POST("/file/upload", handler.StoreDoc)
-}
-
-func isRequestValid(p any) (bool, error) {
-	validate := validator.New()
-	err := validate.Struct(p)
-	if err != nil {
-		return false, err
-	}
-	return true, nil
 }
 
 func (h *DirHandler) GetAll(c echo.Context) error {
@@ -89,7 +79,7 @@ func (h *DirHandler) Store(c echo.Context) (err error) {
 		return c.JSON(http.StatusBadRequest, errBody)
 	}
 
-	if ok, err := isRequestValid(&p); !ok {
+	if ok, err := utils.IsRequestValid(&p); !ok {
 		errBody, err := dtos.NewValidationErrDto(err.Error())
 		if err != nil {
 			errParse := dtos.NewErrDto(err.Error())
@@ -109,6 +99,8 @@ func (h *DirHandler) Store(c echo.Context) (err error) {
 }
 
 func (h *DirHandler) Update(c echo.Context) error {
+	// WARN: Refresh path (generate path in usecase rather than generating it)
+	// maybe even nchild and depth (because the would always be changing)
 	h.log.Inf("REQ: update")
 	ctx := c.Request().Context()
 
@@ -118,7 +110,6 @@ func (h *DirHandler) Update(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, errBody)
 	}
 
-	// TODO: Change domain entities recvrs for dedicated dtos EVERYWHERE!
 	var p dtos.DirUpdateDto
 	err := c.Bind(&p)
 	if err != nil {
@@ -126,7 +117,7 @@ func (h *DirHandler) Update(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, errBody)
 	}
 
-	if ok, err := isRequestValid(&p); !ok {
+	if ok, err := utils.IsRequestValid(&p); !ok {
 		errBody, err := dtos.NewValidationErrDto(err.Error())
 		if err != nil {
 			errValid := dtos.NewErrDto(fmt.Sprint("Req body validation failed: ", err))
@@ -181,7 +172,7 @@ func (h *DirHandler) Move(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, errBody)
 	}
 
-	if ok, err := isRequestValid(&dMDto); !ok {
+	if ok, err := utils.IsRequestValid(&dMDto); !ok {
 		errBody, err := dtos.NewValidationErrDto(err.Error())
 		if err != nil {
 			errValid := dtos.NewErrDto(fmt.Sprint("Req body validation failed: ", err))
@@ -211,7 +202,7 @@ func (h *DirHandler) Duplicate(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, errBody)
 	}
 
-	if ok, err := isRequestValid(&dDDto); !ok {
+	if ok, err := utils.IsRequestValid(&dDDto); !ok {
 		errBody, err := dtos.NewValidationErrDto(err.Error())
 		if err != nil {
 			errValid := dtos.NewErrDto(fmt.Sprint("Req body validation failed: ", err))
@@ -238,7 +229,7 @@ func (h *DirHandler) StoreDoc(c echo.Context) (err error) {
 		return c.JSON(http.StatusBadRequest, errBody)
 	}
 
-	if ok, err := isRequestValid(&p); !ok {
+	if ok, err := utils.IsRequestValid(&p); !ok {
 		errBody, err := dtos.NewValidationErrDto(err.Error())
 		if err != nil {
 			errParse := dtos.NewErrDto(err.Error())

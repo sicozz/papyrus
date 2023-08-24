@@ -376,7 +376,7 @@ func (r *postgresUserRepository) Auth(ctx context.Context, uname string, passwd 
 	query := `SELECT COUNT(*) > 0 FROM user_ WHERE username = $1 AND password = $2`
 	stmt, err := r.Conn.PrepareContext(ctx, query)
 	if err != nil {
-		r.log.Err("IN [Login] failed to prepare context ->", err)
+		r.log.Err("IN [Auth] failed to prepare context ->", err)
 		return
 	}
 	defer stmt.Close()

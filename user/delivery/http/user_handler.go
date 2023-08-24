@@ -9,7 +9,6 @@ import (
 	"github.com/sicozz/papyrus/domain/dtos"
 	"github.com/sicozz/papyrus/utils"
 	"github.com/sicozz/papyrus/utils/constants"
-	"gopkg.in/go-playground/validator.v9"
 )
 
 // UserHandler will initialize the user/ resources endpoint
@@ -28,15 +27,6 @@ func NewUserHandler(e *echo.Echo, uu domain.UserUsecase) {
 	e.PATCH("/user/:uuid", handler.Update)
 	e.PATCH("/user/:uuid/chg_password", handler.ChgPasswd)
 	e.POST("/login", handler.Login)
-}
-
-func isRequestValid(u any) (bool, error) {
-	validate := validator.New()
-	err := validate.Struct(u)
-	if err != nil {
-		return false, err
-	}
-	return true, nil
 }
 
 func (h *UserHandler) GetAll(c echo.Context) error {
@@ -73,7 +63,7 @@ func (h *UserHandler) Store(c echo.Context) (err error) {
 		return c.JSON(http.StatusBadRequest, errBody)
 	}
 
-	if ok, err := isRequestValid(&p); !ok {
+	if ok, err := utils.IsRequestValid(&p); !ok {
 		errBody, err := dtos.NewValidationErrDto(err.Error())
 		if err != nil {
 			errParse := dtos.NewErrDto(err.Error())
@@ -116,7 +106,7 @@ func (h *UserHandler) Login(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, errBody)
 	}
 
-	if ok, err := isRequestValid(&lDto); !ok {
+	if ok, err := utils.IsRequestValid(&lDto); !ok {
 		errBody, err := dtos.NewValidationErrDto(err.Error())
 		if err != nil {
 			errValid := dtos.NewErrDto(fmt.Sprint("Req body validation failed: ", err))
@@ -151,7 +141,7 @@ func (h *UserHandler) Update(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, errBody)
 	}
 
-	if ok, err := isRequestValid(&uUpDto); !ok {
+	if ok, err := utils.IsRequestValid(&uUpDto); !ok {
 		errBody, err := dtos.NewValidationErrDto(err.Error())
 		if err != nil {
 			errValid := dtos.NewErrDto(fmt.Sprint("Req body validation failed: ", err))
@@ -191,7 +181,7 @@ func (h *UserHandler) ChgPasswd(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, errBody)
 	}
 
-	if ok, err := isRequestValid(&data); !ok {
+	if ok, err := utils.IsRequestValid(&data); !ok {
 		errBody, err := dtos.NewValidationErrDto(err.Error())
 		if err != nil {
 			errValid := dtos.NewErrDto(fmt.Sprint("Req body validation failed: ", err))

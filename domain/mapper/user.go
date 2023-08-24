@@ -29,6 +29,7 @@ func MapUserStoreDtoToUser(u dtos.UserStore) domain.User {
 	return domain.User{
 		Username: u.Username,
 		Email:    u.Email,
+		Password: u.Password,
 		Name:     u.Name,
 		Lastname: u.Lastname,
 		Role:     domain.Role{},

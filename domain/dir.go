@@ -28,6 +28,7 @@ type DirUsecase interface {
 	 */
 	GetAll(c context.Context) ([]dtos.DirGetDto, RequestErr)
 	GetByUuid(c context.Context, uuid string) (dtos.DirGetDto, RequestErr)
+	// GetBranch(c context.Context, uuid string) ([]dtos.DirGetDto, RequestErr)
 	Store(c context.Context, d dtos.DirStoreDto) (dtos.DirGetDto, RequestErr)
 	Update(c context.Context, uuid string, p dtos.DirUpdateDto) RequestErr
 	Delete(c context.Context, uuid string) RequestErr
@@ -37,10 +38,21 @@ type DirUsecase interface {
 
 // DirRepository represents the dir's repository contract
 type DirRepository interface {
+	// Calc fields
+	GetNchild(ctx context.Context, uuid string) (int, error)
+	GetPath(ctx context.Context, uuid string) (string, error)
+	GetDepth(ctx context.Context, uuid string) (int, error)
+
+	// Check constraints
+	IsNameTaken(ctx context.Context, destUuid string, name string) bool
+	IsSubDir(ctx context.Context, uuid string, destUuid string) bool
+
 	GetAll(ctx context.Context) ([]Dir, error)
 	GetByUuid(ctx context.Context, uuid string) (Dir, error)
+	// GetBranch(c context.Context, uuid string) ([]dtos.DirGetDto, RequestErr)
+	// DeleteBranch(c context.Context, uuid string) ([]dtos.DirGetDto, RequestErr)
+
 	ExistByUuid(ctx context.Context, uuid string) bool
-	// ExistsByName(ctx context.Context, name string) bool
 	Store(ctx context.Context, d *Dir) error
 	Delete(ctx context.Context, uuid string) error
 	ChgName(ctx context.Context, uuid string, nName string) error

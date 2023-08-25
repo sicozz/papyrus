@@ -21,6 +21,85 @@ func NewPostgresDirRepository(conn *sql.DB) domain.DirRepository {
 	return &postgresDirRepository{conn, logger}
 }
 
+// Get the number of children of a directory
+func (r *postgresDirRepository) GetNchild(ctx context.Context, uuid string) (nChild int, err error) {
+	query := `SELECT COUNT(*) FROM dir WHERE parent_dir = $1`
+	stmt, err := r.Conn.PrepareContext(ctx, query)
+	if err != nil {
+		r.log.Err("IN [GetNchild] failed to prepare context ->", err)
+		return
+	}
+	defer stmt.Close()
+
+	err = stmt.QueryRowContext(ctx, uuid).Scan(&nChild)
+	// Avoid problems with root directory
+	if uuid == "00000000-0000-0000-0000-000000000000" {
+		nChild -= 1
+	}
+
+	return
+}
+
+// Get the display path of a directory
+func (r *postgresDirRepository) GetPath(ctx context.Context, uuid string) (path string, err error) {
+	query := `SELECT sp_getPath($1)`
+	stmt, err := r.Conn.PrepareContext(ctx, query)
+	if err != nil {
+		r.log.Err("IN [GetPath] failed to prepare context ->", err)
+		return
+	}
+	defer stmt.Close()
+
+	err = stmt.QueryRowContext(ctx, uuid).Scan(&path)
+
+	return
+}
+
+// Get the depth of a directory
+func (r *postgresDirRepository) GetDepth(ctx context.Context, uuid string) (depth int, err error) {
+	query := `SELECT sp_getDepth($1)`
+	stmt, err := r.Conn.PrepareContext(ctx, query)
+	if err != nil {
+		r.log.Err("IN [GetDepth] failed to prepare context ->", err)
+		return
+	}
+	defer stmt.Close()
+
+	err = stmt.QueryRowContext(ctx, uuid).Scan(&depth)
+
+	return
+}
+
+// Check if a dir with that name already exists in the parent dir
+func (r *postgresDirRepository) IsNameTaken(ctx context.Context, destUuid string, name string) (res bool) {
+	query := `SELECT COUNT(*) > 0 FROM dir WHERE parent_dir = $1 AND name = $2`
+	stmt, err := r.Conn.PrepareContext(ctx, query)
+	if err != nil {
+		r.log.Err("IN [IsNameTaken] failed to prepare context ->", err)
+		return
+	}
+	defer stmt.Close()
+
+	err = stmt.QueryRowContext(ctx, destUuid, name).Scan(&res)
+
+	return
+}
+
+// Check if a dir with that name already exists in the parent dir
+func (r *postgresDirRepository) IsSubDir(ctx context.Context, uuid string, destUuid string) (res bool) {
+	query := `SELECT sp_isSubDir($1, $2)`
+	stmt, err := r.Conn.PrepareContext(ctx, query)
+	if err != nil {
+		r.log.Err("IN [IsSubDir] failed to prepare context ->", err)
+		return
+	}
+	defer stmt.Close()
+
+	err = stmt.QueryRowContext(ctx, uuid, destUuid).Scan(&res)
+
+	return
+}
+
 // Retrieve all dirs
 func (r *postgresDirRepository) GetAll(ctx context.Context) (res []domain.Dir, err error) {
 	query := `SELECT * FROM dir`

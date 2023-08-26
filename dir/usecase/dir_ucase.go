@@ -5,8 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"os"
-	"strings"
 	"time"
 
 	"github.com/sicozz/papyrus/domain"
@@ -38,16 +36,24 @@ func (u *dirUsecase) GetAll(c context.Context) (res []dtos.DirGetDto, rErr domai
 
 	dirs, err := u.dirRepo.GetAll(ctx)
 	if err != nil {
-		u.log.Err("IN [GetAll]: could not get dirs ->", err)
+		u.log.Err("IN [GetAll] failed to get dirs ->", err)
 		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
 		return
 	}
 
-	res = make([]dtos.DirGetDto, len(dirs), len(dirs))
-	for i, d := range dirs {
-		res[i] = mapper.MapDirToDirGetDto(d)
+	nChild, err := u.dirRepo.GetNChild(ctx, constants.RootDirUuid)
+	if err != nil {
+		u.log.Err("IN [GetAll] failed to get root children number ->", err)
+		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+		return
 	}
 
+	res, err = fillDetailsBFS(constants.RootDirUuid, dirs, "", nChild, 0)
+	if err != nil {
+		u.log.Err("IN [GetAll] failed to fill tree details ->", err)
+		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+		return
+	}
 	return
 }
 
@@ -57,12 +63,33 @@ func (u *dirUsecase) GetByUuid(c context.Context, uuid string) (res dtos.DirGetD
 
 	dir, err := u.dirRepo.GetByUuid(ctx, uuid)
 	if err != nil {
-		u.log.Err("IN [GetByUuid]: could not get dir ->", err)
+		u.log.Err("IN [GetByUuid] failed to get dir ->", err)
 		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
 		return
 	}
 
-	res = mapper.MapDirToDirGetDto(dir)
+	path, err := u.dirRepo.GetPath(ctx, uuid)
+	if err != nil {
+		u.log.Err("IN [GetByUuid] failed to get dir path ->", err)
+		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+		return
+	}
+
+	nChild, err := u.dirRepo.GetNChild(ctx, uuid)
+	if err != nil {
+		u.log.Err("IN [GetByUuid] failed to get dir children number ->", err)
+		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+		return
+	}
+
+	depth, err := u.dirRepo.GetDepth(ctx, uuid)
+	if err != nil {
+		u.log.Err("IN [GetByUuid] failed to get dir depth ->", err)
+		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+		return
+	}
+
+	res = mapper.MapDirToDirGetDto(dir, path, nChild, depth)
 
 	return
 }
@@ -71,44 +98,33 @@ func (u *dirUsecase) Store(c context.Context, p dtos.DirStoreDto) (res dtos.DirG
 	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
 	defer cancel()
 
-	if exists := u.dirRepo.ExistByUuid(ctx, p.ParentDir); !exists {
+	if exists := u.dirRepo.ExistsByUuid(ctx, p.ParentDir); !exists {
 		err := errors.New("Parent dir not found")
 		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
 		return
 	}
 
-	parentDir, err := u.dirRepo.GetByUuid(ctx, p.ParentDir)
-	if err != nil {
-		err := errors.New("Could not fetch parent dir")
-		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+	if taken := u.dirRepo.IsNameTaken(ctx, p.Name, p.ParentDir); taken {
+		err := errors.New(fmt.Sprint("Name already taken in destination dir. name: ", p.Name))
+		rErr = domain.NewUCaseErr(http.StatusNotAcceptable, err)
 		return
 	}
 
-	/*
-		TODO: Validate name not taken in parent_dir
-	*/
 	dir := mapper.MapDirStoreDtoToDir(p)
-	dirs := []string{parentDir.Path, dir.Name}
-	dir.Path = strings.Join(dirs, string(os.PathSeparator))
-	dir.Nchild = 0
-	dir.Depth = parentDir.Depth + 1
 
-	/* TODO: WARN: Make the storage of the dir and increment of parent_dir.nchild a transaction */
-	err = u.dirRepo.Store(ctx, &dir)
+	uuid, err := u.dirRepo.Store(ctx, &dir)
 	if err != nil {
 		err = errors.New("Dir creation failed")
 		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
 		return
 	}
 
-	err = u.dirRepo.IncNchild(ctx, parentDir.Uuid, 1)
+	res, err = u.GetByUuid(ctx, uuid)
 	if err != nil {
-		err = errors.New("Dir nchild increment failed")
+		err = errors.New("Dir fetch failed")
 		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
 		return
 	}
-
-	res = mapper.MapDirToDirGetDto(dir)
 
 	return
 }
@@ -117,21 +133,35 @@ func (u *dirUsecase) Update(c context.Context, uuid string, p dtos.DirUpdateDto)
 	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
 	defer cancel()
 
-	if exists := u.dirRepo.ExistByUuid(ctx, uuid); !exists {
+	if constants.RootDirUuid == uuid {
+		err := errors.New("Is not possible to modify the root directory")
+		rErr = domain.NewUCaseErr(http.StatusConflict, err)
+		return
+	}
+
+	if exists := u.dirRepo.ExistsByUuid(ctx, uuid); !exists {
 		err := errors.New(fmt.Sprint("Dir not found. uuid: ", uuid))
 		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
 		return
 	}
-	/* TODO: Add validation validate unique name in parent_dir */
-	/* WARN: VALIDATE THAT ROOT FOLDER IS NOT CHANGED */
 
-	if p.Name == "" {
+	dir, err := u.dirRepo.GetByUuid(ctx, uuid)
+	if err != nil {
+		u.log.Err("IN [Update] failed to fetch dir ->", err)
+		err := errors.New(fmt.Sprint("Dir not found. uuid: ", uuid))
+		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
 		return
 	}
 
-	err := u.dirRepo.ChgName(ctx, uuid, p.Name)
+	if taken := u.dirRepo.IsNameTaken(ctx, p.Name, dir.ParentDir); taken {
+		err := errors.New(fmt.Sprint("Name already taken in destination dir. name: ", p.Name))
+		rErr = domain.NewUCaseErr(http.StatusNotAcceptable, err)
+		return
+	}
+
+	err = u.dirRepo.ChgName(ctx, uuid, p.Name)
 	if err != nil {
-		u.log.Err("IN [Update]: could not change name ->", err)
+		u.log.Err("IN [Update] failed to change name ->", err)
 		err = errors.New(fmt.Sprint("Dir patch failed: ", err))
 		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
 		return
@@ -141,43 +171,41 @@ func (u *dirUsecase) Update(c context.Context, uuid string, p dtos.DirUpdateDto)
 }
 
 func (u *dirUsecase) Delete(c context.Context, uuid string) (rErr domain.RequestErr) {
-	/* WARN: VALIDATE THAT THE ROOT DIR IS NOT DELETED */
-	/* TODO: WARN: Make the deletion of the dir and decrement of parent_dir.nchild a transaction */
 	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
 	defer cancel()
 
-	if exists := u.dirRepo.ExistByUuid(ctx, uuid); !exists {
+	if constants.RootDirUuid == uuid {
+		err := errors.New("Is not possible to delete the root directory")
+		rErr = domain.NewUCaseErr(http.StatusConflict, err)
+		return
+	}
+
+	if exists := u.dirRepo.ExistsByUuid(ctx, uuid); !exists {
 		err := errors.New(fmt.Sprint("Dir not found. uuid: ", uuid))
 		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
 		return
 	}
 
-	dir, err := u.dirRepo.GetByUuid(ctx, uuid)
+	nChild, err := u.dirRepo.GetNChild(ctx, uuid)
 	if err != nil {
-		u.log.Err("IN [Delete]: could get dir {", uuid, "} ->", err)
-		err := errors.New("Could not fetch dir")
+		u.log.Err("IN [Delete] failed to delete dir {", uuid, "} ->", err)
+		err = errors.New("Failed to check directory children")
 		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
 		return
 	}
 
-	parentDir, err := u.dirRepo.GetByUuid(ctx, dir.ParentDir)
-	if err != nil {
-		u.log.Err("IN [Delete]: could get parent dir {", uuid, "} ->", err)
-		err := errors.New("Could not fetch parent dir")
-		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+	if nChild > 0 {
+		err = errors.New("Directory must be empty")
+		rErr = domain.NewUCaseErr(http.StatusNotAcceptable, err)
 		return
 	}
+	// TODO: Add nFiles != 0 constraint
+	// TODO: Add nPlans != 0 constraint
 
 	err = u.dirRepo.Delete(ctx, uuid)
 	if err != nil {
-		u.log.Err("IN [Delete]: could not delete dir {", uuid, "} ->", err)
-		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
-		return
-	}
-
-	err = u.dirRepo.DecNchild(ctx, parentDir.Uuid, 1)
-	if err != nil {
-		err = errors.New("Dir nchild increment failed")
+		u.log.Err("IN [Delete] failed to delete dir {", uuid, "} ->", err)
+		err = errors.New("Failed to delete directory")
 		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
 		return
 	}
@@ -189,75 +217,28 @@ func (u *dirUsecase) Move(c context.Context, uuid string, nPUuid string) (rErr d
 	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
 	defer cancel()
 
-	if exists := u.dirRepo.ExistByUuid(ctx, uuid); !exists {
+	if exists := u.dirRepo.ExistsByUuid(ctx, uuid); !exists {
 		err := errors.New(fmt.Sprint("Dir not found. uuid: ", uuid))
 		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
 		return
 	}
 
-	dir, err := u.dirRepo.GetByUuid(ctx, uuid)
-	if err != nil {
-		u.log.Err("IN [Move]: could get dir {", uuid, "} ->", err)
-		err := errors.New("Could not fetch dir")
-		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
-		return
-	}
-
-	if exists := u.dirRepo.ExistByUuid(ctx, nPUuid); !exists {
+	if exists := u.dirRepo.ExistsByUuid(ctx, nPUuid); !exists {
 		err := errors.New(fmt.Sprint("Dir not found. uuid: ", uuid))
 		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
 		return
 	}
 
-	/* TODO: Add validation validate unique name in parent_dir */
-	/* WARN: VALIDATE THAT ROOT FOLDER IS NOT MOVED */
-	nDir, err := u.dirRepo.GetByUuid(ctx, nPUuid)
-	if err != nil {
-		u.log.Err("IN [Move]: could get new parent dir {", uuid, "} ->", err)
-		err := errors.New("Could not fetch dir")
-		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+	if conflict := u.dirRepo.IsSubDir(ctx, uuid, nPUuid); conflict {
+		err := errors.New("Reference cycle detected. Can't move dir to one of its subdirs")
+		rErr = domain.NewUCaseErr(http.StatusNotAcceptable, err)
 		return
+
 	}
 
-	// TODO: REFACTOR: Unify the move operation as a db transaction
-	err = u.dirRepo.ChgParentDir(ctx, uuid, nPUuid)
+	err := u.dirRepo.ChgParentDir(ctx, uuid, nPUuid)
 	if err != nil {
-		u.log.Err("IN [Move]: could not change parent dir ->", err)
-		err = errors.New(fmt.Sprint("Dir patch failed: ", err))
-		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
-		return
-	}
-
-	dirs := []string{nDir.Path, dir.Name}
-	nPath := strings.Join(dirs, string(os.PathSeparator))
-	u.log.Wrn("PATH>>>\t", nPath)
-	err = u.dirRepo.ChgPath(ctx, uuid, nPath)
-	if err != nil {
-		u.log.Err("IN [Move]: could not change dir path ->", err)
-		err = errors.New(fmt.Sprint("Dir patch failed: ", err))
-		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
-		return
-	}
-
-	err = u.dirRepo.ChgDepth(ctx, uuid, nDir.Depth+1)
-	if err != nil {
-		u.log.Err("IN [Move]: could not change dir path ->", err)
-		err = errors.New(fmt.Sprint("Dir patch failed: ", err))
-		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
-		return
-	}
-
-	err = u.dirRepo.DecNchild(ctx, dir.ParentDir, 1)
-	if err != nil {
-		u.log.Err("IN [Move]: could not decrease old parent dir nchild ->", err)
-		err = errors.New(fmt.Sprint("Dir patch failed: ", err))
-		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
-		return
-	}
-
-	err = u.dirRepo.IncNchild(ctx, nPUuid, 1)
-	if err != nil {
-		u.log.Err("IN [Move]: could not increase new parent dir nchild ->", err)
+		u.log.Err("IN [Move] failed to change parent dir ->", err)
 		err = errors.New(fmt.Sprint("Dir patch failed: ", err))
 		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
 		return
@@ -266,32 +247,70 @@ func (u *dirUsecase) Move(c context.Context, uuid string, nPUuid string) (rErr d
 	return
 }
 
-func (u *dirUsecase) Duplicate(c context.Context, uuid string, nName string, destUuid string) (res dtos.DirGetDto, rErr domain.RequestErr) {
+func (u *dirUsecase) Duplicate(c context.Context, p dtos.DirDuplicateDto) (res dtos.DirGetDto, rErr domain.RequestErr) {
 	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
 	defer cancel()
 
+	if exists := u.dirRepo.ExistsByUuid(ctx, p.Uuid); !exists {
+		err := errors.New("Dir not found")
+		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
+		return
+	}
+
+	if exists := u.dirRepo.ExistsByUuid(ctx, p.ParentDir); !exists {
+		err := errors.New("Parent Dir not found")
+		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
+		return
+	}
+
+	if taken := u.dirRepo.IsNameTaken(ctx, p.Name, p.ParentDir); taken {
+		err := errors.New(fmt.Sprint("Name taken in dest dir. name:", p.Name))
+		rErr = domain.NewUCaseErr(http.StatusNotAcceptable, err)
+		return
+	}
+
 	dirs, err := u.dirRepo.GetAll(ctx)
 	if err != nil {
-		u.log.Err("IN [Duplicate] failed to get dirs ->", err)
+		u.log.Err("IN [Duplicate] failed to get tree ->", err)
+		err = errors.New(fmt.Sprint("Dir duplication failed: ", err))
 		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
 		return
 	}
 
-	neoDir, dupDirs, err := domain.Duplicate(uuid, nName, destUuid, dirs)
-	u.dirRepo.IncNchild(ctx, destUuid, 1)
-	for _, d := range dupDirs {
-		u.dirRepo.Insert(ctx, *d)
+	branch, err := getBranchFromTree(p.Uuid, dirs)
+	if err != nil {
+		u.log.Err("IN [Duplicate] failed to get branch ->", err)
+		err = errors.New(fmt.Sprint("Dir duplication failed: ", err))
+		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+		return
 	}
 
-	res = mapper.MapDirToDirGetDto(*neoDir)
+	nBranch, err := flushTreeUuids(p.Uuid, branch)
+	if err != nil {
+		u.log.Err("IN [Duplicate] failed to flush branch uuids ->", err)
+		err = errors.New(fmt.Sprint("Dir duplication failed: ", err))
+		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+		return
+	}
 
-	// neoDirs := []domain.Dir{}
-	// for _, d := range dupDirs {
-	// 	neoDirs = append(neoDirs, *d)
-	// }
+	for i, d := range nBranch {
+		if i == 0 {
+			d.ParentDir = p.ParentDir
+			d.Name = p.Name
+		}
 
-	// newDirs := append(dirs, neoDirs...)
-	// u.log.Inf(fmt.Sprintf(">>>New fs: %+v", newDirs))
+		err := u.dirRepo.Insert(ctx, d)
+		if err != nil {
+			u.log.Err("IN [Duplicate] failed to store new dir ->", err)
+			err = errors.New(fmt.Sprint("Dir duplication failed", err))
+			rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+			return
+		}
+
+		if i == 0 {
+			res, err = u.GetByUuid(ctx, d.Uuid)
+		}
+	}
 
 	return
 }

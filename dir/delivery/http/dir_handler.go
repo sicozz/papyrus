@@ -23,8 +23,8 @@ func NewDirHandler(e *echo.Echo, du domain.DirUsecase) {
 	handler := &DirHandler{du, logger}
 	e.GET("/dir", handler.GetAll)
 	e.POST("/dir", handler.Store)
-	e.PATCH("/dir/:uuid", handler.Update)
 	e.GET("/dir/:uuid", handler.GetByUuid)
+	e.PATCH("/dir/:uuid", handler.Update)
 	e.DELETE("/dir/:uuid", handler.Delete)
 	e.PATCH("/dir/:uuid/move", handler.Move)
 
@@ -99,8 +99,6 @@ func (h *DirHandler) Store(c echo.Context) (err error) {
 }
 
 func (h *DirHandler) Update(c echo.Context) error {
-	// WARN: Refresh path (generate path in usecase rather than generating it)
-	// maybe even nchild and depth (because the would always be changing)
 	h.log.Inf("REQ: update")
 	ctx := c.Request().Context()
 
@@ -155,7 +153,6 @@ func (h *DirHandler) Delete(c echo.Context) error {
 }
 
 func (h *DirHandler) Move(c echo.Context) error {
-	// WARN: Add validation to avoid ciclical references
 	h.log.Inf("REQ: move")
 	ctx := c.Request().Context()
 
@@ -195,14 +192,14 @@ func (h *DirHandler) Duplicate(c echo.Context) error {
 	h.log.Inf("REQ: duplicate")
 	ctx := c.Request().Context()
 
-	var dDDto dtos.DirDuplicateDto
-	err := c.Bind(&dDDto)
+	var p dtos.DirDuplicateDto
+	err := c.Bind(&p)
 	if err != nil {
 		errBody := dtos.NewErrDto(fmt.Sprint("Req body binding failed: ", err))
 		return c.JSON(http.StatusBadRequest, errBody)
 	}
 
-	if ok, err := utils.IsRequestValid(&dDDto); !ok {
+	if ok, err := utils.IsRequestValid(&p); !ok {
 		errBody, err := dtos.NewValidationErrDto(err.Error())
 		if err != nil {
 			errValid := dtos.NewErrDto(fmt.Sprint("Req body validation failed: ", err))
@@ -211,7 +208,7 @@ func (h *DirHandler) Duplicate(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, errBody)
 	}
 
-	res, rErr := h.DUsecase.Duplicate(ctx, dDDto.Uuid, dDDto.Name, dDDto.ParentDir)
+	res, rErr := h.DUsecase.Duplicate(ctx, p)
 	if rErr != nil {
 		errBody := dtos.NewErrDto(rErr.Error())
 		return c.JSON(rErr.GetStatus(), errBody)

@@ -25,7 +25,7 @@ type DirStoreDto struct {
 }
 
 type DirUpdateDto struct {
-	Name string `json:"name"`
+	Name string `json:"name" validate:"required,ascii"`
 }
 
 type DirDuplicateDto struct {

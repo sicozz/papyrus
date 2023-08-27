@@ -41,7 +41,7 @@ type DirRepository interface {
 	GetByUuid(ctx context.Context, uuid string) (Dir, error)
 	ExistsByUuid(ctx context.Context, uuid string) bool
 	Store(ctx context.Context, d *Dir) (string, error)
-	Insert(ctx context.Context, d Dir) error
+	InsertDirs(ctx context.Context, dirs []Dir) error
 	Delete(ctx context.Context, uuid string) error
 	// DeleteBranch(c context.Context, uuid string) ([]dtos.DirGetDto, RequestErr)
 	ChgName(ctx context.Context, uuid string, nName string) error

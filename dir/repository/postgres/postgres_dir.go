@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"database/sql"
+	"errors"
 
 	"github.com/sicozz/papyrus/domain"
 	"github.com/sicozz/papyrus/utils"
@@ -272,27 +273,38 @@ func (r *postgresDirRepository) ChgParentDir(ctx context.Context, uuid string, n
 	return
 }
 
-func (r *postgresDirRepository) Insert(ctx context.Context, dir domain.Dir) (err error) {
+func (r *postgresDirRepository) InsertDirs(ctx context.Context, dirs []domain.Dir) (err error) {
+	defaultErr := errors.New("Failed to insert new directories")
 	query :=
 		`INSERT INTO dir (uuid, name, parent_dir)
 		VALUES ($1, $2, $3)`
-	stmt, err := r.Conn.PrepareContext(ctx, query)
+
+	tx, err := r.Conn.Begin()
 	if err != nil {
-		r.log.Err("IN [Insert] failed to prepare context ->", err)
-		return
+		r.log.Err("IN [InsertDirs] failed to begin transaction -> ", err)
+		return defaultErr
 	}
-	defer stmt.Close()
+	defer tx.Rollback()
 
-	_, err = stmt.ExecContext(
-		ctx,
-		dir.Uuid,
-		dir.Name,
-		dir.ParentDir,
-	)
+	for _, d := range dirs {
+		_, err = tx.ExecContext(
+			ctx,
+			query,
+			d.Uuid,
+			d.Name,
+			d.ParentDir,
+		)
 
+		if err != nil {
+			r.log.Err("IN [InsertDirs] failed insert dir ->", err)
+			return defaultErr
+		}
+	}
+
+	err = tx.Commit()
 	if err != nil {
-		r.log.Err("IN [Insert] failed execute insert ->", err)
-		return
+		r.log.Err("IN [InsertDirs] failed to commit changes -> ", err)
+		return defaultErr
 	}
 
 	return

@@ -188,7 +188,6 @@ func (h *DirHandler) Move(c echo.Context) error {
 }
 
 func (h *DirHandler) Duplicate(c echo.Context) error {
-	// WARN: Add validation to avoid ciclical references
 	h.log.Inf("REQ: duplicate")
 	ctx := c.Request().Context()
 

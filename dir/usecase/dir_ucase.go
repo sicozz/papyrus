@@ -293,23 +293,30 @@ func (u *dirUsecase) Duplicate(c context.Context, p dtos.DirDuplicateDto) (res d
 		return
 	}
 
-	for i, d := range nBranch {
-		if i == 0 {
-			d.ParentDir = p.ParentDir
-			d.Name = p.Name
-		}
+	if len(nBranch) == 0 {
+		u.log.Err("IN [Duplicate] empty new branch ->", err)
+		err = errors.New(fmt.Sprint("Dir duplication failed: ", err))
+		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+		return
+	}
 
-		err := u.dirRepo.Insert(ctx, d)
-		if err != nil {
-			u.log.Err("IN [Duplicate] failed to store new dir ->", err)
-			err = errors.New(fmt.Sprint("Dir duplication failed", err))
-			rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
-			return
-		}
+	nBranch[0].ParentDir = p.ParentDir
+	nBranch[0].Name = p.Name
 
-		if i == 0 {
-			res, err = u.GetByUuid(ctx, d.Uuid)
-		}
+	err = u.dirRepo.InsertDirs(ctx, nBranch)
+	if err != nil {
+		u.log.Err("IN [Duplicate] failed insert dirs ->", err)
+		err = errors.New(fmt.Sprint("Dir duplication failed", err))
+		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+		return
+	}
+
+	res, err = u.GetByUuid(ctx, nBranch[0].Uuid)
+	if err != nil {
+		u.log.Err("IN [Duplicate] failed fetch new root dir ->", err)
+		err = errors.New(fmt.Sprint("Dir duplication failed", err))
+		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+		return
 	}
 
 	return

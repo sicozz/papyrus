@@ -30,67 +30,66 @@ CREATE TABLE user_ (
     state     SERIAL       REFERENCES user_state NOT NULL
 );
 
-CREATE TABLE file_type (
+CREATE TABLE pfile_type (
     code         SERIAL       PRIMARY KEY,
     description  VARCHAR(32)  UNIQUE NOT NULL
 );
 
-CREATE TABLE file_state (
+CREATE TABLE pfile_state (
     code         SERIAL       PRIMARY KEY,
     description  VARCHAR(32)  UNIQUE NOT NULL
 );
 
-CREATE TABLE file_stage (
+CREATE TABLE pfile_stage (
     code         SERIAL       PRIMARY KEY,
     description  VARCHAR(32)  UNIQUE NOT NULL
 );
 
-CREATE TABLE file (
+CREATE TABLE pfile (
     uuid           UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
     code           VARCHAR(32)   NOT NULL,
-    path           VARCHAR(256)  NOT NULL,
-    creation_date  TIMESTAMP     NOT NULL,
-    input_date     TIMESTAMP     NOT NULL,
-    type           SERIAL        REFERENCES FILE_TYPE NOT NULL,
-    state          SERIAL        REFERENCES FILE_STATE NOT NULL,
-    stage          SERIAL        REFERENCES FILE_STAGE NOT NULL,
+    date_creation  TIMESTAMP     NOT NULL,
+    date_input     TIMESTAMP     NOT NULL,
+    type           SERIAL        REFERENCES pfile_type NOT NULL,
+    state          SERIAL        REFERENCES pfile_state NOT NULL,
+    stage          SERIAL        REFERENCES pfile_stage NOT NULL,
     dir            UUID          REFERENCES dir NOT NULL,
-    revision_user  UUID          REFERENCES user_ NOT NULL,
-    approval_user  UUID          REFERENCES user_ NOT NULL
+    user_revision  UUID          REFERENCES user_ NOT NULL,
+    user_approval  UUID          REFERENCES user_ NOT NULL
 );
 
 create table version (
     uuid  uuid       primary key default gen_random_uuid(),
     date  TIMESTAMP  NOT NULL,
-    file  UUID       REFERENCES file NOT NULL
+    pfile  UUID       REFERENCES pfile NOT NULL
 );
 
 CREATE TABLE download (
     uuid   UUID       PRIMARY KEY DEFAULT gen_random_uuid(),
     date   TIMESTAMP  NOT NULL,
     user_  UUID       REFERENCES user_ NOT NULL,
-    file   UUID       REFERENCES file NOT NULL
+    pfile   UUID       REFERENCES pfile NOT NULL
 );
 
 CREATE TABLE upload (
     uuid   UUID       PRIMARY KEY DEFAULT gen_random_uuid(),
     date   TIMESTAMP  NOT NULL,
     user_  UUID       REFERENCES user_ NOT NULL,
-    file   UUID       REFERENCES file NOT NULL
+    pfile   UUID       REFERENCES pfile NOT NULL
 );
 
 CREATE TABLE read_permission (
     uuid     UUID     PRIMARY KEY DEFAULT gen_random_uuid(),
     allowed  BOOLEAN  NOT NULL,
     user_    UUID     REFERENCES user_ NOT NULL,
-    file     UUID     REFERENCES file NOT NULL
+    pfile     UUID     REFERENCES pfile NOT NULL
 );
 
 CREATE TABLE write_permission (
     uuid     UUID     PRIMARY KEY DEFAULT gen_random_uuid(),
     allowed  BOOLEAN  NOT NULL,
     user_    UUID     REFERENCES user_ NOT NULL,
-    file     UUID     REFERENCES file NOT NULL
+    pfile     UUID     REFERENCES pfile NOT NULL
 );
 
 CREATE TABLE project_state (

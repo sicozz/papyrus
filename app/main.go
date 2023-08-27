@@ -13,6 +13,9 @@ import (
 	_dirHttpDelivery "github.com/sicozz/papyrus/dir/delivery/http"
 	_dirRepo "github.com/sicozz/papyrus/dir/repository/postgres"
 	_dirUsecase "github.com/sicozz/papyrus/dir/usecase"
+	_pFileHttpDelivery "github.com/sicozz/papyrus/pfile/delivery/http"
+	_pFileRepo "github.com/sicozz/papyrus/pfile/repository/postgres"
+	_pFileUsecase "github.com/sicozz/papyrus/pfile/usecase"
 	_roleRepo "github.com/sicozz/papyrus/role/repository/postgres"
 	_userHttpDelivery "github.com/sicozz/papyrus/user/delivery/http"
 	_userRepo "github.com/sicozz/papyrus/user/repository/postgres"
@@ -82,6 +85,10 @@ func main() {
 	dr := _dirRepo.NewPostgresDirRepository(dbConn)
 	du := _dirUsecase.NewDirUsecase(dr, timeoutContext)
 	_dirHttpDelivery.NewDirHandler(e, du)
+
+	pfr := _pFileRepo.NewPostgresPFileRepository(dbConn)
+	pfu := _pFileUsecase.NewPFileUsecase(pfr, timeoutContext)
+	_pFileHttpDelivery.NewPFileHandler(e, pfu)
 
 	e.Logger.Fatal(e.Start(":9090"))
 	/**

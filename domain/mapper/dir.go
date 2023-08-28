@@ -7,12 +7,6 @@ import (
 
 // Transform a dir entity into a dir dto
 func MapDirToDirGetDto(d domain.Dir, path string, nChild, depth int) dtos.DirGetDto {
-	// TODO: Fix this
-	t := dtos.DirGetDtoType
-	if d.Name[0] == '_' {
-		t = "documento"
-		d.Name = d.Name[1:]
-	}
 	return dtos.DirGetDto{
 		Uuid:      d.Uuid,
 		Name:      d.Name,
@@ -20,7 +14,7 @@ func MapDirToDirGetDto(d domain.Dir, path string, nChild, depth int) dtos.DirGet
 		Path:      path,
 		Nchild:    nChild,
 		Depth:     depth,
-		Type:      t,
+		Type:      "carpeta",
 		Visible:   dtos.DirGetDtoVisible,
 		Open:      dtos.DirGetDtoOpen,
 	}

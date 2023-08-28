@@ -29,7 +29,7 @@ func NewDirHandler(e *echo.Echo, du domain.DirUsecase) {
 	e.PATCH("/dir/:uuid/move", handler.Move)
 
 	e.POST("/dir/duplicate", handler.Duplicate)
-	e.POST("/file/upload", handler.StoreDoc)
+	// e.POST("/file/upload", handler.StoreDoc)
 }
 
 func (h *DirHandler) GetAll(c echo.Context) error {
@@ -216,32 +216,32 @@ func (h *DirHandler) Duplicate(c echo.Context) error {
 	return c.JSON(http.StatusOK, res)
 }
 
-func (h *DirHandler) StoreDoc(c echo.Context) (err error) {
-	h.log.Inf("REQ: store doc")
-	var p dtos.DirStoreDto
-	err = c.Bind(&p)
-	if err != nil {
-		errBody := dtos.NewErrDto(err.Error())
-		return c.JSON(http.StatusBadRequest, errBody)
-	}
-
-	if ok, err := utils.IsRequestValid(&p); !ok {
-		errBody, err := dtos.NewValidationErrDto(err.Error())
-		if err != nil {
-			errParse := dtos.NewErrDto(err.Error())
-			return c.JSON(http.StatusBadRequest, errParse)
-		}
-		return c.JSON(http.StatusBadRequest, errBody)
-	}
-
-	p.Name = "_" + p.Name
-
-	ctx := c.Request().Context()
-	dir, rErr := h.DUsecase.Store(ctx, p)
-	if rErr != nil {
-		errBody := dtos.NewErrDto(rErr.Error())
-		return c.JSON(rErr.GetStatus(), errBody)
-	}
-
-	return c.JSON(http.StatusCreated, dir)
-}
+// func (h *DirHandler) StoreDoc(c echo.Context) (err error) {
+// 	h.log.Inf("REQ: store doc")
+// 	var p dtos.DirStoreDto
+// 	err = c.Bind(&p)
+// 	if err != nil {
+// 		errBody := dtos.NewErrDto(err.Error())
+// 		return c.JSON(http.StatusBadRequest, errBody)
+// 	}
+//
+// 	if ok, err := utils.IsRequestValid(&p); !ok {
+// 		errBody, err := dtos.NewValidationErrDto(err.Error())
+// 		if err != nil {
+// 			errParse := dtos.NewErrDto(err.Error())
+// 			return c.JSON(http.StatusBadRequest, errParse)
+// 		}
+// 		return c.JSON(http.StatusBadRequest, errBody)
+// 	}
+//
+// 	p.Name = "_" + p.Name
+//
+// 	ctx := c.Request().Context()
+// 	dir, rErr := h.DUsecase.Store(ctx, p)
+// 	if rErr != nil {
+// 		errBody := dtos.NewErrDto(rErr.Error())
+// 		return c.JSON(rErr.GetStatus(), errBody)
+// 	}
+//
+// 	return c.JSON(http.StatusCreated, dir)
+// }

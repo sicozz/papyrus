@@ -221,7 +221,7 @@ func (r *postgresDirRepository) Store(ctx context.Context, d *domain.Dir) (uuid 
 
 // Delete dir by uuid
 func (r *postgresDirRepository) Delete(ctx context.Context, uuid string) (err error) {
-	query := `DELETE FROM dir WHERE uuid=$1`
+	query := `DELETE FROM dir WHERE uuid = $1`
 	stmt, err := r.Conn.PrepareContext(ctx, query)
 	if err != nil {
 		r.log.Err("IN [Delete] failed to prepare context ->", err)
@@ -239,7 +239,7 @@ func (r *postgresDirRepository) Delete(ctx context.Context, uuid string) (err er
 }
 
 func (r *postgresDirRepository) ChgName(ctx context.Context, uuid string, nName string) (err error) {
-	query := `UPDATE dir SET name=$1 WHERE uuid=$2`
+	query := `UPDATE dir SET name = $1 WHERE uuid = $2`
 	stmt, err := r.Conn.PrepareContext(ctx, query)
 	if err != nil {
 		r.log.Err("IN [ChgName] failed to prepare context ->", err)

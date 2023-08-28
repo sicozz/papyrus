@@ -83,15 +83,19 @@ func main() {
 	_userHttpDelivery.NewUserHandler(e, uu)
 
 	dr := _dirRepo.NewPostgresDirRepository(dbConn)
-	du := _dirUsecase.NewDirUsecase(dr, timeoutContext)
+	dPfr := _pFileRepo.NewPostgresPFileRepository(dbConn)
+	du := _dirUsecase.NewDirUsecase(dr, dPfr, timeoutContext)
 	_dirHttpDelivery.NewDirHandler(e, du)
 
 	pfr := _pFileRepo.NewPostgresPFileRepository(dbConn)
-	pfu := _pFileUsecase.NewPFileUsecase(pfr, timeoutContext)
+	pfDr := _dirRepo.NewPostgresDirRepository(dbConn)
+	pfUr := _userRepo.NewPostgresUserRepository(dbConn)
+	pfu := _pFileUsecase.NewPFileUsecase(pfr, pfDr, pfUr, timeoutContext)
 	_pFileHttpDelivery.NewPFileHandler(e, pfu)
 
 	e.Logger.Fatal(e.Start(":9090"))
 	/**
+	* TODO: Improve comments
 	* TODO: Add unit testing for everything created
 	* TODO: Make a deep check and desing of fs constraints, enforce them in DB and in app-code
 	**/

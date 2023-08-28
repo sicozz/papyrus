@@ -16,15 +16,17 @@ import (
 
 type dirUsecase struct {
 	dirRepo        domain.DirRepository
+	pFileRepo      domain.PFileRepository
 	contextTimeout time.Duration
 	log            utils.AggregatedLogger
 }
 
 // NewDirUsecase will create a new dirUsecase object representation of domain.DirUsecase interface
-func NewDirUsecase(dr domain.DirRepository, timeout time.Duration) domain.DirUsecase {
+func NewDirUsecase(dr domain.DirRepository, pfr domain.PFileRepository, timeout time.Duration) domain.DirUsecase {
 	logger := utils.NewAggregatedLogger(constants.Usecase, constants.Dir)
 	return &dirUsecase{
 		dirRepo:        dr,
+		pFileRepo:      pfr,
 		contextTimeout: timeout,
 		log:            logger,
 	}
@@ -41,6 +43,18 @@ func (u *dirUsecase) GetAll(c context.Context) (res []dtos.DirGetDto, rErr domai
 		return
 	}
 
+	pfiles, err := u.pFileRepo.GetAll(ctx)
+	if err != nil {
+		u.log.Err("IN [GetAll] failed to get files ->", err)
+		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+		return
+	}
+
+	for _, pf := range pfiles {
+		pFileDirDto := mapper.MapPFileToDir(pf)
+		dirs = append(dirs, pFileDirDto)
+	}
+
 	nChild, err := u.dirRepo.GetNChild(ctx, constants.RootDirUuid)
 	if err != nil {
 		u.log.Err("IN [GetAll] failed to get root children number ->", err)
@@ -53,6 +67,15 @@ func (u *dirUsecase) GetAll(c context.Context) (res []dtos.DirGetDto, rErr domai
 		u.log.Err("IN [GetAll] failed to fill tree details ->", err)
 		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
 		return
+	}
+
+	// TODO: Refactor folder and document mix
+	for _, pf := range pfiles {
+		for j := range res {
+			if pf.Uuid == res[j].Uuid {
+				res[j].Type = "documento"
+			}
+		}
 	}
 	return
 }
@@ -199,6 +222,7 @@ func (u *dirUsecase) Delete(c context.Context, uuid string) (rErr domain.Request
 		rErr = domain.NewUCaseErr(http.StatusNotAcceptable, err)
 		return
 	}
+
 	// TODO: Add nFiles != 0 constraint
 	// TODO: Add nPlans != 0 constraint
 

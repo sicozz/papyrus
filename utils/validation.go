@@ -1,8 +1,8 @@
 package utils
 
 import (
+	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
-	"gopkg.in/go-playground/validator.v9"
 )
 
 func IsValidUUID(u string) bool {

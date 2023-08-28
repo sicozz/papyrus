@@ -11,6 +11,8 @@ import (
 type PFile struct {
 	Uuid         string
 	Code         string
+	Name         string
+	FsPath       string // path type?
 	DateCreation time.Time
 	DateInput    time.Time
 	Type         string
@@ -25,18 +27,28 @@ type PFileUsecase interface {
 	GetAll(c context.Context) ([]dtos.PFileGetDto, RequestErr)
 	// GetByUuid(c context.Context, uuid string) (dtos.PFileGetDto, RequestErr)
 	// Update(c context.Context, uuid string, p dtos.PFileUpdateDto) RequestErr
-	// Delete(c context.Context, uuid string) RequestErr
+	Delete(c context.Context, uuid string) RequestErr
 
-	// Upload(c context.Context, d dtos.PFileUploadDto) (dtos.PFileGetDto, RequestErr)
+	Upload(c context.Context, p dtos.PFileUploadDto) (dtos.PFileGetDto, RequestErr)
 	// Download(c context.Context, uuid string) (dtos.PFileGetDto, RequestErr)
 }
 
 type PFileRepository interface {
-	GetAll(c context.Context) ([]PFile, error)
-	// GetByUuid(c context.Context, uuid string) (PFile, error)
-	// Update(c context.Context, uuid string, p dtos.PFileUpdateDto) error
-	// Delete(c context.Context, uuid string) error
+	GetAll(ctx context.Context) ([]PFile, error)
+	GetByUuid(ctx context.Context, uuid string) (PFile, error)
+	// Update(ctx context.Context, uuid string, p dtos.PFileUpdateDto) error
+	Delete(ctx context.Context, uuid string) error
+	Store(ctx context.Context, pf PFile) (string, error)
 
-	// Upload(c context.Context, d dtos.PFileUploadDto) (PFile, error)
-	// Download(c context.Context, uuid string) (PFile, error)
+	ExistsByCode(ctx context.Context, code string) bool
+	IsNameTaken(ctx context.Context, name string, dirUuid string) bool
+
+	// pfile_type ops
+	ExistsTypeByDesc(ctx context.Context, desc string) bool
+
+	// pfile_state ops
+	ExistsStateByDesc(ctx context.Context, desc string) bool
+
+	// pfile_stage ops
+	ExistsStageByDesc(ctx context.Context, desc string) bool
 }

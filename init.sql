@@ -48,6 +48,8 @@ CREATE TABLE pfile_stage (
 CREATE TABLE pfile (
     uuid           UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
     code           VARCHAR(32)   NOT NULL,
+    name           VARCHAR(256)   NOT NULL,
+    fs_path        VARCHAR(256)  NOT NULL,
     date_creation  TIMESTAMP     NOT NULL,
     date_input     TIMESTAMP     NOT NULL,
     type           SERIAL        REFERENCES pfile_type NOT NULL,

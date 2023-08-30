@@ -196,6 +196,69 @@ func (r *postgresPFileRepository) Store(ctx context.Context, pf domain.PFile) (u
 	return
 }
 
+func (r *postgresPFileRepository) StoreUuid(ctx context.Context, pf domain.PFile) (uuid string, err error) {
+	// TODO: Add fs_path column
+	query :=
+		`INSERT INTO pfile (
+			uuid,
+			code,
+			name,
+			fs_path,
+			date_creation,
+			date_input,
+			type,
+			state,
+			stage,
+			dir,
+			user_revision,
+			user_approval
+		)
+		VALUES (
+			$1,
+			$2,
+			$3,
+			$4,
+			$5,
+			$6,
+			$7,
+			$8,
+			$9,
+			$10,
+			$11,
+			$12
+		)
+		RETURNING uuid`
+	stmt, err := r.Conn.PrepareContext(ctx, query)
+	if err != nil {
+		r.log.Err("IN [Store] failed to prepare context ->", err)
+		return
+	}
+	defer stmt.Close()
+
+	err = stmt.QueryRowContext(
+		ctx,
+		pf.Uuid,
+		pf.Code,
+		pf.Name,
+		pf.FsPath,
+		pf.DateCreation,
+		pf.DateInput,
+		1,
+		1,
+		1,
+		pf.Dir,
+		pf.RevUser,
+		pf.AppUser,
+	).Scan(&uuid)
+
+	if err != nil {
+		r.log.Err("IN [Store] failed to scan rows ->", err)
+		return
+	}
+
+	return
+}
+
 func (r *postgresPFileRepository) Delete(ctx context.Context, uuid string) (err error) {
 	query := `DELETE FROM pfile WHERE uuid = $1`
 	stmt, err := r.Conn.PrepareContext(ctx, query)

@@ -4,9 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
+	"mime/multipart"
 	"net/http"
+	"os"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/sicozz/papyrus/domain"
 	"github.com/sicozz/papyrus/domain/dtos"
 	"github.com/sicozz/papyrus/domain/mapper"
@@ -55,9 +59,33 @@ func (u *pFileUseCase) GetAll(c context.Context) (res []dtos.PFileGetDto, rErr d
 	return
 }
 
-func (u *pFileUseCase) Upload(c context.Context, p dtos.PFileUploadDto) (dto dtos.PFileGetDto, rErr domain.RequestErr) {
+func (u *pFileUseCase) Upload(c context.Context, p dtos.PFileUploadDto, file *multipart.FileHeader) (dto dtos.PFileGetDto, rErr domain.RequestErr) {
+	// TODO: Refactor functions into something cleaner
 	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
 	defer cancel()
+
+	src, err := file.Open()
+	if err != nil {
+		u.log.Err("IN [Upload] failed to open file ->", err)
+		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+		return
+	}
+
+	nFileUuid := uuid.New().String()
+	nFilepath := constants.PathFsDir + string(os.PathSeparator) + nFileUuid + constants.UuidFileSeparator + file.Filename
+
+	dst, err := os.Create(nFilepath)
+	if err != nil {
+		u.log.Err("IN [Upload] failed to create file ->", err)
+		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+		return
+	}
+	defer dst.Close()
+
+	if _, err = io.Copy(dst, src); err != nil {
+		u.log.Err("IN [Upload] failed to copy file contents ->", err)
+		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+	}
 
 	// parse date_creation
 	dateCreation, err := time.Parse(constants.LayoutDate, p.DateCreation)
@@ -110,9 +138,10 @@ func (u *pFileUseCase) Upload(c context.Context, p dtos.PFileUploadDto) (dto dto
 	}
 
 	nPFile := domain.PFile{
+		Uuid:         nFileUuid,
 		Code:         p.Code,
 		Name:         p.Name,
-		FsPath:       "TODO",
+		FsPath:       nFilepath,
 		DateCreation: dateCreation,
 		DateInput:    time.Now(),
 		Type:         "TODO",
@@ -123,11 +152,20 @@ func (u *pFileUseCase) Upload(c context.Context, p dtos.PFileUploadDto) (dto dto
 		AppUser:      p.AppUser,
 	}
 
-	nUuid, err := u.pFileRepo.Store(ctx, nPFile)
+	nUuid, err := u.pFileRepo.StoreUuid(ctx, nPFile)
 	if err != nil {
 		u.log.Err("IN [Upload] failed store pfile ->", err)
 		err := errors.New("Could not upload file")
 		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+
+		// Delete created file
+		err = os.Remove(nFilepath)
+		if err != nil {
+			u.log.Err("IN [Upload] failed remove created file ->", err)
+			u.log.Wrn("IN [Upload] bad state. File created with no db representation ->", err)
+			err := errors.New("Could not upload file")
+			rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+		}
 		return
 	}
 
@@ -140,6 +178,21 @@ func (u *pFileUseCase) Upload(c context.Context, p dtos.PFileUploadDto) (dto dto
 	}
 
 	dto = mapper.MapPFileToPFileGetDto(pF)
+
+	return
+}
+
+func (u *pFileUseCase) GetByUuid(c context.Context, uuid string) (pFile domain.PFile, rErr domain.RequestErr) {
+	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
+	defer cancel()
+
+	pFile, err := u.pFileRepo.GetByUuid(ctx, uuid)
+	if err != nil {
+		u.log.Err("IN [GetFileByUuid] failed to fetch pfile {", uuid, "} ->", err)
+		err = errors.New("File not found. uuid: " + uuid)
+		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
+		return
+	}
 
 	return
 }

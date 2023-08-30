@@ -2,6 +2,7 @@ package domain
 
 import (
 	"context"
+	"mime/multipart"
 	"time"
 
 	"github.com/sicozz/papyrus/domain/dtos"
@@ -29,8 +30,8 @@ type PFileUsecase interface {
 	// Update(c context.Context, uuid string, p dtos.PFileUpdateDto) RequestErr
 	Delete(c context.Context, uuid string) RequestErr
 
-	Upload(c context.Context, p dtos.PFileUploadDto) (dtos.PFileGetDto, RequestErr)
-	// Download(c context.Context, uuid string) (dtos.PFileGetDto, RequestErr)
+	Upload(c context.Context, p dtos.PFileUploadDto, file *multipart.FileHeader) (dtos.PFileGetDto, RequestErr)
+	GetByUuid(ctx context.Context, uuid string) (PFile, RequestErr)
 }
 
 type PFileRepository interface {
@@ -39,6 +40,7 @@ type PFileRepository interface {
 	// Update(ctx context.Context, uuid string, p dtos.PFileUpdateDto) error
 	Delete(ctx context.Context, uuid string) error
 	Store(ctx context.Context, pf PFile) (string, error)
+	StoreUuid(ctx context.Context, pf PFile) (string, error)
 
 	ExistsByCode(ctx context.Context, code string) bool
 	IsNameTaken(ctx context.Context, name string, dirUuid string) bool

@@ -21,6 +21,7 @@ import (
 	_userRepo "github.com/sicozz/papyrus/user/repository/postgres"
 	_userUsecase "github.com/sicozz/papyrus/user/usecase"
 	_userStateRepo "github.com/sicozz/papyrus/user_state/repository/postgres"
+	"github.com/sicozz/papyrus/utils"
 	"github.com/spf13/viper"
 )
 
@@ -37,6 +38,11 @@ func init() {
 }
 
 func main() {
+	err := utils.InitFsDir()
+	if err != nil {
+		log.Fatal("Failed to initialize fs directory -> ", err)
+	}
+
 	dbHost := viper.GetString(`database.host`)
 	dbPort := viper.GetString(`database.port`)
 	dbUser := viper.GetString(`database.user`)

@@ -2,6 +2,7 @@ package http
 
 import (
 	"net/http"
+	"os"
 
 	"github.com/labstack/echo/v4"
 	"github.com/sicozz/papyrus/domain"
@@ -20,6 +21,7 @@ func NewPFileHandler(e *echo.Echo, uu domain.PFileUsecase) {
 	handler := &PFileHandler{uu, logger}
 	e.GET("/file", handler.GetAll)
 	e.POST("/file", handler.Upload)
+	e.GET("/file/:uuid", handler.Download)
 	e.DELETE("/file/:uuid", handler.Delete)
 }
 
@@ -37,8 +39,14 @@ func (h *PFileHandler) GetAll(c echo.Context) error {
 
 func (h *PFileHandler) Upload(c echo.Context) (err error) {
 	h.log.Inf("REQ: upload")
+	file, err := c.FormFile("file")
+	if err != nil {
+		errBody := dtos.NewErrDto("Upload file is required")
+		return c.JSON(http.StatusBadRequest, errBody)
+	}
+
 	var p dtos.PFileUploadDto
-	err = c.Bind(&p)
+	err = utils.BindFormToPFileUploadDto(c, &p)
 	if err != nil {
 		errBody := dtos.NewErrDto(err.Error())
 		return c.JSON(http.StatusBadRequest, errBody)
@@ -54,13 +62,37 @@ func (h *PFileHandler) Upload(c echo.Context) (err error) {
 	}
 
 	ctx := c.Request().Context()
-	pf, rErr := h.PFUsecase.Upload(ctx, p)
+	pf, rErr := h.PFUsecase.Upload(ctx, p, file)
 	if rErr != nil {
 		errBody := dtos.NewErrDto(rErr.Error())
 		return c.JSON(rErr.GetStatus(), errBody)
 	}
 
 	return c.JSON(http.StatusCreated, pf)
+}
+
+func (h *PFileHandler) Download(c echo.Context) error {
+	h.log.Inf("REQ: download")
+	ctx := c.Request().Context()
+	uuid := c.Param("uuid")
+	if valid := utils.IsValidUUID(uuid); !valid {
+		errBody := dtos.NewErrDto("Uuid does not conform to the uuid format")
+		return c.JSON(http.StatusBadRequest, errBody)
+	}
+
+	pFile, rErr := h.PFUsecase.GetByUuid(ctx, uuid)
+	if rErr != nil {
+		errBody := dtos.NewErrDto(rErr.Error())
+		return c.JSON(rErr.GetStatus(), errBody)
+	}
+
+	file, err := os.Open(pFile.FsPath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	return c.Stream(http.StatusOK, constants.RespTypeStream, file)
 }
 
 func (h *PFileHandler) Delete(c echo.Context) error {

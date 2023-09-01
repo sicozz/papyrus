@@ -40,30 +40,32 @@ CREATE TABLE pfile_state (
     description  VARCHAR(32)  UNIQUE NOT NULL
 );
 
-CREATE TABLE pfile_stage (
-    code         SERIAL       PRIMARY KEY,
-    description  VARCHAR(32)  UNIQUE NOT NULL
-);
-
 CREATE TABLE pfile (
     uuid           UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
     code           VARCHAR(32)   NOT NULL,
-    name           VARCHAR(256)   NOT NULL,
+    name           VARCHAR(256)  NOT NULL,
     fs_path        VARCHAR(256)  NOT NULL,
     date_creation  TIMESTAMP     NOT NULL,
     date_input     TIMESTAMP     NOT NULL,
     type           SERIAL        REFERENCES pfile_type NOT NULL,
     state          SERIAL        REFERENCES pfile_state NOT NULL,
-    stage          SERIAL        REFERENCES pfile_stage NOT NULL,
     dir            UUID          REFERENCES dir NOT NULL,
-    user_revision  UUID          REFERENCES user_ NOT NULL,
-    user_approval  UUID          REFERENCES user_ NOT NULL
+    version        VARCHAR(32)   NOT NULL,
+    term           INTEGER       NOT NULL,
+    subtype        VARCHAR(32)   NOT NULL
 );
 
-create table version (
-    uuid  uuid       primary key default gen_random_uuid(),
-    date  TIMESTAMP  NOT NULL,
-    pfile  UUID       REFERENCES pfile NOT NULL
+CREATE TABLE version (
+    uuid    UUID       primary key default gen_random_uuid(),
+    date    TIMESTAMP  NOT NULL,
+    pfile   UUID       REFERENCES pfile NOT NULL
+);
+
+CREATE TABLE approvation (
+    user_uuid   UUID  REFERENCES user_(uuid),
+    pfile_uuid  UUID  REFERENCES pfile(uuid),
+    is_approved BOOLEAN NOT NULL,
+    PRIMARY KEY (user_uuid, pfile_uuid)
 );
 
 CREATE TABLE download (

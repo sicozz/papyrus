@@ -17,6 +17,7 @@ type DirGetDto struct {
 	Type      string `json:"type"`
 	Visible   bool   `json:"visible"`
 	Open      bool   `json:"open"`
+	State     string `json:"state"`
 }
 
 type DirStoreDto struct {

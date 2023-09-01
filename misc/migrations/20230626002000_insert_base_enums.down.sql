@@ -2,11 +2,9 @@ DELETE FROM role;
 
 DELETE FROM user_state;
 
-DELETE FROM file_type;
+DELETE FROM pfile_type;
 
-DELETE FROM file_state;
-
-DELETE FROM file_stage;
+DELETE FROM pfile_state;
 
 DELETE FROM project_state;
 

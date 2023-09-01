@@ -31,15 +31,14 @@ func (r *postgresPFileRepository) GetAll(ctx context.Context) (res []domain.PFil
 			date_input,
 			pft.description as pfile_type,
 			pfst.description as pfile_state,
-			pfsg.description as pfile_stage,
 			dir,
-			user_revision,
-			user_approval
+			version,
+			term,
+			subtype
 		FROM
 			pfile pf
 			INNER JOIN pfile_type pft ON(pf.type = pft.code)
-			INNER JOIN pfile_state pfst ON(pf.state = pfst.code)
-			INNER JOIN pfile_stage pfsg ON(pf.stage = pfsg.code)`
+			INNER JOIN pfile_state pfst ON(pf.state = pfst.code)`
 
 	stmt, err := r.Conn.PrepareContext(ctx, query)
 	if err != nil {
@@ -65,10 +64,10 @@ func (r *postgresPFileRepository) GetAll(ctx context.Context) (res []domain.PFil
 			&t.DateInput,
 			&t.Type,
 			&t.State,
-			&t.Stage,
 			&t.Dir,
-			&t.RevUser,
-			&t.AppUser,
+			&t.Version,
+			&t.Term,
+			&t.Subtype,
 		)
 
 		if err != nil {
@@ -93,15 +92,14 @@ func (r *postgresPFileRepository) GetByUuid(ctx context.Context, uuid string) (r
 			date_input,
 			pft.description as pfile_type,
 			pfst.description as pfile_state,
-			pfsg.description as pfile_stage,
 			dir,
-			user_revision,
-			user_approval
+			version,
+			term,
+			subtype
 		FROM
 			pfile pf
 			INNER JOIN pfile_type pft ON(pf.type = pft.code)
 			INNER JOIN pfile_state pfst ON(pf.state = pfst.code)
-			INNER JOIN pfile_stage pfsg ON(pf.stage = pfsg.code)
 		WHERE
 			uuid = $1`
 
@@ -121,10 +119,10 @@ func (r *postgresPFileRepository) GetByUuid(ctx context.Context, uuid string) (r
 		&res.DateInput,
 		&res.Type,
 		&res.State,
-		&res.Stage,
 		&res.Dir,
-		&res.RevUser,
-		&res.AppUser,
+		&res.Version,
+		&res.Term,
+		&res.Subtype,
 	)
 
 	if err != nil {
@@ -135,69 +133,8 @@ func (r *postgresPFileRepository) GetByUuid(ctx context.Context, uuid string) (r
 	return
 }
 
-// Store a new dir
-func (r *postgresPFileRepository) Store(ctx context.Context, pf domain.PFile) (uuid string, err error) {
-	// TODO: Add fs_path column
-	query :=
-		`INSERT INTO pfile (
-			code,
-			name,
-			fs_path,
-			date_creation,
-			date_input,
-			type,
-			state,
-			stage,
-			dir,
-			user_revision,
-			user_approval
-		)
-		VALUES (
-			$1,
-			$2,
-			$3,
-			$4,
-			$5,
-			$6,
-			$7,
-			$8,
-			$9,
-			$10,
-			$11
-		)
-		RETURNING uuid`
-	stmt, err := r.Conn.PrepareContext(ctx, query)
-	if err != nil {
-		r.log.Err("IN [Store] failed to prepare context ->", err)
-		return
-	}
-	defer stmt.Close()
-
-	err = stmt.QueryRowContext(
-		ctx,
-		pf.Code,
-		pf.Name,
-		pf.FsPath,
-		pf.DateCreation,
-		pf.DateInput,
-		1,
-		1,
-		1,
-		pf.Dir,
-		pf.RevUser,
-		pf.AppUser,
-	).Scan(&uuid)
-
-	if err != nil {
-		r.log.Err("IN [Store] failed to scan rows ->", err)
-		return
-	}
-
-	return
-}
-
-func (r *postgresPFileRepository) StoreUuid(ctx context.Context, pf domain.PFile) (uuid string, err error) {
-	// TODO: Add fs_path column
+func (r *postgresPFileRepository) StoreUuid(ctx context.Context, pf domain.PFile, apps []domain.Approvation) (uuid string, err error) {
+	// WARN: CONTINUE HERE with transaction
 	query :=
 		`INSERT INTO pfile (
 			uuid,
@@ -208,10 +145,10 @@ func (r *postgresPFileRepository) StoreUuid(ctx context.Context, pf domain.PFile
 			date_input,
 			type,
 			state,
-			stage,
 			dir,
-			user_revision,
-			user_approval
+			version,
+			term,
+			subtype
 		)
 		VALUES (
 			$1,
@@ -228,7 +165,14 @@ func (r *postgresPFileRepository) StoreUuid(ctx context.Context, pf domain.PFile
 			$12
 		)
 		RETURNING uuid`
-	stmt, err := r.Conn.PrepareContext(ctx, query)
+
+	tx, err := r.Conn.Begin()
+	if err != nil {
+		r.log.Err("IN [StoreUuid] failed to begin transaction ->", err)
+	}
+	defer tx.Rollback()
+
+	stmt, err := tx.PrepareContext(ctx, query)
 	if err != nil {
 		r.log.Err("IN [Store] failed to prepare context ->", err)
 		return
@@ -245,14 +189,86 @@ func (r *postgresPFileRepository) StoreUuid(ctx context.Context, pf domain.PFile
 		pf.DateInput,
 		1,
 		1,
-		1,
 		pf.Dir,
-		pf.RevUser,
-		pf.AppUser,
+		pf.Version,
+		pf.Term,
+		pf.Subtype,
 	).Scan(&uuid)
 
 	if err != nil {
-		r.log.Err("IN [Store] failed to scan rows ->", err)
+		r.log.Err("IN [StoreUuid] failed to scan rows ->", err)
+		return "", err
+	}
+
+	for _, ap := range apps {
+		err = r.storeApprovation(ctx, tx, ap)
+		if err != nil {
+			return "", err
+		}
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		r.log.Err("IN [StoreUuid] failed to commit changes -> ", err)
+		return "", err
+	}
+
+	return
+}
+
+func (r *postgresPFileRepository) GetApprovations(ctx context.Context, pfUuid string) (res []domain.Approvation, err error) {
+	query :=
+		`SELECT user_uuid, pfile_uuid, is_approved
+		FROM approvation
+		WHERE pfile_uuid = $1`
+
+	stmt, err := r.Conn.PrepareContext(ctx, query)
+	if err != nil {
+		r.log.Err("IN [GetApprovations] failed to prepare context ->", err)
+		return
+	}
+	defer stmt.Close()
+
+	rows, err := stmt.QueryContext(ctx, pfUuid)
+	if err != nil {
+		r.log.Err("In [GetApprovations] failed to exec statement ->", err)
+	}
+
+	res = []domain.Approvation{}
+	for rows.Next() {
+		t := domain.Approvation{}
+		err = rows.Scan(
+			&t.UserUuid,
+			&t.PFileUuid,
+			&t.IsApproved,
+		)
+
+		if err != nil {
+			r.log.Err("IN [GetApprovations]: failed to scan approvation ->", err)
+			return nil, err
+		}
+
+		res = append(res, t)
+	}
+
+	return
+}
+
+func (r *postgresPFileRepository) storeApprovation(ctx context.Context, tx *sql.Tx, ap domain.Approvation) (err error) {
+	query :=
+		`INSERT INTO approvation (user_uuid, pfile_uuid, is_approved)
+		VALUES ($1, $2, $3)`
+
+	stmt, err := tx.PrepareContext(ctx, query)
+	if err != nil {
+		r.log.Err("IN [storeApprovation] failed to prepare context ->", err)
+		return
+	}
+	defer stmt.Close()
+
+	_, err = stmt.ExecContext(ctx, ap.UserUuid, ap.PFileUuid, ap.IsApproved)
+	if err != nil {
+		r.log.Err("IN [storeApprovation] failed to exec statement ->", err)
 		return
 	}
 
@@ -260,8 +276,29 @@ func (r *postgresPFileRepository) StoreUuid(ctx context.Context, pf domain.PFile
 }
 
 func (r *postgresPFileRepository) Delete(ctx context.Context, uuid string) (err error) {
+	// BUG: Make it delete from file system
+	tx, err := r.Conn.Begin()
+	if err != nil {
+		r.log.Err("IN [Delete] failed to begin transaction ->", err)
+	}
+	defer tx.Rollback()
+
+	appQuery := `DELETE FROM approvation WHERE pfile_uuid = $1`
+	appStmt, err := tx.PrepareContext(ctx, appQuery)
+	if err != nil {
+		r.log.Err("IN [Delete] failed to prepare context ->", err)
+		return
+	}
+	defer appStmt.Close()
+
+	_, err = appStmt.ExecContext(ctx, uuid)
+	if uuid == "" && err != nil {
+		r.log.Err("IN [Delete] failed to exec statement ->", err)
+		return
+	}
+
 	query := `DELETE FROM pfile WHERE uuid = $1`
-	stmt, err := r.Conn.PrepareContext(ctx, query)
+	stmt, err := tx.PrepareContext(ctx, query)
 	if err != nil {
 		r.log.Err("IN [Delete] failed to prepare context ->", err)
 		return
@@ -269,9 +306,16 @@ func (r *postgresPFileRepository) Delete(ctx context.Context, uuid string) (err 
 	defer stmt.Close()
 
 	_, err = stmt.ExecContext(ctx, uuid)
-	if uuid == "" && err == nil {
+	// WARN: This thing is to be deleted when you apply prev exists check in usecase
+	if uuid == "" || err != nil {
 		r.log.Err("IN [Delete] failed to exec statement ->", err)
 		return
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		r.log.Err("IN [Delete] failed to commit changes -> ", err)
+		return err
 	}
 
 	return
@@ -357,6 +401,76 @@ func (r *postgresPFileRepository) ExistsStageByDesc(ctx context.Context, desc st
 	err = stmt.QueryRowContext(ctx, desc).Scan(&res)
 	if err != nil {
 		r.log.Err("IN [ExistsStageByDesc] failed to exec statement ->", err)
+	}
+
+	return
+}
+
+func (r *postgresPFileRepository) Approve(ctx context.Context, pfUuid, userUuid string) (err error) {
+	query := `UPDATE approvation SET is_approved = $1 WHERE pfile_uuid = $2 AND user_uuid = $3`
+	stmt, err := r.Conn.PrepareContext(ctx, query)
+	if err != nil {
+		r.log.Err("IN [Approve] failed to prepare context ->", err)
+		return
+	}
+	defer stmt.Close()
+
+	_, err = stmt.ExecContext(ctx, true, pfUuid, userUuid)
+	if err != nil {
+		r.log.Err("IN [Approve] failed to exec statement ->", err)
+		return
+	}
+
+	return
+}
+
+func (r *postgresPFileRepository) Activate(ctx context.Context, uuid string) (err error) {
+	query := `UPDATE pfile SET state = 2 WHERE uuid = $1`
+	stmt, err := r.Conn.PrepareContext(ctx, query)
+	if err != nil {
+		r.log.Err("IN [Activate] failed to prepare context ->", err)
+		return
+	}
+	defer stmt.Close()
+
+	_, err = stmt.ExecContext(ctx, uuid)
+	if err != nil {
+		r.log.Err("IN [Activate] failed to exec statement ->", err)
+		return
+	}
+
+	return
+}
+
+func (r *postgresPFileRepository) ApprExistsByPK(ctx context.Context, pfUuid, userUuid string) (res bool) {
+	query := `SELECT COUNT(*) > 0 FROM approvation WHERE pfile_uuid = $1 AND user_uuid = $2`
+	stmt, err := r.Conn.PrepareContext(ctx, query)
+	if err != nil {
+		r.log.Err("IN [ApprExistsByPK] failed to prepare context ->", err)
+		return
+	}
+	defer stmt.Close()
+
+	err = stmt.QueryRowContext(ctx, pfUuid, userUuid).Scan(&res)
+	if err != nil {
+		r.log.Err("IN [ApprExistsByPK] failed to exec statement ->", err)
+	}
+
+	return
+}
+
+func (r *postgresPFileRepository) IsApproved(ctx context.Context, uuid string) (res bool) {
+	query := `SELECT COUNT(*) = 0 FROM approvation WHERE pfile_uuid = $1 AND is_approved = FALSE`
+	stmt, err := r.Conn.PrepareContext(ctx, query)
+	if err != nil {
+		r.log.Err("IN [IsApproved] failed to prepare context ->", err)
+		return
+	}
+	defer stmt.Close()
+
+	err = stmt.QueryRowContext(ctx, uuid).Scan(&res)
+	if err != nil {
+		r.log.Err("IN [IsApproved] failed to exec statement ->", err)
 	}
 
 	return

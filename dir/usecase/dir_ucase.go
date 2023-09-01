@@ -74,6 +74,7 @@ func (u *dirUsecase) GetAll(c context.Context) (res []dtos.DirGetDto, rErr domai
 		for j := range res {
 			if pf.Uuid == res[j].Uuid {
 				res[j].Type = "documento"
+				res[j].State = pf.State
 			}
 		}
 	}

@@ -101,6 +101,8 @@ func main() {
 
 	e.Logger.Fatal(e.Start(":9090"))
 	/**
+	* TODO: Add config.json for development
+	* TODO: Change uuid naming to id, just the naming, the type is still uuid
 	* TODO: Improve comments
 	* TODO: Add unit testing for everything created
 	* TODO: Make a deep check and desing of fs constraints, enforce them in DB and in app-code

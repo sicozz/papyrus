@@ -51,7 +51,13 @@ func (u *pFileUseCase) GetAll(c context.Context) (res []dtos.PFileGetDto, rErr d
 
 	pFilesDtos := make([]dtos.PFileGetDto, len(pFiles), len(pFiles))
 	for i, pf := range pFiles {
-		pFilesDtos[i] = mapper.MapPFileToPFileGetDto(pf)
+		apps, err := u.pFileRepo.GetApprovations(ctx, pf.Uuid)
+		if err != nil {
+			u.log.Err("IN [GetAll] failed to get file approvations ->", err)
+			rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+		}
+
+		pFilesDtos[i] = mapper.MapPFileToPFileGetDto(pf, apps)
 	}
 
 	res = pFilesDtos
@@ -109,18 +115,41 @@ func (u *pFileUseCase) Upload(c context.Context, p dtos.PFileUploadDto, file *mu
 		return
 	}
 
-	// check revision user
-	if exists := u.userRepo.ExistsByUuid(ctx, p.RevUser); !exists {
-		err := errors.New(fmt.Sprint("Revision user not found. uuid: ", p.RevUser))
-		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
+	approvations := []domain.Approvation{}
+	if p.AppUser1 != "" {
+		approvation := domain.Approvation{
+			UserUuid:   p.AppUser1,
+			IsApproved: p.Chk1,
+		}
+		approvations = append(approvations, approvation)
+	}
+	if p.AppUser2 != "" {
+		approvation := domain.Approvation{
+			UserUuid:   p.AppUser2,
+			IsApproved: p.Chk2,
+		}
+		approvations = append(approvations, approvation)
+	}
+	if p.AppUser3 != "" {
+		approvation := domain.Approvation{
+			UserUuid:   p.AppUser3,
+			IsApproved: p.Chk3,
+		}
+		approvations = append(approvations, approvation)
+	}
+	if len(approvations) == 0 {
+		err := errors.New("File needs at least one approval user")
+		rErr = domain.NewUCaseErr(http.StatusBadRequest, err)
 		return
 	}
 
-	// check approval user
-	if exists := u.userRepo.ExistsByUuid(ctx, p.AppUser); !exists {
-		err := errors.New(fmt.Sprint("Approval user not found. uuid: ", p.AppUser))
-		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
-		return
+	// check approval users
+	for i, ap := range approvations {
+		if exists := u.userRepo.ExistsByUuid(ctx, ap.UserUuid); !exists {
+			err := errors.New(fmt.Sprint("Approval user ", i, " not found. uuid: ", ap.UserUuid))
+			rErr = domain.NewUCaseErr(http.StatusNotFound, err)
+			return
+		}
 	}
 
 	// check name not taken in dir
@@ -146,13 +175,16 @@ func (u *pFileUseCase) Upload(c context.Context, p dtos.PFileUploadDto, file *mu
 		DateInput:    time.Now(),
 		Type:         "TODO",
 		State:        "TODO",
-		Stage:        "TODO",
 		Dir:          p.Dir,
-		RevUser:      p.RevUser,
-		AppUser:      p.AppUser,
+		Version:      p.Version,
+		Term:         p.Term,
+		Subtype:      p.Subtype,
+	}
+	for i := range approvations {
+		approvations[i].PFileUuid = nFileUuid
 	}
 
-	nUuid, err := u.pFileRepo.StoreUuid(ctx, nPFile)
+	nUuid, err := u.pFileRepo.StoreUuid(ctx, nPFile, approvations)
 	if err != nil {
 		u.log.Err("IN [Upload] failed store pfile ->", err)
 		err := errors.New("Could not upload file")
@@ -169,7 +201,8 @@ func (u *pFileUseCase) Upload(c context.Context, p dtos.PFileUploadDto, file *mu
 		return
 	}
 
-	pF, err := u.pFileRepo.GetByUuid(ctx, nUuid)
+	// WARN: Change this to usecase getbyuuid
+	dto, err = u.GetByUuid(ctx, nUuid)
 	if err != nil {
 		u.log.Err("IN [Upload] failed fetch pfile ->", err)
 		err := errors.New("Could not fetch file")
@@ -177,22 +210,28 @@ func (u *pFileUseCase) Upload(c context.Context, p dtos.PFileUploadDto, file *mu
 		return
 	}
 
-	dto = mapper.MapPFileToPFileGetDto(pF)
-
 	return
 }
 
-func (u *pFileUseCase) GetByUuid(c context.Context, uuid string) (pFile domain.PFile, rErr domain.RequestErr) {
+func (u *pFileUseCase) GetByUuid(c context.Context, uuid string) (pFDto dtos.PFileGetDto, rErr domain.RequestErr) {
 	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
 	defer cancel()
 
 	pFile, err := u.pFileRepo.GetByUuid(ctx, uuid)
 	if err != nil {
-		u.log.Err("IN [GetFileByUuid] failed to fetch pfile {", uuid, "} ->", err)
+		u.log.Err("IN [GetByUuid] failed to fetch pfile {", uuid, "} ->", err)
 		err = errors.New("File not found. uuid: " + uuid)
 		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
 		return
 	}
+
+	apps, err := u.pFileRepo.GetApprovations(ctx, uuid)
+	if err != nil {
+		u.log.Err("IN [GetByUuid] failed to get file approvations ->", err)
+		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+	}
+
+	pFDto = mapper.MapPFileToPFileGetDto(pFile, apps)
 
 	return
 }
@@ -206,6 +245,66 @@ func (u *pFileUseCase) Delete(c context.Context, uuid string) (rErr domain.Reque
 	err := u.pFileRepo.Delete(ctx, uuid)
 	if err != nil {
 		u.log.Err("IN [Delete] failed to delete pfile {", uuid, "} ->", err)
+		err = errors.New("Failed to delete file")
+		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+		return
+	}
+
+	return
+}
+
+func (u *pFileUseCase) Approve(c context.Context, pfUuid, userUuid string) (rErr domain.RequestErr) {
+	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
+	defer cancel()
+
+	// TODO: Add exists check
+	_, err := u.pFileRepo.GetByUuid(ctx, pfUuid)
+	if err != nil {
+		u.log.Err("IN [Approve] failed to fetch pfile {", pfUuid, "} ->", err)
+		err = errors.New("File not found. uuid: " + pfUuid)
+		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
+		return
+	}
+
+	if exists := u.pFileRepo.ApprExistsByPK(ctx, pfUuid, userUuid); !exists {
+		err = errors.New(fmt.Sprintf("User %v is not an approvation user of file %v", userUuid, pfUuid))
+		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
+		return
+	}
+
+	err = u.pFileRepo.Approve(ctx, pfUuid, userUuid)
+	if err != nil {
+		u.log.Err("IN [Approve] failed to approve pfile ", pfUuid, " with user ", userUuid, " -> ", err)
+		err = errors.New("Failed to delete file")
+		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+		return
+	}
+
+	return
+}
+
+func (u *pFileUseCase) Activate(c context.Context, uuid string) (rErr domain.RequestErr) {
+	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
+	defer cancel()
+
+	// TODO: Add exists check
+	_, err := u.pFileRepo.GetByUuid(ctx, uuid)
+	if err != nil {
+		u.log.Err("IN [Activate] failed to fetch pfile {", uuid, "} ->", err)
+		err = errors.New("File not found. uuid: " + uuid)
+		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
+		return
+	}
+
+	if approved := u.pFileRepo.IsApproved(ctx, uuid); !approved {
+		err = errors.New("File has not been approved")
+		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
+		return
+	}
+
+	err = u.pFileRepo.Activate(ctx, uuid)
+	if err != nil {
+		u.log.Err("IN [Activate] failed to activate pfile ", uuid, " -> ", err)
 		err = errors.New("Failed to delete file")
 		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
 		return

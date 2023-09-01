@@ -10,9 +10,6 @@ VALUES ('documento'), ('formato');
 INSERT INTO pfile_state (description)
 VALUES ('inactivo'), ('activo'), ('obsoleto');
 
-INSERT INTO pfile_stage (description)
-VALUES ('cargado'), ('revisado'), ('aprobado');
-
 INSERT INTO project_state (description)
 VALUES ('inactivo'), ('activo'), ('cerrado');
 

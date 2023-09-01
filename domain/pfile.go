@@ -18,10 +18,16 @@ type PFile struct {
 	DateInput    time.Time
 	Type         string
 	State        string
-	Stage        string
 	Dir          string
-	RevUser      string // revision user
-	AppUser      string // approval user
+	Version      string
+	Term         int
+	Subtype      string
+}
+
+type Approvation struct {
+	UserUuid   string
+	PFileUuid  string
+	IsApproved bool
 }
 
 type PFileUsecase interface {
@@ -31,7 +37,10 @@ type PFileUsecase interface {
 	Delete(c context.Context, uuid string) RequestErr
 
 	Upload(c context.Context, p dtos.PFileUploadDto, file *multipart.FileHeader) (dtos.PFileGetDto, RequestErr)
-	GetByUuid(ctx context.Context, uuid string) (PFile, RequestErr)
+	GetByUuid(c context.Context, uuid string) (dtos.PFileGetDto, RequestErr)
+
+	Approve(c context.Context, pfUuid, userUuid string) RequestErr
+	Activate(c context.Context, uuid string) RequestErr
 }
 
 type PFileRepository interface {
@@ -39,11 +48,16 @@ type PFileRepository interface {
 	GetByUuid(ctx context.Context, uuid string) (PFile, error)
 	// Update(ctx context.Context, uuid string, p dtos.PFileUpdateDto) error
 	Delete(ctx context.Context, uuid string) error
-	Store(ctx context.Context, pf PFile) (string, error)
-	StoreUuid(ctx context.Context, pf PFile) (string, error)
+	StoreUuid(ctx context.Context, pf PFile, apps []Approvation) (string, error)
+
+	GetApprovations(c context.Context, uuid string) ([]Approvation, error)
+	Approve(ctx context.Context, pfUuid, userUuid string) error
+	Activate(ctx context.Context, uuid string) error
+	ApprExistsByPK(ctx context.Context, pfUuid, userUuid string) bool
 
 	ExistsByCode(ctx context.Context, code string) bool
 	IsNameTaken(ctx context.Context, name string, dirUuid string) bool
+	IsApproved(ctx context.Context, uuid string) bool
 
 	// pfile_type ops
 	ExistsTypeByDesc(ctx context.Context, desc string) bool

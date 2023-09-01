@@ -8,7 +8,7 @@ INSERT INTO pfile_type (description)
 VALUES ('documento'), ('formato');
 
 INSERT INTO pfile_state (description)
-VALUES ('inactivo'), ('activo'), ('obsoleto');
+VALUES ('revision'), ('activo'), ('obsoleto');
 
 INSERT INTO project_state (description)
 VALUES ('inactivo'), ('activo'), ('cerrado');

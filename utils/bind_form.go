@@ -37,6 +37,11 @@ func BindFormToPFileUploadDto(c echo.Context, p *dtos.PFileUploadDto) (err error
 	}
 	p.Dir = val
 
+	if val = c.FormValue("responsible_user"); "" == val {
+		return errors.New("File responsible user is required. responsible_user:")
+	}
+	p.RespUser = val
+
 	if val = c.FormValue("approval_user1"); "" == val {
 		return errors.New("File approval user 1 is required. approval_user1:")
 	}

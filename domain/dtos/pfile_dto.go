@@ -10,6 +10,7 @@ type PFileGetDto struct {
 	Type         string `json:"type"`
 	State        string `json:"state"`
 	Dir          string `json:"dir"`
+	RespUser     string `json:"responsible_user"`
 	AppUser1     string `json:"approval_user1"`
 	AppUser2     string `json:"approval_user2"`
 	AppUser3     string `json:"approval_user3"`
@@ -28,6 +29,7 @@ type PFileUploadDto struct {
 	DateCreation string `json:"date_create" validate:"required,datetime=2006-01-02"`
 	Type         string `json:"type" validate:"required,ascii"`
 	Dir          string `json:"dir" validate:"required,uuid"`
+	RespUser     string `json:"responsible_user" validate:"required,uuid"`
 	AppUser1     string `json:"approval_user1" validate:"required,uuid"`
 	AppUser2     string `json:"approval_user2" validate:"omitempty,uuid"`
 	AppUser3     string `json:"approval_user3" validate:"omitempty,uuid"`

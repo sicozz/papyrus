@@ -52,7 +52,8 @@ CREATE TABLE pfile (
     dir            UUID          REFERENCES dir NOT NULL,
     version        VARCHAR(32)   NOT NULL,
     term           INTEGER       NOT NULL,
-    subtype        VARCHAR(32)   NOT NULL
+    subtype        VARCHAR(32)   NOT NULL,
+    resp_user      UUID          REFERENCES user_(uuid)
 );
 
 CREATE TABLE version (

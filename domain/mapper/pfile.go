@@ -42,6 +42,7 @@ func MapPFileToPFileGetDto(pf domain.PFile, apps []domain.Approvation) dtos.PFil
 		Type:         pf.Type,
 		State:        pf.State,
 		Dir:          pf.Dir,
+		RespUser:     pf.RespUser,
 		AppUser1:     ap1,
 		AppUser2:     ap2,
 		AppUser3:     ap3,

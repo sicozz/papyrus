@@ -22,6 +22,7 @@ type PFile struct {
 	Version      string
 	Term         int
 	Subtype      string
+	RespUser     string
 }
 
 type Approvation struct {
@@ -40,7 +41,7 @@ type PFileUsecase interface {
 	GetByUuid(c context.Context, uuid string) (dtos.PFileGetDto, RequestErr)
 
 	Approve(c context.Context, pfUuid, userUuid string) RequestErr
-	Activate(c context.Context, uuid string) RequestErr
+	Activate(c context.Context, pfUuid, userUuid string) RequestErr
 }
 
 type PFileRepository interface {
@@ -52,7 +53,7 @@ type PFileRepository interface {
 
 	GetApprovations(c context.Context, uuid string) ([]Approvation, error)
 	Approve(ctx context.Context, pfUuid, userUuid string) error
-	Activate(ctx context.Context, uuid string) error
+	Activate(ctx context.Context, pfUuid, userUuid string) error
 	ApprExistsByPK(ctx context.Context, pfUuid, userUuid string) bool
 
 	ExistsByCode(ctx context.Context, code string) bool

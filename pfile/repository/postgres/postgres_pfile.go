@@ -34,7 +34,8 @@ func (r *postgresPFileRepository) GetAll(ctx context.Context) (res []domain.PFil
 			dir,
 			version,
 			term,
-			subtype
+			subtype,
+			resp_user
 		FROM
 			pfile pf
 			INNER JOIN pfile_type pft ON(pf.type = pft.code)
@@ -68,6 +69,7 @@ func (r *postgresPFileRepository) GetAll(ctx context.Context) (res []domain.PFil
 			&t.Version,
 			&t.Term,
 			&t.Subtype,
+			&t.RespUser,
 		)
 
 		if err != nil {
@@ -95,7 +97,8 @@ func (r *postgresPFileRepository) GetByUuid(ctx context.Context, uuid string) (r
 			dir,
 			version,
 			term,
-			subtype
+			subtype,
+			resp_user
 		FROM
 			pfile pf
 			INNER JOIN pfile_type pft ON(pf.type = pft.code)
@@ -123,6 +126,7 @@ func (r *postgresPFileRepository) GetByUuid(ctx context.Context, uuid string) (r
 		&res.Version,
 		&res.Term,
 		&res.Subtype,
+		&res.RespUser,
 	)
 
 	if err != nil {
@@ -148,7 +152,8 @@ func (r *postgresPFileRepository) StoreUuid(ctx context.Context, pf domain.PFile
 			dir,
 			version,
 			term,
-			subtype
+			subtype,
+			resp_user
 		)
 		VALUES (
 			$1,
@@ -162,7 +167,8 @@ func (r *postgresPFileRepository) StoreUuid(ctx context.Context, pf domain.PFile
 			$9,
 			$10,
 			$11,
-			$12
+			$12,
+			$13
 		)
 		RETURNING uuid`
 
@@ -193,6 +199,7 @@ func (r *postgresPFileRepository) StoreUuid(ctx context.Context, pf domain.PFile
 		pf.Version,
 		pf.Term,
 		pf.Subtype,
+		pf.RespUser,
 	).Scan(&uuid)
 
 	if err != nil {
@@ -424,8 +431,8 @@ func (r *postgresPFileRepository) Approve(ctx context.Context, pfUuid, userUuid 
 	return
 }
 
-func (r *postgresPFileRepository) Activate(ctx context.Context, uuid string) (err error) {
-	query := `UPDATE pfile SET state = 2 WHERE uuid = $1`
+func (r *postgresPFileRepository) Activate(ctx context.Context, pfUuid, userUuid string) (err error) {
+	query := `UPDATE pfile SET state = 2 WHERE uuid = $1 AND resp_user = $2`
 	stmt, err := r.Conn.PrepareContext(ctx, query)
 	if err != nil {
 		r.log.Err("IN [Activate] failed to prepare context ->", err)
@@ -433,7 +440,7 @@ func (r *postgresPFileRepository) Activate(ctx context.Context, uuid string) (er
 	}
 	defer stmt.Close()
 
-	_, err = stmt.ExecContext(ctx, uuid)
+	_, err = stmt.ExecContext(ctx, pfUuid, userUuid)
 	if err != nil {
 		r.log.Err("IN [Activate] failed to exec statement ->", err)
 		return

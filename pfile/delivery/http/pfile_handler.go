@@ -25,7 +25,7 @@ func NewPFileHandler(e *echo.Echo, uu domain.PFileUsecase) {
 	e.DELETE("/file/:uuid", handler.Delete)
 
 	e.PATCH("/file/:file_uuid/user/:user_uuid", handler.Approve)
-	e.PATCH("/file/:uuid/activate", handler.Activate)
+	e.PATCH("/file/:file_uuid/user/:user_uuid/activate", handler.Activate)
 }
 
 func (h *PFileHandler) GetAll(c echo.Context) error {
@@ -144,13 +144,18 @@ func (h *PFileHandler) Approve(c echo.Context) error {
 func (h *PFileHandler) Activate(c echo.Context) error {
 	h.log.Inf("REQ: activate")
 	ctx := c.Request().Context()
-	uuid := c.Param("uuid")
-	if valid := utils.IsValidUUID(uuid); !valid {
+	pfile_uuid := c.Param("file_uuid")
+	user_uuid := c.Param("user_uuid")
+	if valid := utils.IsValidUUID(pfile_uuid); !valid {
+		errBody := dtos.NewErrDto("Uuid does not conform to the uuid format")
+		return c.JSON(http.StatusBadRequest, errBody)
+	}
+	if valid := utils.IsValidUUID(user_uuid); !valid {
 		errBody := dtos.NewErrDto("Uuid does not conform to the uuid format")
 		return c.JSON(http.StatusBadRequest, errBody)
 	}
 
-	rErr := h.PFUsecase.Activate(ctx, uuid)
+	rErr := h.PFUsecase.Activate(ctx, pfile_uuid, user_uuid)
 
 	if rErr != nil {
 		errBody := dtos.NewErrDto(rErr.Error())

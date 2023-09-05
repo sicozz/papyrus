@@ -21,11 +21,12 @@ func NewPFileHandler(e *echo.Echo, uu domain.PFileUsecase) {
 	handler := &PFileHandler{uu, logger}
 	e.GET("/file", handler.GetAll)
 	e.POST("/file", handler.Upload)
-	e.GET("/file/:uuid", handler.Download)
+	e.GET("/file/:uuid", handler.GetByUuid)
+	e.GET("/file/:uuid/download", handler.Download)
 	e.DELETE("/file/:uuid", handler.Delete)
 
-	e.PATCH("/file/:file_uuid/user/:user_uuid", handler.Approve)
-	e.PATCH("/file/:file_uuid/user/:user_uuid/activate", handler.Activate)
+	e.PATCH("/file/:file_uuid/user/:user_uuid/check", handler.ChgApprovation)
+	e.PATCH("/file/:file_uuid/user/:user_uuid/state", handler.ChgState)
 }
 
 func (h *PFileHandler) GetAll(c echo.Context) error {
@@ -33,11 +34,30 @@ func (h *PFileHandler) GetAll(c echo.Context) error {
 	ctx := c.Request().Context()
 	users, rErr := h.PFUsecase.GetAll(ctx)
 	if rErr != nil {
-		errBody := dtos.NewErrDto("User fetch failed")
+		errBody := dtos.NewErrDto("File fetch failed")
 		return c.JSON(rErr.GetStatus(), errBody)
 	}
 
 	return c.JSON(http.StatusOK, users)
+}
+
+func (h *PFileHandler) GetByUuid(c echo.Context) error {
+	h.log.Inf("REQ: get by uuid")
+	ctx := c.Request().Context()
+
+	uuid := c.Param("uuid")
+	if valid := utils.IsValidUUID(uuid); !valid {
+		errBody := dtos.NewErrDto("Uuid does not conform to the uuid format")
+		return c.JSON(http.StatusBadRequest, errBody)
+	}
+
+	pfDto, rErr := h.PFUsecase.GetByUuid(ctx, uuid)
+	if rErr != nil {
+		errBody := dtos.NewErrDto("File fetch failed")
+		return c.JSON(rErr.GetStatus(), errBody)
+	}
+
+	return c.JSON(http.StatusOK, pfDto)
 }
 
 func (h *PFileHandler) Upload(c echo.Context) (err error) {
@@ -117,9 +137,25 @@ func (h *PFileHandler) Delete(c echo.Context) error {
 	return c.NoContent(http.StatusOK)
 }
 
-func (h *PFileHandler) Approve(c echo.Context) error {
-	h.log.Inf("REQ: approve")
+func (h *PFileHandler) ChgApprovation(c echo.Context) error {
+	h.log.Inf("REQ: chg approvation")
 	ctx := c.Request().Context()
+
+	var p dtos.PFileChgCheckDto
+	err := c.Bind(&p)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, err)
+	}
+
+	if ok, err := utils.IsRequestValid(&p); !ok {
+		errBody, err := dtos.NewValidationErrDto(err.Error())
+		if err != nil {
+			errParse := dtos.NewErrDto(err.Error())
+			return c.JSON(http.StatusBadRequest, errParse)
+		}
+		return c.JSON(http.StatusBadRequest, errBody)
+	}
+
 	pfUuid := c.Param("file_uuid")
 	userUuid := c.Param("user_uuid")
 	if valid := utils.IsValidUUID(pfUuid); !valid {
@@ -131,7 +167,7 @@ func (h *PFileHandler) Approve(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, errBody)
 	}
 
-	rErr := h.PFUsecase.Approve(ctx, pfUuid, userUuid)
+	rErr := h.PFUsecase.ChgApprovation(ctx, pfUuid, userUuid, p.Chk)
 
 	if rErr != nil {
 		errBody := dtos.NewErrDto(rErr.Error())
@@ -141,9 +177,26 @@ func (h *PFileHandler) Approve(c echo.Context) error {
 	return c.NoContent(http.StatusOK)
 }
 
-func (h *PFileHandler) Activate(c echo.Context) error {
+func (h *PFileHandler) ChgState(c echo.Context) error {
 	h.log.Inf("REQ: activate")
 	ctx := c.Request().Context()
+
+	var p dtos.PFileChgStateDto
+	err := c.Bind(&p)
+	if err != nil {
+		errBody := dtos.NewErrDto(err.Error())
+		return c.JSON(http.StatusBadRequest, errBody)
+	}
+
+	if ok, err := utils.IsRequestValid(&p); !ok {
+		errBody, err := dtos.NewValidationErrDto(err.Error())
+		if err != nil {
+			errParse := dtos.NewErrDto(err.Error())
+			return c.JSON(http.StatusBadRequest, errParse)
+		}
+		return c.JSON(http.StatusBadRequest, errBody)
+	}
+
 	pfile_uuid := c.Param("file_uuid")
 	user_uuid := c.Param("user_uuid")
 	if valid := utils.IsValidUUID(pfile_uuid); !valid {
@@ -155,7 +208,7 @@ func (h *PFileHandler) Activate(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, errBody)
 	}
 
-	rErr := h.PFUsecase.Activate(ctx, pfile_uuid, user_uuid)
+	rErr := h.PFUsecase.ChgState(ctx, pfile_uuid, user_uuid, p.StateDesc)
 
 	if rErr != nil {
 		errBody := dtos.NewErrDto(rErr.Error())

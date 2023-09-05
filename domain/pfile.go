@@ -40,8 +40,8 @@ type PFileUsecase interface {
 	Upload(c context.Context, p dtos.PFileUploadDto, file *multipart.FileHeader) (dtos.PFileGetDto, RequestErr)
 	GetByUuid(c context.Context, uuid string) (dtos.PFileGetDto, RequestErr)
 
-	Approve(c context.Context, pfUuid, userUuid string) RequestErr
-	Activate(c context.Context, pfUuid, userUuid string) RequestErr
+	ChgApprovation(c context.Context, pfUuid, userUuid string, chk bool) RequestErr
+	ChgState(c context.Context, pfUuid, userUuid, stateDesc string) RequestErr
 }
 
 type PFileRepository interface {
@@ -52,8 +52,8 @@ type PFileRepository interface {
 	StoreUuid(ctx context.Context, pf PFile, apps []Approvation) (string, error)
 
 	GetApprovations(c context.Context, uuid string) ([]Approvation, error)
-	Approve(ctx context.Context, pfUuid, userUuid string) error
-	Activate(ctx context.Context, pfUuid, userUuid string) error
+	ChgApprovation(ctx context.Context, pfUuid, userUuid string, chk bool) error
+	ChgState(ctx context.Context, pfUuid, userUuid, stateDesc string) error
 	ApprExistsByPK(ctx context.Context, pfUuid, userUuid string) bool
 
 	ExistsByCode(ctx context.Context, code string) bool

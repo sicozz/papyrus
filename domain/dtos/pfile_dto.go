@@ -41,3 +41,11 @@ type PFileUploadDto struct {
 	Term    int    `json:"term" validate:"required,number"`
 	Subtype string `json:"subtype" validate:"required,ascii"`
 }
+
+type PFileChgCheckDto struct {
+	Chk bool `json:"checked" validate:"required,boolean"`
+}
+
+type PFileChgStateDto struct {
+	StateDesc string `json:"state" validate:"required,ascii"`
+}

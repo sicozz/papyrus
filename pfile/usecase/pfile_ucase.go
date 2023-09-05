@@ -261,14 +261,14 @@ func (u *pFileUseCase) Delete(c context.Context, uuid string) (rErr domain.Reque
 	return
 }
 
-func (u *pFileUseCase) Approve(c context.Context, pfUuid, userUuid string) (rErr domain.RequestErr) {
+func (u *pFileUseCase) ChgApprovation(c context.Context, pfUuid, userUuid string, chk bool) (rErr domain.RequestErr) {
 	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
 	defer cancel()
 
 	// TODO: Add exists check
 	_, err := u.pFileRepo.GetByUuid(ctx, pfUuid)
 	if err != nil {
-		u.log.Err("IN [Approve] failed to fetch pfile {", pfUuid, "} ->", err)
+		u.log.Err("IN [ChgApprovation] failed to fetch pfile {", pfUuid, "} ->", err)
 		err = errors.New("File not found. uuid: " + pfUuid)
 		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
 		return
@@ -280,9 +280,9 @@ func (u *pFileUseCase) Approve(c context.Context, pfUuid, userUuid string) (rErr
 		return
 	}
 
-	err = u.pFileRepo.Approve(ctx, pfUuid, userUuid)
+	err = u.pFileRepo.ChgApprovation(ctx, pfUuid, userUuid, chk)
 	if err != nil {
-		u.log.Err("IN [Approve] failed to approve pfile ", pfUuid, " with user ", userUuid, " -> ", err)
+		u.log.Err("IN [ChgApprovation] failed to approve pfile ", pfUuid, " with user ", userUuid, " -> ", err)
 		err = errors.New("Failed to delete file")
 		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
 		return
@@ -291,7 +291,7 @@ func (u *pFileUseCase) Approve(c context.Context, pfUuid, userUuid string) (rErr
 	return
 }
 
-func (u *pFileUseCase) Activate(c context.Context, pfUuid, userUuid string) (rErr domain.RequestErr) {
+func (u *pFileUseCase) ChgState(c context.Context, pfUuid, userUuid, stateDesc string) (rErr domain.RequestErr) {
 	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
 	defer cancel()
 
@@ -310,13 +310,21 @@ func (u *pFileUseCase) Activate(c context.Context, pfUuid, userUuid string) (rEr
 		return
 	}
 
-	if approved := u.pFileRepo.IsApproved(ctx, pfUuid); !approved {
-		err = errors.New("File has not been approved")
-		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
+	if exists := u.pFileRepo.ExistsStateByDesc(ctx, stateDesc); !exists {
+		err = errors.New("Invalid state description: " + stateDesc)
+		rErr = domain.NewUCaseErr(http.StatusNotAcceptable, err)
 		return
 	}
 
-	err = u.pFileRepo.Activate(ctx, pfUuid, userUuid)
+	if "activo" == stateDesc {
+		if approved := u.pFileRepo.IsApproved(ctx, pfUuid); !approved {
+			err = errors.New("File has not been approved")
+			rErr = domain.NewUCaseErr(http.StatusNotFound, err)
+			return
+		}
+	}
+
+	err = u.pFileRepo.ChgState(ctx, pfUuid, userUuid, stateDesc)
 	if err != nil {
 		u.log.Err("IN [Activate] failed to activate pfile ", pfUuid, " -> ", err)
 		err = errors.New("Failed to delete file")

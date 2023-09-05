@@ -413,7 +413,7 @@ func (r *postgresPFileRepository) ExistsStageByDesc(ctx context.Context, desc st
 	return
 }
 
-func (r *postgresPFileRepository) Approve(ctx context.Context, pfUuid, userUuid string) (err error) {
+func (r *postgresPFileRepository) ChgApprovation(ctx context.Context, pfUuid, userUuid string, chk bool) (err error) {
 	query := `UPDATE approvation SET is_approved = $1 WHERE pfile_uuid = $2 AND user_uuid = $3`
 	stmt, err := r.Conn.PrepareContext(ctx, query)
 	if err != nil {
@@ -422,7 +422,7 @@ func (r *postgresPFileRepository) Approve(ctx context.Context, pfUuid, userUuid 
 	}
 	defer stmt.Close()
 
-	_, err = stmt.ExecContext(ctx, true, pfUuid, userUuid)
+	_, err = stmt.ExecContext(ctx, chk, pfUuid, userUuid)
 	if err != nil {
 		r.log.Err("IN [Approve] failed to exec statement ->", err)
 		return
@@ -431,8 +431,16 @@ func (r *postgresPFileRepository) Approve(ctx context.Context, pfUuid, userUuid 
 	return
 }
 
-func (r *postgresPFileRepository) Activate(ctx context.Context, pfUuid, userUuid string) (err error) {
-	query := `UPDATE pfile SET state = 2 WHERE uuid = $1 AND resp_user = $2`
+func (r *postgresPFileRepository) ChgState(ctx context.Context, pfUuid, userUuid, stateDesc string) (err error) {
+	query :=
+		`UPDATE pfile AS pf
+		SET state = pfs.code
+		FROM pfile_state AS pfs
+		WHERE
+			pfs.description = $3 AND
+			pf.uuid = $1 AND
+			pf.resp_user = $2`
+
 	stmt, err := r.Conn.PrepareContext(ctx, query)
 	if err != nil {
 		r.log.Err("IN [Activate] failed to prepare context ->", err)
@@ -440,7 +448,7 @@ func (r *postgresPFileRepository) Activate(ctx context.Context, pfUuid, userUuid
 	}
 	defer stmt.Close()
 
-	_, err = stmt.ExecContext(ctx, pfUuid, userUuid)
+	_, err = stmt.ExecContext(ctx, pfUuid, userUuid, stateDesc)
 	if err != nil {
 		r.log.Err("IN [Activate] failed to exec statement ->", err)
 		return

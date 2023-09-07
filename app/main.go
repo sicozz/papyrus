@@ -17,6 +17,9 @@ import (
 	_pFileRepo "github.com/sicozz/papyrus/pfile/repository/postgres"
 	_pFileUsecase "github.com/sicozz/papyrus/pfile/usecase"
 	_roleRepo "github.com/sicozz/papyrus/role/repository/postgres"
+	_taskHttpDelivery "github.com/sicozz/papyrus/task/delivery/http"
+	_taskRepo "github.com/sicozz/papyrus/task/repository/postgres"
+	_taskUsecase "github.com/sicozz/papyrus/task/usecase"
 	_userHttpDelivery "github.com/sicozz/papyrus/user/delivery/http"
 	_userRepo "github.com/sicozz/papyrus/user/repository/postgres"
 	_userUsecase "github.com/sicozz/papyrus/user/usecase"
@@ -90,7 +93,8 @@ func main() {
 
 	dr := _dirRepo.NewPostgresDirRepository(dbConn)
 	dPfr := _pFileRepo.NewPostgresPFileRepository(dbConn)
-	du := _dirUsecase.NewDirUsecase(dr, dPfr, timeoutContext)
+	dTr := _taskRepo.NewPostgresTaskRepository(dbConn)
+	du := _dirUsecase.NewDirUsecase(dr, dPfr, dTr, timeoutContext)
 	_dirHttpDelivery.NewDirHandler(e, du)
 
 	pfr := _pFileRepo.NewPostgresPFileRepository(dbConn)
@@ -98,6 +102,12 @@ func main() {
 	pfUr := _userRepo.NewPostgresUserRepository(dbConn)
 	pfu := _pFileUsecase.NewPFileUsecase(pfr, pfDr, pfUr, timeoutContext)
 	_pFileHttpDelivery.NewPFileHandler(e, pfu)
+
+	tr := _taskRepo.NewPostgresTaskRepository(dbConn)
+	tDr := _dirRepo.NewPostgresDirRepository(dbConn)
+	tUr := _userRepo.NewPostgresUserRepository(dbConn)
+	tU := _taskUsecase.NewTaskUsecase(tr, tDr, tUr, timeoutContext)
+	_taskHttpDelivery.NewTaskHandler(e, tU)
 
 	e.Logger.Fatal(e.Start(":9090"))
 	/**

@@ -26,7 +26,7 @@ type pFileUseCase struct {
 	log            utils.AggregatedLogger
 }
 
-// NewPFileUsecase will create a new dirUsecase object representation of domain.PFileUsecase interface
+// NewPFileUsecase will create a new pfileUsecase object representation of domain.PFileUsecase interface
 func NewPFileUsecase(pfr domain.PFileRepository, dr domain.DirRepository, ur domain.UserRepository, timeout time.Duration) domain.PFileUsecase {
 	logger := utils.NewAggregatedLogger(constants.Usecase, constants.PFile)
 	return &pFileUseCase{

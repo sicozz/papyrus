@@ -138,14 +138,16 @@ CREATE TABLE task_state (
 
 CREATE TABLE task (
     uuid           UUID           PRIMARY KEY DEFAULT gen_random_uuid(),
-    title          VARCHAR(64)    NOT NULL,
-    description    VARCHAR(1024)  NOT NULL,
-    date           TIMESTAMP      NOT NULL,
-    deadline       TIMESTAMP      NOT NULL,
+    name           VARCHAR(64)    NOT NULL,
+    procedure      VARCHAR(1024)  NOT NULL,
+    date_creation  TIMESTAMP      NOT NULL,
+    term           INTEGER        NOT NULL,
+    -- deadline       TIMESTAMP      NOT NULL,
     state          SERIAL         REFERENCES task_state NOT NULL,
     dir            UUID           REFERENCES dir NOT NULL,
-    evidence_dir   UUID           REFERENCES dir NOT NULL,
-    issuing_user   UUID           REFERENCES user_ NOT NULL,
-    assigned_user  UUID           REFERENCES user_,
-    plan           UUID           REFERENCES plan
+    -- evidence_dir   UUID           REFERENCES dir NOT NULL,
+    creator_user   UUID           REFERENCES user_ NOT NULL,
+    recv_user      UUID           REFERENCES user_,
+    chk            BOOLEAN        NOT NULL
+    -- plan           UUID           REFERENCES plan
 );

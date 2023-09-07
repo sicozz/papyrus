@@ -15,6 +15,7 @@ type PFileGetDto struct {
 	AppUser2     string `json:"approval_user2"`
 	AppUser3     string `json:"approval_user3"`
 
+	// TODO: make this a checks of boolean type
 	Chk1    string `json:"user_check1"`
 	Chk2    string `json:"user_check2"`
 	Chk3    string `json:"user_check3"`

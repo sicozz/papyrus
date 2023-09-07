@@ -17,16 +17,18 @@ import (
 type dirUsecase struct {
 	dirRepo        domain.DirRepository
 	pFileRepo      domain.PFileRepository
+	taskRepo       domain.TaskRepository
 	contextTimeout time.Duration
 	log            utils.AggregatedLogger
 }
 
 // NewDirUsecase will create a new dirUsecase object representation of domain.DirUsecase interface
-func NewDirUsecase(dr domain.DirRepository, pfr domain.PFileRepository, timeout time.Duration) domain.DirUsecase {
+func NewDirUsecase(dr domain.DirRepository, pfr domain.PFileRepository, tr domain.TaskRepository, timeout time.Duration) domain.DirUsecase {
 	logger := utils.NewAggregatedLogger(constants.Usecase, constants.Dir)
 	return &dirUsecase{
 		dirRepo:        dr,
 		pFileRepo:      pfr,
+		taskRepo:       tr,
 		contextTimeout: timeout,
 		log:            logger,
 	}
@@ -49,10 +51,20 @@ func (u *dirUsecase) GetAll(c context.Context) (res []dtos.DirGetDto, rErr domai
 		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
 		return
 	}
-
 	for _, pf := range pfiles {
 		pFileDirDto := mapper.MapPFileToDir(pf)
 		dirs = append(dirs, pFileDirDto)
+	}
+
+	tasks, err := u.taskRepo.GetAll(ctx)
+	if err != nil {
+		u.log.Err("IN [GetAll] failed to get tasks ->", err)
+		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+		return
+	}
+	for _, t := range tasks {
+		taskDirDto := mapper.MapTaskToDir(t)
+		dirs = append(dirs, taskDirDto)
 	}
 
 	nChild, err := u.dirRepo.GetNChild(ctx, constants.RootDirUuid)
@@ -73,8 +85,18 @@ func (u *dirUsecase) GetAll(c context.Context) (res []dtos.DirGetDto, rErr domai
 	for _, pf := range pfiles {
 		for j := range res {
 			if pf.Uuid == res[j].Uuid {
+				// TODO: put this type and state in mapper
 				res[j].Type = "documento"
 				res[j].State = pf.State
+			}
+		}
+	}
+	for _, t := range tasks {
+		for j := range res {
+			if t.Uuid == res[j].Uuid {
+				// TODO: put this type and state in mapper
+				res[j].Type = "tarea"
+				res[j].State = t.State
 			}
 		}
 	}

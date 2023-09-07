@@ -429,6 +429,17 @@ func (r *postgresUserRepository) Update(ctx context.Context, uuid string, p dtos
 		}
 	}
 
+	// User.Email
+	if p.Email != "" {
+		lastnameQuery := `UPDATE user_ SET email = $1 WHERE uuid = $2`
+		_, err = tx.ExecContext(ctx, lastnameQuery, p.Email, uuid)
+
+		if err != nil {
+			r.log.Err("IN [Update] failed to update email -> ", err)
+			return defaultErr
+		}
+	}
+
 	// User.Role
 	if p.Role != "" {
 		var roleCode int64

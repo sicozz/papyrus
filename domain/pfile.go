@@ -47,6 +47,8 @@ type PFileUsecase interface {
 type PFileRepository interface {
 	GetAll(ctx context.Context) ([]PFile, error)
 	GetByUuid(ctx context.Context, uuid string) (PFile, error)
+	GetByUser(ctx context.Context, uuid string) ([]PFile, error)
+
 	// Update(ctx context.Context, uuid string, p dtos.PFileUpdateDto) error
 	Delete(ctx context.Context, uuid string) error
 	StoreUuid(ctx context.Context, pf PFile, apps []Approvation) (string, error)

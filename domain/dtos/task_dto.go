@@ -14,8 +14,8 @@ type TaskGetDto struct {
 }
 
 type TaskStoreDto struct {
-	Name        string `json:"name" validate:"required,ascii"`
-	Procedure   string `json:"procedure" validate:"required,ascii"`
+	Name        string `json:"name" validate:"required,excludesall=!@#?"`
+	Procedure   string `json:"procedure" validate:"required,excludesall=!@#?"`
 	DateCreate  string `json:"date_create" validate:"required,datetime=2006-01-02"`
 	Term        int    `json:"term" validate:"required,number"`
 	Dir         string `json:"dir" validate:"required,uuid"`
@@ -28,5 +28,5 @@ type TaskChgCheck struct {
 }
 
 type TaskChgStateDto struct {
-	StateDesc string `json:"state" validate:"required,ascii"`
+	StateDesc string `json:"state" validate:"required,excludesall=!@#?"`
 }

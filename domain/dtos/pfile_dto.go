@@ -25,10 +25,10 @@ type PFileGetDto struct {
 }
 
 type PFileUploadDto struct {
-	Code         string `json:"code" validate:"required,ascii"`
-	Name         string `json:"name" validate:"required,ascii"`
+	Code         string `json:"code" validate:"required,excludesall=!@#?"`
+	Name         string `json:"name" validate:"required,excludesall=!@#?"`
 	DateCreation string `json:"date_create" validate:"required,datetime=2006-01-02"`
-	Type         string `json:"type" validate:"required,ascii"`
+	Type         string `json:"type" validate:"required,excludesall=!@#?"`
 	Dir          string `json:"dir" validate:"required,uuid"`
 	RespUser     string `json:"responsible_user" validate:"required,uuid"`
 	AppUser1     string `json:"approval_user1" validate:"required,uuid"`
@@ -38,9 +38,9 @@ type PFileUploadDto struct {
 	Chk1    bool   `json:"user_check1"`
 	Chk2    bool   `json:"user_check2"`
 	Chk3    bool   `json:"user_check3"`
-	Version string `json:"version" validate:"required,ascii"`
+	Version string `json:"version" validate:"required,excludesall=!@#?"`
 	Term    int    `json:"term" validate:"required,number"`
-	Subtype string `json:"subtype" validate:"required,ascii"`
+	Subtype string `json:"subtype" validate:"required,excludesall=!@#?"`
 }
 
 type PFileChgCheckDto struct {
@@ -48,5 +48,5 @@ type PFileChgCheckDto struct {
 }
 
 type PFileChgStateDto struct {
-	StateDesc string `json:"state" validate:"required,ascii"`
+	StateDesc string `json:"state" validate:"required,excludesall=!@#?"`
 }

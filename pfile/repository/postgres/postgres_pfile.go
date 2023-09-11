@@ -137,8 +137,24 @@ func (r *postgresPFileRepository) GetByUuid(ctx context.Context, uuid string) (r
 	return
 }
 
+func (r *postgresPFileRepository) GetByUser(ctx context.Context, uuid string) (res []domain.PFile, err error) {
+	pfiles, err := r.GetAll(ctx)
+	if err != nil {
+		r.log.Err("IN [GetByUser] failed to get all pfiles ->", err)
+		return
+	}
+
+	res = []domain.PFile{}
+	for _, pf := range pfiles {
+		if pf.RespUser == uuid {
+			res = append(res, pf)
+		}
+	}
+
+	return
+}
+
 func (r *postgresPFileRepository) StoreUuid(ctx context.Context, pf domain.PFile, apps []domain.Approvation) (uuid string, err error) {
-	// WARN: CONTINUE HERE with transaction
 	query :=
 		`INSERT INTO pfile (
 			uuid,

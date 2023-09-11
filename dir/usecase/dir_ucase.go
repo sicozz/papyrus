@@ -16,6 +16,7 @@ import (
 
 type dirUsecase struct {
 	dirRepo        domain.DirRepository
+	userRepo       domain.UserRepository
 	pFileRepo      domain.PFileRepository
 	taskRepo       domain.TaskRepository
 	contextTimeout time.Duration
@@ -23,10 +24,11 @@ type dirUsecase struct {
 }
 
 // NewDirUsecase will create a new dirUsecase object representation of domain.DirUsecase interface
-func NewDirUsecase(dr domain.DirRepository, pfr domain.PFileRepository, tr domain.TaskRepository, timeout time.Duration) domain.DirUsecase {
+func NewDirUsecase(dr domain.DirRepository, ur domain.UserRepository, pfr domain.PFileRepository, tr domain.TaskRepository, timeout time.Duration) domain.DirUsecase {
 	logger := utils.NewAggregatedLogger(constants.Usecase, constants.Dir)
 	return &dirUsecase{
 		dirRepo:        dr,
+		userRepo:       ur,
 		pFileRepo:      pfr,
 		taskRepo:       tr,
 		contextTimeout: timeout,
@@ -136,6 +138,78 @@ func (u *dirUsecase) GetByUuid(c context.Context, uuid string) (res dtos.DirGetD
 	}
 
 	res = mapper.MapDirToDirGetDto(dir, path, nChild, depth)
+
+	return
+}
+
+func (u *dirUsecase) GetDocsByUser(c context.Context, uuid string) (res []dtos.DocsNotDirGetDto, rErr domain.RequestErr) {
+	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
+	defer cancel()
+
+	if exists := u.userRepo.ExistsByUuid(ctx, uuid); !exists {
+		err := errors.New("User not found. uuid: " + uuid)
+		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
+		return
+	}
+
+	tasks, err := u.taskRepo.GetByUser(ctx, uuid)
+	if err != nil {
+		u.log.Err("IN [GetDocsByUser] failed to get tasks ->", err)
+		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+		return
+	}
+
+	pFiles, err := u.pFileRepo.GetByUser(ctx, uuid)
+	if err != nil {
+		u.log.Err("IN [GetDocsByUser] failed to get pfiles ->", err)
+		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+		return
+	}
+
+	res = []dtos.DocsNotDirGetDto{}
+	for _, pf := range pFiles {
+		apps, err := u.pFileRepo.GetApprovations(ctx, pf.Uuid)
+		if err != nil {
+			u.log.Err("IN [GetDocsByUser] failed to get file approvations ->", err)
+			rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+			return
+		}
+
+		dnd := mapper.MapPFileToDocsNotDirGetDto(pf, apps)
+		dnd.Type = "documento"
+		dnd.Path, err = u.dirRepo.GetPath(ctx, dnd.ParentDir)
+		if err != nil {
+			u.log.Err("IN [GetDocsByUser] failed to get file path ->", err)
+			rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+			return
+		}
+		dnd.Depth, err = u.dirRepo.GetDepth(ctx, dnd.ParentDir)
+		if err != nil {
+			u.log.Err("IN [GetDocsByUser] failed to get file depth ->", err)
+			rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+			return
+		}
+
+		res = append(res, dnd)
+	}
+
+	for _, t := range tasks {
+		dnd := mapper.MapTaskToDocsNotDirGetDto(t)
+		dnd.Type = "tarea"
+		dnd.Path, err = u.dirRepo.GetPath(ctx, dnd.ParentDir)
+		if err != nil {
+			u.log.Err("IN [GetDocsByUser] failed to get task path ->", err)
+			rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+			return
+		}
+		dnd.Depth, err = u.dirRepo.GetDepth(ctx, dnd.ParentDir)
+		if err != nil {
+			u.log.Err("IN [GetDocsByUser] failed to get task depth ->", err)
+			rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+			return
+		}
+		res = append(res, dnd)
+	}
 
 	return
 }

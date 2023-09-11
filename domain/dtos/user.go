@@ -2,10 +2,10 @@ package dtos
 
 type UserGetDto struct {
 	Uuid     string `json:"uuid"`
-	Username string `json:"username" validate:"required,ascii"`
-	Email    string `json:"email" validate:"required,email,ascii"`
-	Name     string `json:"name" validate:"required,ascii"`
-	Lastname string `json:"lastname" validate:"required,ascii"`
+	Username string `json:"username" validate:"required,excludesall=!@#?"`
+	Email    string `json:"email" validate:"required,email"`
+	Name     string `json:"name" validate:"required,excludesall=!@#?"`
+	Lastname string `json:"lastname" validate:"required,excludesall=!@#?"`
 	// Role     string `json:"role"`
 	Role  RoleDto   `json:"role"`
 	State UStateDto `json:"state"`
@@ -22,11 +22,11 @@ type UStateDto struct {
 }
 
 type UserStore struct {
-	Username string `json:"username" validate:"required,ascii"`
-	Email    string `json:"email" validate:"required,email,ascii"`
-	Password string `json:"password" validate:"required,ascii"`
-	Name     string `json:"name" validate:"required,ascii"`
-	Lastname string `json:"lastname" validate:"required,ascii"`
+	Username string `json:"username" validate:"required,excludesall=!@#?"`
+	Email    string `json:"email" validate:"required,email"`
+	Password string `json:"password" validate:"required,excludesall=!@#?"`
+	Name     string `json:"name" validate:"required,excludesall=!@#?"`
+	Lastname string `json:"lastname" validate:"required,excludesall=!@#?"`
 	Role     string `json:"role"`
 	State    string `json:"state"`
 }
@@ -34,7 +34,7 @@ type UserStore struct {
 type UserUpdateDto struct {
 	Username string `json:"username"`
 	Name     string `json:"name"`
-	Email    string `json:"email" validate:"omitempty,email,ascii"`
+	Email    string `json:"email" validate:"omitempty,email"`
 	Lastname string `json:"lastname"`
 	Role     string `json:"role"`
 	State    string `json:"state"`

@@ -30,6 +30,8 @@ func NewDirHandler(e *echo.Echo, du domain.DirUsecase) {
 
 	e.POST("/dir/duplicate", handler.Duplicate)
 	// e.POST("/file/upload", handler.StoreDoc)
+
+	e.GET("/dir/user_docs/:uuid", handler.GetDocsNotDirByUser)
 }
 
 func (h *DirHandler) GetAll(c echo.Context) error {
@@ -50,11 +52,6 @@ func (h *DirHandler) GetByUuid(c echo.Context) error {
 	ctx := c.Request().Context()
 
 	uuid := c.Param("uuid")
-	if valid := utils.IsValidUUID(uuid); !valid {
-		errBody := dtos.NewErrDto("Uuid does not conform to the uuid format")
-		return c.JSON(http.StatusBadRequest, errBody)
-	}
-
 	if valid := utils.IsValidUUID(uuid); !valid {
 		errBody := dtos.NewErrDto("Uuid does not conform to the uuid format")
 		return c.JSON(http.StatusBadRequest, errBody)
@@ -216,32 +213,21 @@ func (h *DirHandler) Duplicate(c echo.Context) error {
 	return c.JSON(http.StatusOK, res)
 }
 
-// func (h *DirHandler) StoreDoc(c echo.Context) (err error) {
-// 	h.log.Inf("REQ: store doc")
-// 	var p dtos.DirStoreDto
-// 	err = c.Bind(&p)
-// 	if err != nil {
-// 		errBody := dtos.NewErrDto(err.Error())
-// 		return c.JSON(http.StatusBadRequest, errBody)
-// 	}
-//
-// 	if ok, err := utils.IsRequestValid(&p); !ok {
-// 		errBody, err := dtos.NewValidationErrDto(err.Error())
-// 		if err != nil {
-// 			errParse := dtos.NewErrDto(err.Error())
-// 			return c.JSON(http.StatusBadRequest, errParse)
-// 		}
-// 		return c.JSON(http.StatusBadRequest, errBody)
-// 	}
-//
-// 	p.Name = "_" + p.Name
-//
-// 	ctx := c.Request().Context()
-// 	dir, rErr := h.DUsecase.Store(ctx, p)
-// 	if rErr != nil {
-// 		errBody := dtos.NewErrDto(rErr.Error())
-// 		return c.JSON(rErr.GetStatus(), errBody)
-// 	}
-//
-// 	return c.JSON(http.StatusCreated, dir)
-// }
+func (h *DirHandler) GetDocsNotDirByUser(c echo.Context) error {
+	h.log.Inf("REQ: get docs not dir by user")
+	ctx := c.Request().Context()
+
+	uuid := c.Param("uuid")
+	if valid := utils.IsValidUUID(uuid); !valid {
+		errBody := dtos.NewErrDto("Uuid does not conform to the uuid format")
+		return c.JSON(http.StatusBadRequest, errBody)
+	}
+
+	dir, rErr := h.DUsecase.GetDocsByUser(ctx, uuid)
+
+	if rErr != nil {
+		return c.JSON(rErr.GetStatus(), rErr.Error())
+	}
+
+	return c.JSON(http.StatusOK, dir)
+}

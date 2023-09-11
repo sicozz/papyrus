@@ -17,6 +17,7 @@ type Dir struct {
 type DirUsecase interface {
 	GetAll(c context.Context) ([]dtos.DirGetDto, RequestErr)
 	GetByUuid(c context.Context, uuid string) (dtos.DirGetDto, RequestErr)
+	GetDocsByUser(c context.Context, uuid string) ([]dtos.DocsNotDirGetDto, RequestErr)
 	// GetBranch(c context.Context, uuid string) ([]dtos.DirGetDto, RequestErr)
 	Store(c context.Context, d dtos.DirStoreDto) (dtos.DirGetDto, RequestErr)
 	Update(c context.Context, uuid string, p dtos.DirUpdateDto) RequestErr

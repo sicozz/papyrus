@@ -28,3 +28,18 @@ func MapTaskToDir(t domain.Task) domain.Dir {
 		ParentDir: t.Dir,
 	}
 }
+
+func MapTaskToDocsNotDirGetDto(t domain.Task) dtos.DocsNotDirGetDto {
+	return dtos.DocsNotDirGetDto{
+		Uuid:         t.Uuid,
+		Name:         t.Name,
+		Procedure:    t.Procedure,
+		DateCreation: t.DateCreation.Format(constants.LayoutDate),
+		Term:         t.Term,
+		State:        t.State,
+		ParentDir:    t.Dir,
+		CreatorUser:  t.CreatorUser,
+		RecvUser:     t.RecvUser,
+		Chk:          t.Check,
+	}
+}

@@ -92,9 +92,10 @@ func main() {
 	_userHttpDelivery.NewUserHandler(e, uu)
 
 	dr := _dirRepo.NewPostgresDirRepository(dbConn)
+	dUr := _userRepo.NewPostgresUserRepository(dbConn)
 	dPfr := _pFileRepo.NewPostgresPFileRepository(dbConn)
 	dTr := _taskRepo.NewPostgresTaskRepository(dbConn)
-	du := _dirUsecase.NewDirUsecase(dr, dPfr, dTr, timeoutContext)
+	du := _dirUsecase.NewDirUsecase(dr, dUr, dPfr, dTr, timeoutContext)
 	_dirHttpDelivery.NewDirHandler(e, du)
 
 	pfr := _pFileRepo.NewPostgresPFileRepository(dbConn)

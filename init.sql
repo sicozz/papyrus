@@ -138,7 +138,7 @@ CREATE TABLE task_state (
 
 CREATE TABLE task (
     uuid           UUID           PRIMARY KEY DEFAULT gen_random_uuid(),
-    name           VARCHAR(64)    NOT NULL,
+    name           VARCHAR(256)    NOT NULL,
     procedure      VARCHAR(1024)  NOT NULL,
     date_creation  TIMESTAMP      NOT NULL,
     term           INTEGER        NOT NULL,

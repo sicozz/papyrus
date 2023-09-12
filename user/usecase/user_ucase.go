@@ -23,17 +23,19 @@ type userUsecase struct {
 	userRepo       domain.UserRepository
 	roleRepo       domain.RoleRepository
 	userStateRepo  domain.UserStateRepository
+	dirRepo        domain.DirRepository
 	contextTimeout time.Duration
 	log            utils.AggregatedLogger
 }
 
 // NewUserUsecase will create a new userUsecase object representation of domain.UserUsecase interface
-func NewUserUsecase(ur domain.UserRepository, rr domain.RoleRepository, usr domain.UserStateRepository, timeout time.Duration) domain.UserUsecase {
+func NewUserUsecase(ur domain.UserRepository, rr domain.RoleRepository, usr domain.UserStateRepository, dr domain.DirRepository, timeout time.Duration) domain.UserUsecase {
 	logger := utils.NewAggregatedLogger(constants.Usecase, constants.User)
 	return &userUsecase{
 		userRepo:       ur,
 		roleRepo:       rr,
 		userStateRepo:  usr,
+		dirRepo:        dr,
 		contextTimeout: timeout,
 		log:            logger,
 	}
@@ -109,7 +111,6 @@ func (u *userUsecase) Store(c context.Context, p dtos.UserStore) (res dtos.UserG
 		return
 	}
 	user.Role = r
-
 
 	stateDesc := defUserStateDesc
 	if p.State != "" {
@@ -271,6 +272,129 @@ func (u *userUsecase) Login(c context.Context, uname string, passwd string) (res
 	}
 
 	res = mapper.MapUserToUserGetDto(user)
+
+	return
+}
+
+func (u *userUsecase) AddPermission(c context.Context, uUuid, dUuid string) (rErr domain.RequestErr) {
+	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
+	defer cancel()
+
+	if exists := u.userRepo.ExistsByUuid(ctx, uUuid); !exists {
+		err := errors.New("User not found. uuid:" + uUuid)
+		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
+		return
+	}
+
+	if exists := u.dirRepo.ExistsByUuid(ctx, dUuid); !exists {
+		err := errors.New("Dir not found. uuid:" + uUuid)
+		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
+		return
+	}
+
+	if exists := u.userRepo.ExistsPermission(ctx, uUuid, dUuid); exists {
+		err := errors.New("User already has permission over this directory")
+		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
+		return
+	}
+
+	p := domain.Permission{UserUuid: uUuid, DirUuid: dUuid}
+
+	err := u.userRepo.AddPermission(ctx, p)
+	if err != nil {
+		u.log.Err("IN [AddPermission] failed to add permission -> ", err)
+		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
+		return
+	}
+
+	return
+}
+
+func (u *userUsecase) RevokePermission(c context.Context, uUuid, dUuid string) (rErr domain.RequestErr) {
+	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
+	defer cancel()
+
+	if exists := u.userRepo.ExistsByUuid(ctx, uUuid); !exists {
+		err := errors.New("User not found. uuid:" + uUuid)
+		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
+		return
+	}
+
+	if exists := u.dirRepo.ExistsByUuid(ctx, dUuid); !exists {
+		err := errors.New("Dir not found. uuid:" + uUuid)
+		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
+		return
+	}
+
+	if exists := u.userRepo.ExistsPermission(ctx, uUuid, dUuid); !exists {
+		err := errors.New("User does not have permission over this directory to be revoked")
+		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
+		return
+	}
+
+	err := u.userRepo.RevokePermission(ctx, uUuid, dUuid)
+	if err != nil {
+		u.log.Err("IN [RevokePermission] failed to add permission -> ", err)
+		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
+		return
+	}
+
+	return
+}
+
+func (u *userUsecase) GetUserPermittedDirs(c context.Context, uUuid string) (res []dtos.DirGetDto, rErr domain.RequestErr) {
+	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
+	defer cancel()
+
+	if exists := u.userRepo.ExistsByUuid(ctx, uUuid); !exists {
+		err := errors.New("User not found. uuid:" + uUuid)
+		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
+		return
+	}
+
+	permissions, err := u.userRepo.GetPermissionsByUserUuid(ctx, uUuid)
+	if err != nil {
+		u.log.Err("IN [GetUserPermittedDirs] failed to get user permissions -> ", err)
+		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+		return
+	}
+
+	dirs := []dtos.DirGetDto{}
+	for _, p := range permissions {
+		d, err := u.dirRepo.GetByUuid(ctx, p.DirUuid)
+		if err != nil {
+			u.log.Err("IN [GetUserPermittedDirs] failed to permission dir -> ", err)
+			rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+			return
+		}
+
+		path, err := u.dirRepo.GetPath(ctx, d.Uuid)
+		if err != nil {
+			u.log.Err("IN [GetUserPermittedDirs] failed to get dir path -> ", err)
+			rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+			return
+		}
+
+		nChild, err := u.dirRepo.GetNChild(ctx, d.Uuid)
+		if err != nil {
+			u.log.Err("IN [GetUserPermittedDirs] failed to get dir nChild -> ", err)
+			rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+			return
+		}
+
+		depth, err := u.dirRepo.GetDepth(ctx, d.Uuid)
+		if err != nil {
+			u.log.Err("IN [GetUserPermittedDirs] failed to get dir depth -> ", err)
+			rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+			return
+		}
+
+		dDto := mapper.MapDirToDirGetDto(d, path, nChild, depth)
+
+		dirs = append(dirs, dDto)
+	}
+
+	res = dirs
 
 	return
 }

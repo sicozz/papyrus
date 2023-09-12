@@ -18,6 +18,11 @@ type User struct {
 	State    UserState `json:"state"`
 }
 
+type Permission struct {
+	UserUuid string
+	DirUuid  string
+}
+
 // UserUsecase represents the user's usecases
 type UserUsecase interface {
 	GetAll(c context.Context) ([]dtos.UserGetDto, RequestErr)
@@ -26,7 +31,11 @@ type UserUsecase interface {
 	Store(c context.Context, p dtos.UserStore) (dtos.UserGetDto, RequestErr)
 	Delete(c context.Context, uname string) RequestErr
 	Update(c context.Context, uuid string, d dtos.UserUpdateDto) RequestErr
-	ChgPasswd(ctx context.Context, uuid string, data dtos.UserChgPasswdDto) RequestErr
+	ChgPasswd(c context.Context, uuid string, data dtos.UserChgPasswdDto) RequestErr
+
+	GetUserPermittedDirs(c context.Context, uUuid string) ([]dtos.DirGetDto, RequestErr)
+	AddPermission(c context.Context, uUuid, dUuid string) RequestErr
+	RevokePermission(c context.Context, uUuid string, dUuid string) RequestErr
 }
 
 // UserRepository represents the user's repository contract
@@ -50,4 +59,9 @@ type UserRepository interface {
 
 	// Transactions
 	Update(ctx context.Context, uuid string, p dtos.UserUpdateDto) error
+
+	GetPermissionsByUserUuid(c context.Context, uUuid string) ([]Permission, error)
+	ExistsPermission(c context.Context, uUuid, dUuid string) bool
+	AddPermission(c context.Context, p Permission) error
+	RevokePermission(c context.Context, uUuid string, dUuid string) error
 }

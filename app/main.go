@@ -88,7 +88,8 @@ func main() {
 	rr := _roleRepo.NewPostgresRoleRepository(dbConn)
 	ur := _userRepo.NewPostgresUserRepository(dbConn)
 	usr := _userStateRepo.NewPostgresUserStateRepository(dbConn)
-	uu := _userUsecase.NewUserUsecase(ur, rr, usr, timeoutContext)
+	uDr := _dirRepo.NewPostgresDirRepository(dbConn)
+	uu := _userUsecase.NewUserUsecase(ur, rr, usr, uDr, timeoutContext)
 	_userHttpDelivery.NewUserHandler(e, uu)
 
 	dr := _dirRepo.NewPostgresDirRepository(dbConn)

@@ -45,3 +45,8 @@ type UserChgPasswdDto struct {
 	NPasswd   string `json:"new_password" validate:"required"`
 	ReNPasswd string `json:"re_new_password" validate:"required"`
 }
+
+type UserAddPermissionDto struct {
+	UserUuid string `json:"user_uuid" validate:"required"`
+	DirUuid  string `json:"dir_uuid" validate:"required"`
+}

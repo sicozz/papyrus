@@ -488,3 +488,93 @@ func (r *postgresUserRepository) Update(ctx context.Context, uuid string, p dtos
 
 	return
 }
+
+func (r *postgresUserRepository) ExistsPermission(ctx context.Context, uUuid, dUuid string) (res bool) {
+	query := `SELECT COUNT(*) > 0 FROM permission WHERE user_uuid = $1 AND dir_uuid = $2`
+	stmt, err := r.Conn.PrepareContext(ctx, query)
+	if err != nil {
+		r.log.Err("IN [ExistPermission] failed to prepare context ->", err)
+		return
+	}
+	defer stmt.Close()
+
+	err = stmt.QueryRowContext(ctx, uUuid, dUuid).Scan(&res)
+
+	return
+}
+
+func (r *postgresUserRepository) AddPermission(ctx context.Context, p domain.Permission) (err error) {
+	query :=
+		`INSERT INTO permission (user_uuid, dir_uuid)
+		VALUES ($1, $2)`
+	stmt, err := r.Conn.PrepareContext(ctx, query)
+	if err != nil {
+		r.log.Err("IN [AddPermission] failed to prepare context ->", err)
+		return
+	}
+	defer stmt.Close()
+
+	_, err = stmt.ExecContext(
+		ctx,
+		p.UserUuid,
+		p.DirUuid,
+	)
+
+	if err != nil {
+		r.log.Err("IN [AddPermission] failed to scan rows ->", err)
+		return
+	}
+
+	return
+}
+
+func (r *postgresUserRepository) RevokePermission(ctx context.Context, uUuid, dUuid string) (err error) {
+	query := `DELETE FROM permission WHERE user_uuid = $1 AND dir_uuid = $2`
+	stmt, err := r.Conn.PrepareContext(ctx, query)
+	if err != nil {
+		r.log.Err("IN [RevokePermission] failed to prepare context ->", err)
+		return
+	}
+	defer stmt.Close()
+
+	_, err = stmt.ExecContext(ctx, uUuid, dUuid)
+	if err != nil {
+		r.log.Err("IN [RevokePermission] failed to exec statement ->", err)
+		return
+	}
+
+	return
+}
+
+func (r *postgresUserRepository) GetPermissionsByUserUuid(ctx context.Context, uUuid string) (res []domain.Permission, err error) {
+	query := `SELECT user_uuid, dir_uuid FROM permission WHERE user_uuid = $1`
+
+	rows, err := r.Conn.QueryContext(ctx, query, uUuid)
+	if err != nil {
+		res = nil
+		return
+	}
+
+	defer func() {
+		errRow := rows.Close()
+		if errRow != nil {
+			r.log.Err("IN [GetPermissionsByUserUuid] failed to close *rows ->", err)
+		}
+	}()
+
+	res = []domain.Permission{}
+	for rows.Next() {
+		t := domain.Permission{}
+		err = rows.Scan(
+			&t.UserUuid,
+			&t.DirUuid,
+		)
+
+		if err != nil {
+			r.log.Err("IN [GetPermissionsByUserUuid] failed to scan permission ->", err)
+		}
+		res = append(res, t)
+	}
+
+	return
+}

@@ -27,6 +27,10 @@ func NewUserHandler(e *echo.Echo, uu domain.UserUsecase) {
 	e.PATCH("/user/:uuid", handler.Update)
 	e.PATCH("/user/:uuid/chg_password", handler.ChgPasswd)
 	e.POST("/login", handler.Login)
+
+	e.GET("/user/:uuid/permission", handler.GetUserPermittedDirs)
+	e.POST("/permission", handler.AddPermission)
+	e.DELETE("/permission/user/:user_uuid/dir/:dir_uuid", handler.RevokePermission)
 }
 
 func (h *UserHandler) GetAll(c echo.Context) error {
@@ -197,4 +201,77 @@ func (h *UserHandler) ChgPasswd(c echo.Context) error {
 	}
 
 	return c.NoContent(http.StatusOK)
+}
+
+func (h *UserHandler) AddPermission(c echo.Context) error {
+	h.log.Inf("REQ: change password")
+	ctx := c.Request().Context()
+
+	var data dtos.UserAddPermissionDto
+	err := c.Bind(&data)
+	if err != nil {
+		errBody := dtos.NewErrDto(fmt.Sprint("Req body binding failed: ", err))
+		return c.JSON(http.StatusBadRequest, errBody)
+	}
+
+	if ok, err := utils.IsRequestValid(&data); !ok {
+		errBody, err := dtos.NewValidationErrDto(err.Error())
+		if err != nil {
+			errValid := dtos.NewErrDto(fmt.Sprint("Req body validation failed: ", err))
+			return c.JSON(http.StatusBadRequest, errValid)
+		}
+		return c.JSON(http.StatusBadRequest, errBody)
+	}
+
+	rErr := h.UUsecase.AddPermission(ctx, data.UserUuid, data.DirUuid)
+	if rErr != nil {
+		errBody := dtos.NewErrDto(rErr.Error())
+		return c.JSON(rErr.GetStatus(), errBody)
+	}
+
+	return c.NoContent(http.StatusOK)
+}
+
+func (h *UserHandler) RevokePermission(c echo.Context) error {
+	h.log.Inf("REQ: chg approvation")
+	ctx := c.Request().Context()
+
+	userUuid := c.Param("user_uuid")
+	dirUuid := c.Param("dir_uuid")
+	if valid := utils.IsValidUUID(userUuid); !valid {
+		errBody := dtos.NewErrDto("Uuid does not conform to the uuid format")
+		return c.JSON(http.StatusBadRequest, errBody)
+	}
+	if valid := utils.IsValidUUID(dirUuid); !valid {
+		errBody := dtos.NewErrDto("Uuid does not conform to the uuid format")
+		return c.JSON(http.StatusBadRequest, errBody)
+	}
+
+	rErr := h.UUsecase.RevokePermission(ctx, userUuid, dirUuid)
+
+	if rErr != nil {
+		errBody := dtos.NewErrDto(rErr.Error())
+		return c.JSON(rErr.GetStatus(), errBody)
+	}
+
+	return c.NoContent(http.StatusOK)
+}
+
+func (h *UserHandler) GetUserPermittedDirs(c echo.Context) error {
+	h.log.Inf("REQ: get all")
+	ctx := c.Request().Context()
+
+	userUuid := c.Param("uuid")
+	if valid := utils.IsValidUUID(userUuid); !valid {
+		errBody := dtos.NewErrDto("Uuid does not conform to the uuid format")
+		return c.JSON(http.StatusBadRequest, errBody)
+	}
+
+	dirs, rErr := h.UUsecase.GetUserPermittedDirs(ctx, userUuid)
+	if rErr != nil {
+		errBody := dtos.NewErrDto("Dir fetch failed")
+		return c.JSON(rErr.GetStatus(), errBody)
+	}
+
+	return c.JSON(http.StatusOK, dirs)
 }

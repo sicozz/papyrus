@@ -1,16 +1,16 @@
 {
-    "debug": true,
-    "server": {
-        "address": ":9090"
-    },
-    "context": {
-        "timeout": 2
-    },
-    "database": {
-        "host": "localhost",
-        "port": "5432",
-        "user": "mastersoft",
-        "pass": "mastersoft",
-        "name": "papyrus"
-    }
+  "debug": true,
+  "server": {
+    "address": ":9090"
+  },
+  "context": {
+    "timeout": 2
+  },
+  "database": {
+    "host": "papyrus_db",
+    "port": "5432",
+    "user": "mastersoft",
+    "pass": "mastersoft",
+    "name": "papyrus"
+  }
 }

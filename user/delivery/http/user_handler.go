@@ -23,6 +23,7 @@ func NewUserHandler(e *echo.Echo, uu domain.UserUsecase) {
 	e.GET("/user", handler.GetAll)
 	e.POST("/user", handler.Store)
 	e.GET("/user/:uname", handler.GetByUsername)
+	e.GET("/user/:uuid/uuid", handler.GetByUuid)
 	e.DELETE("/user/:uname", handler.Delete)
 	e.PATCH("/user/:uuid", handler.Update)
 	e.PATCH("/user/:uuid/chg_password", handler.ChgPasswd)
@@ -50,6 +51,20 @@ func (h *UserHandler) GetByUsername(c echo.Context) error {
 	ctx := c.Request().Context()
 	uname := c.Param("uname")
 	user, rErr := h.UUsecase.GetByUsername(ctx, uname)
+	if rErr != nil {
+		errBody := dtos.NewErrDto(rErr.Error())
+		return c.JSON(rErr.GetStatus(), errBody)
+	}
+
+	return c.JSON(http.StatusOK, user)
+}
+
+func (h *UserHandler) GetByUuid(c echo.Context) error {
+	h.log.Inf("REQ: get by uuid")
+	ctx := c.Request().Context()
+	uuid := c.Param("uuid")
+
+	user, rErr := h.UUsecase.GetByUuid(ctx, uuid)
 	if rErr != nil {
 		errBody := dtos.NewErrDto(rErr.Error())
 		return c.JSON(rErr.GetStatus(), errBody)

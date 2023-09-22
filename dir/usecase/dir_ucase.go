@@ -368,7 +368,7 @@ func (u *dirUsecase) Move(c context.Context, uuid string, nPUuid string) (rErr d
 	return
 }
 
-func (u *dirUsecase) Duplicate(c context.Context, p dtos.DirDuplicateDto) (res dtos.DirGetDto, rErr domain.RequestErr) {
+func (u *dirUsecase) Duplicate(c context.Context, p dtos.DirDuplicateDto) (res []dtos.DirGetDto, rErr domain.RequestErr) {
 	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
 	defer cancel()
 
@@ -432,13 +432,35 @@ func (u *dirUsecase) Duplicate(c context.Context, p dtos.DirDuplicateDto) (res d
 		return
 	}
 
-	res, err = u.GetByUuid(ctx, nBranch[0].Uuid)
-	if err != nil {
-		u.log.Err("IN [Duplicate] failed fetch new root dir ->", err)
-		err = errors.New(fmt.Sprint("Dir duplication failed", err))
-		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
-		return
+	nBranchDtos := []dtos.DirGetDto{}
+	for _, d := range nBranch {
+		path, err := u.dirRepo.GetPath(ctx, d.Uuid)
+		if err != nil {
+			u.log.Err("IN [Duplicate] failed to get dir path ->", err)
+			rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+			return
+		}
+
+		nChild, err := u.dirRepo.GetNChild(ctx, d.Uuid)
+		if err != nil {
+			u.log.Err("IN [Duplicate] failed to get dir children number ->", err)
+			rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+			return
+		}
+
+		depth, err := u.dirRepo.GetDepth(ctx, d.Uuid)
+		if err != nil {
+			u.log.Err("IN [Duplicate] failed to get dir depth ->", err)
+			rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+			return
+		}
+
+		dto := mapper.MapDirToDirGetDto(d, path, nChild, depth)
+
+		nBranchDtos = append(nBranchDtos, dto)
 	}
+
+	res = nBranchDtos
 
 	return
 }

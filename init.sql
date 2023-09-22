@@ -42,9 +42,9 @@ CREATE TABLE pfile_state (
 
 CREATE TABLE pfile (
     uuid           UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
-    code           VARCHAR(32)   NOT NULL,
-    name           VARCHAR(256)  NOT NULL,
-    fs_path        VARCHAR(256)  NOT NULL,
+    code           VARCHAR(1024)   NOT NULL,
+    name           VARCHAR(1024)  NOT NULL,
+    fs_path        VARCHAR(1024)  NOT NULL,
     date_creation  TIMESTAMP     NOT NULL,
     date_input     TIMESTAMP     NOT NULL,
     type           SERIAL        REFERENCES pfile_type NOT NULL,
@@ -117,8 +117,8 @@ CREATE TABLE project_state (
 
 CREATE TABLE project (
     uuid         UUID           PRIMARY KEY DEFAULT gen_random_uuid(),
-    name         VARCHAR(64)    NOT NULL,
-    description  VARCHAR(1024)  NOT NULL,
+    name         VARCHAR(1024)    NOT NULL,
+    description  VARCHAR(2048)  NOT NULL,
     state        SERIAL         REFERENCES PROJECT_STATE NOT NULL,
     dir          UUID           REFERENCES DIR NOT NULL
 );
@@ -130,10 +130,10 @@ CREATE TABLE plan_state (
 
 CREATE TABLE plan (
     uuid              UUID           PRIMARY KEY DEFAULT gen_random_uuid(),
-    title             VARCHAR(64)    NOT NULL,
-    description       VARCHAR(1024)  NOT NULL,
-    origin            VARCHAR(1024)  NOT NULL,
-    analysis          VARCHAR(1024)  NOT NULL,
+    title             VARCHAR(1024)    NOT NULL,
+    description       VARCHAR(2048)  NOT NULL,
+    origin            VARCHAR(2048)  NOT NULL,
+    analysis          VARCHAR(2048)  NOT NULL,
     discovery_date    TIMESTAMP      NOT NULL,
     record_date       TIMESTAMP      NOT NULL,
     termination_date  TIMESTAMP      NOT NULL,
@@ -151,8 +151,8 @@ CREATE TABLE task_state (
 
 CREATE TABLE task (
     uuid           UUID           PRIMARY KEY DEFAULT gen_random_uuid(),
-    name           VARCHAR(256)    NOT NULL,
-    procedure      VARCHAR(1024)  NOT NULL,
+    name           VARCHAR(1024)    NOT NULL,
+    procedure      VARCHAR(2048)  NOT NULL,
     date_creation  TIMESTAMP      NOT NULL,
     term           INTEGER        NOT NULL,
     -- deadline       TIMESTAMP      NOT NULL,

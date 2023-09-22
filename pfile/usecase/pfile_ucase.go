@@ -319,7 +319,7 @@ func (u *pFileUseCase) ChgState(c context.Context, pfUuid, userUuid, stateDesc s
 	if "activo" == stateDesc {
 		if approved := u.pFileRepo.IsApproved(ctx, pfUuid); !approved {
 			err = errors.New("File has not been approved")
-			rErr = domain.NewUCaseErr(http.StatusNotFound, err)
+			rErr = domain.NewUCaseErr(http.StatusNotAcceptable, err)
 			return
 		}
 	}

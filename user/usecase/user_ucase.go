@@ -82,6 +82,29 @@ func (u *userUsecase) GetByUsername(c context.Context, uname string) (res dtos.U
 	return
 }
 
+func (u *userUsecase) GetByUuid(c context.Context, uuid string) (res dtos.UserGetDto, rErr domain.RequestErr) {
+	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
+	defer cancel()
+
+	if exists := u.userRepo.ExistsByUuid(ctx, uuid); !exists {
+		err := errors.New(fmt.Sprint("User not found. uuid: ", uuid))
+		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
+		return
+	}
+
+	user, err := u.userRepo.GetByUuid(ctx, uuid)
+	if err != nil {
+		u.log.Err("IN [GetByUuid] failed to get user ->", err)
+		err = errors.New(fmt.Sprint("User fetch failed. uuid: ", uuid))
+		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
+		return dtos.UserGetDto{}, rErr
+	}
+
+	res = mapper.MapUserToUserGetDto(user)
+
+	return
+}
+
 func (u *userUsecase) Store(c context.Context, p dtos.UserStore) (res dtos.UserGetDto, rErr domain.RequestErr) {
 	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
 	defer cancel()

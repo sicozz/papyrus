@@ -23,7 +23,7 @@ type DirUsecase interface {
 	Update(c context.Context, uuid string, p dtos.DirUpdateDto) RequestErr
 	Delete(c context.Context, uuid string) RequestErr
 	Move(c context.Context, uuid string, nPUuid string) RequestErr
-	Duplicate(c context.Context, p dtos.DirDuplicateDto) (dtos.DirGetDto, RequestErr)
+	Duplicate(c context.Context, p dtos.DirDuplicateDto) ([]dtos.DirGetDto, RequestErr)
 }
 
 // DirRepository represents the dir's repository contract

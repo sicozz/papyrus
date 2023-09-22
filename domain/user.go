@@ -27,6 +27,7 @@ type Permission struct {
 type UserUsecase interface {
 	GetAll(c context.Context) ([]dtos.UserGetDto, RequestErr)
 	GetByUsername(c context.Context, uname string) (dtos.UserGetDto, RequestErr)
+	GetByUuid(c context.Context, uuid string) (dtos.UserGetDto, RequestErr)
 	Login(c context.Context, uname string, passwd string) (dtos.UserGetDto, RequestErr)
 	Store(c context.Context, p dtos.UserStore) (dtos.UserGetDto, RequestErr)
 	Delete(c context.Context, uname string) RequestErr

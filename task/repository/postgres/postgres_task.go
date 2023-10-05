@@ -197,7 +197,7 @@ func (r *postgresTaskRepository) ExistsByUuid(ctx context.Context, uuid string) 
 }
 
 func (r *postgresTaskRepository) ChgCheck(ctx context.Context, tUuid string, uUuid string, chk bool) (err error) {
-	query := `UPDATE task SET chk = $1 WHERE uuid = $2 AND creator_user = $3`
+	query := `UPDATE task SET chk = $1 WHERE uuid = $2 AND recv_user = $3`
 	stmt, err := r.Conn.PrepareContext(ctx, query)
 	if err != nil {
 		r.log.Err("IN [ChgCheck] failed to prepare context ->", err)

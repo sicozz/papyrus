@@ -2,6 +2,7 @@ package domain
 
 import (
 	"context"
+	"time"
 
 	"github.com/sicozz/papyrus/domain/dtos"
 )
@@ -23,6 +24,12 @@ type Permission struct {
 	DirUuid  string
 }
 
+type History struct {
+	Date      time.Time
+	UserUuid  string
+	PFileUuid string
+}
+
 // UserUsecase represents the user's usecases
 type UserUsecase interface {
 	GetAll(c context.Context) ([]dtos.UserGetDto, RequestErr)
@@ -37,6 +44,8 @@ type UserUsecase interface {
 	GetUserPermittedDirs(c context.Context, uUuid string) ([]dtos.DirGetDto, RequestErr)
 	AddPermission(c context.Context, uUuid, dUuid string) RequestErr
 	RevokePermission(c context.Context, uUuid string, dUuid string) RequestErr
+
+	GetHistoryDownloads(c context.Context, uUuid string) ([]dtos.UserHistoryGetDto, RequestErr)
 }
 
 // UserRepository represents the user's repository contract
@@ -65,4 +74,6 @@ type UserRepository interface {
 	ExistsPermission(c context.Context, uUuid, dUuid string) bool
 	AddPermission(c context.Context, p Permission) error
 	RevokePermission(c context.Context, uUuid string, dUuid string) error
+
+	GetHistoryDownloads(c context.Context, uUuid string) ([]dtos.UserHistoryGetDto, error)
 }

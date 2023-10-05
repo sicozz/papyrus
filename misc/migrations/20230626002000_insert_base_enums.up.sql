@@ -5,7 +5,7 @@ INSERT INTO user_state (description)
 VALUES ('inactivo'), ('activo');
 
 INSERT INTO pfile_type (description)
-VALUES ('documento'), ('formato');
+VALUES ('documento'), ('formato'), ('registro');
 
 INSERT INTO pfile_state (description)
 VALUES ('revision'), ('activo'), ('obsoleto');

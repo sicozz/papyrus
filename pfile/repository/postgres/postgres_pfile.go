@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"database/sql"
+	"time"
 
 	"github.com/sicozz/papyrus/domain"
 	"github.com/sicozz/papyrus/utils"
@@ -344,6 +345,23 @@ func (r *postgresPFileRepository) Delete(ctx context.Context, uuid string) (err 
 	return
 }
 
+func (r *postgresPFileRepository) ExistsByUuid(ctx context.Context, uuid string) (res bool) {
+	query := `SELECT COUNT(*) > 0 FROM pfile WHERE uuid = $1`
+	stmt, err := r.Conn.PrepareContext(ctx, query)
+	if err != nil {
+		r.log.Err("IN [ExistsByUuid] failed to prepare context ->", err)
+		return
+	}
+	defer stmt.Close()
+
+	err = stmt.QueryRowContext(ctx, uuid).Scan(&res)
+	if err != nil {
+		r.log.Err("IN [ExistsByUuid] failed to exec statement ->", err)
+	}
+
+	return
+}
+
 func (r *postgresPFileRepository) ExistsByCode(ctx context.Context, code string) (res bool) {
 	query := `SELECT COUNT(*) > 0 FROM pfile WHERE code = $1`
 	stmt, err := r.Conn.PrepareContext(ctx, query)
@@ -459,14 +477,39 @@ func (r *postgresPFileRepository) ChgState(ctx context.Context, pfUuid, userUuid
 
 	stmt, err := r.Conn.PrepareContext(ctx, query)
 	if err != nil {
-		r.log.Err("IN [Activate] failed to prepare context ->", err)
+		r.log.Err("IN [ChgState] failed to prepare context ->", err)
 		return
 	}
 	defer stmt.Close()
 
 	_, err = stmt.ExecContext(ctx, pfUuid, userUuid, stateDesc)
 	if err != nil {
-		r.log.Err("IN [Activate] failed to exec statement ->", err)
+		r.log.Err("IN [ChgState] failed to exec statement ->", err)
+		return
+	}
+
+	return
+}
+
+func (r *postgresPFileRepository) ChgStateBypass(ctx context.Context, pfUuid, stateDesc string) (err error) {
+	query :=
+		`UPDATE pfile AS pf
+		SET state = pfs.code
+		FROM pfile_state AS pfs
+		WHERE
+			pfs.description = $2 AND
+			pf.uuid = $1`
+
+	stmt, err := r.Conn.PrepareContext(ctx, query)
+	if err != nil {
+		r.log.Err("IN [ChgStateBypass] failed to prepare context ->", err)
+		return
+	}
+	defer stmt.Close()
+
+	_, err = stmt.ExecContext(ctx, pfUuid, stateDesc)
+	if err != nil {
+		r.log.Err("IN [ChgStateBypass] failed to exec statement ->", err)
 		return
 	}
 
@@ -502,6 +545,24 @@ func (r *postgresPFileRepository) IsApproved(ctx context.Context, uuid string) (
 	err = stmt.QueryRowContext(ctx, uuid).Scan(&res)
 	if err != nil {
 		r.log.Err("IN [IsApproved] failed to exec statement ->", err)
+	}
+
+	return
+}
+
+func (r *postgresPFileRepository) AddDwnHistory(ctx context.Context, date time.Time, pfUuid, userUuid string) (err error) {
+	query := `INSERT INTO download (date, user_, pfile) VALUES ($1, $2, $3)`
+	stmt, err := r.Conn.PrepareContext(ctx, query)
+	if err != nil {
+		r.log.Err("IN [storeApprovation] failed to prepare context ->", err)
+		return
+	}
+	defer stmt.Close()
+
+	_, err = stmt.ExecContext(ctx, date, userUuid, pfUuid)
+	if err != nil {
+		r.log.Err("IN [AddDwnHistory] failed to exec statement ->", err)
+		return
 	}
 
 	return

@@ -288,6 +288,12 @@ func (u *pFileUseCase) ChgApprovation(c context.Context, pfUuid, userUuid string
 		return
 	}
 
+	if approved := u.pFileRepo.IsApproved(ctx, pfUuid); !approved {
+		return
+	}
+
+	u.pFileRepo.ChgStateBypass(ctx, pfUuid, "activo")
+
 	return
 }
 
@@ -328,6 +334,59 @@ func (u *pFileUseCase) ChgState(c context.Context, pfUuid, userUuid, stateDesc s
 	if err != nil {
 		u.log.Err("IN [Activate] failed to activate pfile ", pfUuid, " -> ", err)
 		err = errors.New("Failed to delete file")
+		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+		return
+	}
+
+	return
+}
+
+func (u *pFileUseCase) RequestDownload(c context.Context, pfUuid, userUuid string) (pFDto string, rErr domain.RequestErr) {
+	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
+	defer cancel()
+
+	pf, rErr := u.GetByUuid(ctx, pfUuid)
+	if rErr != nil {
+		return
+	}
+
+	user, err := u.userRepo.GetByUuid(ctx, userUuid)
+	if err != nil {
+		err := errors.New(fmt.Sprint("User not found. uuid: ", userUuid))
+		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
+		return
+	}
+
+	u.log.Wrn(user)
+	permission := u.userRepo.ExistsPermission(ctx, userUuid, pf.Dir) || user.Role.Description == "admin" || user.Role.Description == "super"
+	if !permission {
+		err := errors.New("User not authorized")
+		rErr = domain.NewUCaseErr(http.StatusUnauthorized, err)
+		return
+	}
+
+	return pf.FsPath, nil
+}
+
+func (u *pFileUseCase) AddDwnHistory(c context.Context, pfUuid, userUuid string) (rErr domain.RequestErr) {
+	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
+	defer cancel()
+
+	if exists := u.userRepo.ExistsByUuid(ctx, userUuid); !exists {
+		err := errors.New(fmt.Sprint("User not found. uuid: ", userUuid))
+		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
+		return
+	}
+
+	if exists := u.pFileRepo.ExistsByUuid(ctx, pfUuid); !exists {
+		err := errors.New(fmt.Sprint("File not found. uuid: ", userUuid))
+		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
+		return
+	}
+
+	err := u.pFileRepo.AddDwnHistory(ctx, time.Now(), pfUuid, userUuid)
+	if err != nil {
+		err := errors.New(fmt.Sprint("Could not add download history"))
 		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
 		return
 	}

@@ -22,9 +22,9 @@ func NewPFileHandler(e *echo.Echo, uu domain.PFileUsecase) {
 	e.GET("/file", handler.GetAll)
 	e.POST("/file", handler.Upload)
 	e.GET("/file/:uuid", handler.GetByUuid)
-	e.GET("/file/:uuid/download", handler.Download)
 	e.DELETE("/file/:uuid", handler.Delete)
 
+	e.POST("/file/:file_uuid/download", handler.Download)
 	e.PATCH("/file/:file_uuid/user/:user_uuid/check", handler.ChgApprovation)
 	e.PATCH("/file/:file_uuid/user/:user_uuid/state", handler.ChgState)
 }
@@ -97,23 +97,41 @@ func (h *PFileHandler) Upload(c echo.Context) (err error) {
 func (h *PFileHandler) Download(c echo.Context) error {
 	h.log.Inf("REQ: download")
 	ctx := c.Request().Context()
-	uuid := c.Param("uuid")
-	if valid := utils.IsValidUUID(uuid); !valid {
+
+	var p dtos.PFileDownloadDto
+	err := c.Bind(&p)
+	if err != nil {
+		errBody := dtos.NewErrDto(err.Error())
+		return c.JSON(http.StatusBadRequest, errBody)
+	}
+
+	pfUuid := c.Param("file_uuid")
+	if valid := utils.IsValidUUID(pfUuid); !valid {
 		errBody := dtos.NewErrDto("Uuid does not conform to the uuid format")
 		return c.JSON(http.StatusBadRequest, errBody)
 	}
 
-	pFile, rErr := h.PFUsecase.GetByUuid(ctx, uuid)
+	pfPath, rErr := h.PFUsecase.RequestDownload(ctx, pfUuid, p.UserUuid)
 	if rErr != nil {
 		errBody := dtos.NewErrDto(rErr.Error())
 		return c.JSON(rErr.GetStatus(), errBody)
 	}
 
-	file, err := os.Open(pFile.FsPath)
+	file, err := os.Open(pfPath)
 	if err != nil {
 		return err
 	}
 	defer file.Close()
+
+	if !p.Registered {
+		return c.Stream(http.StatusOK, constants.RespTypeStream, file)
+	}
+
+	rErr = h.PFUsecase.AddDwnHistory(ctx, pfUuid, p.UserUuid)
+	if rErr != nil {
+		errBody := dtos.NewErrDto(rErr.Error())
+		return c.JSON(rErr.GetStatus(), errBody)
+	}
 
 	return c.Stream(http.StatusOK, constants.RespTypeStream, file)
 }
@@ -147,14 +165,14 @@ func (h *PFileHandler) ChgApprovation(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, err)
 	}
 
-	if ok, err := utils.IsRequestValid(&p); !ok {
-		errBody, err := dtos.NewValidationErrDto(err.Error())
-		if err != nil {
-			errParse := dtos.NewErrDto(err.Error())
-			return c.JSON(http.StatusBadRequest, errParse)
-		}
-		return c.JSON(http.StatusBadRequest, errBody)
-	}
+	// if ok, err := utils.IsRequestValid(&p); !ok {
+	// 	errBody, err := dtos.NewValidationErrDto(err.Error())
+	// 	if err != nil {
+	// 		errParse := dtos.NewErrDto(err.Error())
+	// 		return c.JSON(http.StatusBadRequest, errParse)
+	// 	}
+	// 	return c.JSON(http.StatusBadRequest, errBody)
+	// }
 
 	pfUuid := c.Param("file_uuid")
 	userUuid := c.Param("user_uuid")

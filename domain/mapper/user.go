@@ -3,6 +3,7 @@ package mapper
 import (
 	"github.com/sicozz/papyrus/domain"
 	"github.com/sicozz/papyrus/domain/dtos"
+	"github.com/sicozz/papyrus/utils/constants"
 )
 
 // Transform a dir entity into a dir dto
@@ -34,5 +35,13 @@ func MapUserStoreDtoToUser(u dtos.UserStore) domain.User {
 		Lastname: u.Lastname,
 		Role:     domain.Role{},
 		State:    domain.UserState{},
+	}
+}
+
+func MapHistoryToUserHistoryGetDto(h domain.History) dtos.UserHistoryGetDto {
+	return dtos.UserHistoryGetDto{
+		Date:      h.Date.Format(constants.LayoutDate),
+		UserUuid:  h.UserUuid,
+		PFileUuid: h.PFileUuid,
 	}
 }

@@ -421,3 +421,35 @@ func (u *userUsecase) GetUserPermittedDirs(c context.Context, uUuid string) (res
 
 	return
 }
+
+func (u *userUsecase) GetHistoryDownloads(c context.Context, uUuid string) (res []dtos.UserHistoryGetDto, rErr domain.RequestErr) {
+	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
+	defer cancel()
+
+	if exists := u.userRepo.ExistsByUuid(ctx, uUuid); !exists {
+		err := errors.New("User not found. uuid:" + uUuid)
+		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
+		return
+	}
+
+	hist, err := u.userRepo.GetHistoryDownloads(ctx, uUuid)
+	if err != nil {
+		err := errors.New("Could not fetch history downloads from user: " + uUuid)
+		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
+		return
+	}
+
+	for i, h := range hist {
+		hist[i].PFileDirPath, err = u.dirRepo.GetPath(ctx, h.PFileDir)
+		if err != nil {
+			err := errors.New("Could not get dir path")
+			u.log.Err(err)
+			rErr = domain.NewUCaseErr(http.StatusNotFound, err)
+			return
+		}
+	}
+
+	res = hist
+
+	return
+}

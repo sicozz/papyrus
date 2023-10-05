@@ -578,3 +578,64 @@ func (r *postgresUserRepository) GetPermissionsByUserUuid(ctx context.Context, u
 
 	return
 }
+
+func (r *postgresUserRepository) GetHistoryDownloads(ctx context.Context, uUuid string) (res []dtos.UserHistoryGetDto, err error) {
+	query :=
+		`SELECT
+			dwn.uuid,
+			dwn.date,
+			dwn.user_,
+			pf.uuid,
+			pf.code,
+			pf.version,
+			pf.term,
+			pf.name,
+			pft.description AS pfile_type,
+			pf.date_input,
+			pf.dir
+		FROM
+			download dwn
+			INNER JOIN pfile pf ON(dwn.pfile = pf.uuid)
+			INNER JOIN pfile_type pft ON(pf.type = pft.code)
+			INNER JOIN dir ON(dir.uuid = pf.dir)
+		WHERE
+			dwn.user_ = $1;`
+
+	rows, err := r.Conn.QueryContext(ctx, query, uUuid)
+	if err != nil {
+		res = nil
+		return
+	}
+
+	defer func() {
+		errRow := rows.Close()
+		if errRow != nil {
+			r.log.Err("IN [GetHistoryDownloads] failed to close *rows ->", err)
+		}
+	}()
+
+	res = []dtos.UserHistoryGetDto{}
+	for rows.Next() {
+		t := dtos.UserHistoryGetDto{}
+		err = rows.Scan(
+			&t.DownloadUuid,
+			&t.Date,
+			&t.UserUuid,
+			&t.PFileUuid,
+			&t.PFileCode,
+			&t.PFileVersion,
+			&t.PFileTerm,
+			&t.PFileName,
+			&t.PFileType,
+			&t.PFileDateInput,
+			&t.PFileDir,
+		)
+
+		if err != nil {
+			r.log.Err("IN [GetHistoryDownloads] failed to scan history download ->", err)
+		}
+		res = append(res, t)
+	}
+
+	return
+}

@@ -42,6 +42,9 @@ type PFileUsecase interface {
 
 	ChgApprovation(c context.Context, pfUuid, userUuid string, chk bool) RequestErr
 	ChgState(c context.Context, pfUuid, userUuid, stateDesc string) RequestErr
+
+	RequestDownload(c context.Context, pfUuid, userUuid string) (string, RequestErr)
+	AddDwnHistory(c context.Context, pfUuid, userUuid string) RequestErr
 }
 
 type PFileRepository interface {
@@ -56,11 +59,15 @@ type PFileRepository interface {
 	GetApprovations(c context.Context, uuid string) ([]Approvation, error)
 	ChgApprovation(ctx context.Context, pfUuid, userUuid string, chk bool) error
 	ChgState(ctx context.Context, pfUuid, userUuid, stateDesc string) error
+	ChgStateBypass(ctx context.Context, pfUuid, stateDesc string) error
 	ApprExistsByPK(ctx context.Context, pfUuid, userUuid string) bool
 
+	ExistsByUuid(ctx context.Context, uuid string) bool
 	ExistsByCode(ctx context.Context, code string) bool
 	IsNameTaken(ctx context.Context, name string, dirUuid string) bool
 	IsApproved(ctx context.Context, uuid string) bool
+
+	AddDwnHistory(ctx context.Context, date time.Time, pfUuid, userUuid string) error
 
 	// pfile_type ops
 	ExistsTypeByDesc(ctx context.Context, desc string) bool

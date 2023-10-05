@@ -31,20 +31,20 @@ deps:
 	@echo "Required Tools Are Available"
 
 dev-env: ## Bootstrap Environment (with a Docker-Compose help).
-	@ docker-compose --env-file $(DOCKER_ENV) up -d --build papyrus_db
+	@ docker compose --env-file $(DOCKER_ENV) up -d --build papyrus_db
 
 dev-env-test: dev-env ## Run application (within a Docker-Compose help)
 	@ $(MAKE) image-build
-	docker-compose --env-file $(DOCKER_ENV) up papyrus_app
+	docker compose --env-file $(DOCKER_ENV) up papyrus_app
 
 dev-air: $(AIR) ## Starts AIR (Continuous Development app).
 	air
 
 docker-stop:
-	@ docker-compose --env-file $(DOCKER_ENV) down
+	@ docker compose --env-file $(DOCKER_ENV) down
 
 docker-teardown:
-	@ docker-compose --env-file $(DOCKER_ENV) down --remove-orphans -v
+	@ docker compose --env-file $(DOCKER_ENV) down --remove-orphans -v
 
 # ~~~ Code Actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

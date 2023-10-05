@@ -192,9 +192,9 @@ func (u *taskUsecase) ChgCheck(c context.Context, tUuid, uUuid string, chk bool)
 		return
 	}
 
-	if t.CreatorUser != uUuid {
-		err := errors.New(fmt.Sprintf("User %v must be creator user of task %v", uUuid, tUuid))
-		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
+	if t.RecvUser != uUuid {
+		err := errors.New(fmt.Sprintf("User %v must be reciever user of task %v", uUuid, tUuid))
+		rErr = domain.NewUCaseErr(http.StatusNotAcceptable, err)
 		return
 	}
 

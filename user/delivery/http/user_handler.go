@@ -32,6 +32,8 @@ func NewUserHandler(e *echo.Echo, uu domain.UserUsecase) {
 	e.GET("/user/:uuid/permission", handler.GetUserPermittedDirs)
 	e.POST("/permission", handler.AddPermission)
 	e.DELETE("/permission/user/:user_uuid/dir/:dir_uuid", handler.RevokePermission)
+
+	e.GET("/user/:uuid/history/downloads", handler.GetHistoryDownloads)
 }
 
 func (h *UserHandler) GetAll(c echo.Context) error {
@@ -289,4 +291,23 @@ func (h *UserHandler) GetUserPermittedDirs(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, dirs)
+}
+
+func (h *UserHandler) GetHistoryDownloads(c echo.Context) error {
+	h.log.Inf("REQ: get history downloads")
+	ctx := c.Request().Context()
+
+	userUuid := c.Param("uuid")
+	if valid := utils.IsValidUUID(userUuid); !valid {
+		errBody := dtos.NewErrDto("Uuid does not conform to the uuid format")
+		return c.JSON(http.StatusBadRequest, errBody)
+	}
+
+	hist, rErr := h.UUsecase.GetHistoryDownloads(ctx, userUuid)
+	if rErr != nil {
+		errBody := dtos.NewErrDto("History downloads fetch failed")
+		return c.JSON(rErr.GetStatus(), errBody)
+	}
+
+	return c.JSON(http.StatusOK, hist)
 }

@@ -50,3 +50,18 @@ type UserAddPermissionDto struct {
 	UserUuid string `json:"user_uuid" validate:"required"`
 	DirUuid  string `json:"dir_uuid" validate:"required"`
 }
+
+type UserHistoryGetDto struct {
+	DownloadUuid   string `json:"download_uuid"`
+	Date           string `json:"download_date"`
+	UserUuid       string `json:"user_uuid"`
+	PFileUuid      string `json:"file_uuid"`
+	PFileCode      string `json:"file_code"`
+	PFileVersion   string `json:"file_version"`
+	PFileTerm      string `json:"file_term"`
+	PFileName      string `json:"file_name"`
+	PFileType      string `json:"file_type"`
+	PFileDateInput string `json:"file_date_input"`
+	PFileDir       string `json:"file_dir_uuid"`
+	PFileDirPath   string `json:"file_dir_path"`
+}

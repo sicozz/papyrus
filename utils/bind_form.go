@@ -97,7 +97,7 @@ func BindFormToPFileUploadDto(c echo.Context, p *dtos.PFileUploadDto) (err error
 	p.Term = int(term)
 
 	if val = c.FormValue("subtype"); "" == val {
-		return errors.New("File version is required. version:")
+		return errors.New("File subtype is required. subtype:")
 	}
 	p.Subtype = val
 

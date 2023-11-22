@@ -18,6 +18,12 @@ type DirGetDto struct {
 	Visible   bool   `json:"visible"`
 	Open      bool   `json:"open"`
 	State     string `json:"state"`
+
+	// Only file attributes
+	RespUser   string `json:"responsible_user"`
+	Subtype    string `json:"subtype"`
+	Datecreate string `json:"date_create"`
+	Term       int    `json:"term"`
 }
 
 type DirStoreDto struct {

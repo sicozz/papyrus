@@ -17,7 +17,28 @@ func MapPFileToPFileGetDto(pf domain.PFile, apps []domain.Approvation) dtos.PFil
 	chk2 := ""
 	chk3 := ""
 	if len(apps) == 0 {
-		return dtos.PFileGetDto{}
+		return dtos.PFileGetDto{
+			Uuid:         pf.Uuid,
+			Code:         pf.Code,
+			Name:         pf.Name,
+			FsPath:       pf.FsPath,
+			DateCreation: pf.DateCreation.Format(constants.LayoutDate),
+			DateInput:    pf.DateInput.Format(constants.LayoutDate),
+			Type:         pf.Type,
+			State:        pf.State,
+			Dir:          pf.Dir,
+			RespUser:     pf.RespUser,
+			AppUser1:     ap1,
+			AppUser2:     ap2,
+			AppUser3:     ap3,
+
+			Chk1:    chk1,
+			Chk2:    chk2,
+			Chk3:    chk3,
+			Version: pf.Version,
+			Term:    pf.Term,
+			Subtype: pf.Subtype,
+		}
 	}
 	if len(apps) > 0 {
 		ap1 = apps[0].UserUuid
@@ -72,7 +93,28 @@ func MapPFileToDocsNotDirGetDto(pf domain.PFile, apps []domain.Approvation) dtos
 	chk2 := ""
 	chk3 := ""
 	if len(apps) == 0 {
-		return dtos.DocsNotDirGetDto{}
+		return dtos.DocsNotDirGetDto{
+			Uuid:         pf.Uuid,
+			Code:         pf.Code,
+			Name:         pf.Name,
+			FsPath:       pf.FsPath,
+			DateCreation: pf.DateCreation.Format(constants.LayoutDate),
+			DateInput:    pf.DateInput.Format(constants.LayoutDate),
+			Type:         pf.Type,
+			State:        pf.State,
+			ParentDir:    pf.Dir,
+			RespUser:     pf.RespUser,
+			AppUser1:     ap1,
+			AppUser2:     ap2,
+			AppUser3:     ap3,
+
+			Chk1:    chk1,
+			Chk2:    chk2,
+			Chk3:    chk3,
+			Version: pf.Version,
+			Term:    pf.Term,
+			Subtype: pf.Subtype,
+		}
 	}
 	if len(apps) > 0 {
 		ap1 = apps[0].UserUuid

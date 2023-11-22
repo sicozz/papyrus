@@ -31,6 +31,14 @@ type Approvation struct {
 	IsApproved bool
 }
 
+type Evidence struct {
+	TaskUuid     string
+	PFileUuid    string
+	PFileName    string
+	PFileFsPath  string
+	DateCreation time.Time
+}
+
 type PFileUsecase interface {
 	GetAll(c context.Context) ([]dtos.PFileGetDto, RequestErr)
 	// GetByUuid(c context.Context, uuid string) (dtos.PFileGetDto, RequestErr)
@@ -45,6 +53,10 @@ type PFileUsecase interface {
 
 	RequestDownload(c context.Context, pfUuid, userUuid string) (string, RequestErr)
 	AddDwnHistory(c context.Context, pfUuid, userUuid string) RequestErr
+
+	GetEvidence(c context.Context, tUuid string) ([]dtos.PFileGetEvidenceDto, RequestErr)
+	UploadEvidence(c context.Context, tUuid string, p dtos.PFileUploadDto, file *multipart.FileHeader) (dtos.PFileGetDto, RequestErr)
+	DeleteEvidence(c context.Context, tUuid, pfUuid string) RequestErr
 }
 
 type PFileRepository interface {
@@ -68,6 +80,10 @@ type PFileRepository interface {
 	IsApproved(ctx context.Context, uuid string) bool
 
 	AddDwnHistory(ctx context.Context, date time.Time, pfUuid, userUuid string) error
+
+	GetEvidence(ctx context.Context, tUuid string) ([]Evidence, error)
+	AddEvidence(ctx context.Context, tUuid, pfUuid string) error
+	DeleteEvidence(ctx context.Context, tUuid, pfUuid string) error
 
 	// pfile_type ops
 	ExistsTypeByDesc(ctx context.Context, desc string) bool

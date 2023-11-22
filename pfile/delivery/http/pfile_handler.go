@@ -27,18 +27,22 @@ func NewPFileHandler(e *echo.Echo, uu domain.PFileUsecase) {
 	e.POST("/file/:file_uuid/download", handler.Download)
 	e.PATCH("/file/:file_uuid/user/:user_uuid/check", handler.ChgApprovation)
 	e.PATCH("/file/:file_uuid/user/:user_uuid/state", handler.ChgState)
+
+	e.GET("/evidence/task/:uuid", handler.GetAllEvidence)
+	e.POST("/evidence/task/:uuid", handler.UploadEvidence)
+	e.DELETE("/evidence/task/:task_uuid/file/:file_uuid", handler.DeleteEvidence)
 }
 
 func (h *PFileHandler) GetAll(c echo.Context) error {
 	h.log.Inf("REQ: get all")
 	ctx := c.Request().Context()
-	users, rErr := h.PFUsecase.GetAll(ctx)
+	pfiles, rErr := h.PFUsecase.GetAll(ctx)
 	if rErr != nil {
 		errBody := dtos.NewErrDto("File fetch failed")
 		return c.JSON(rErr.GetStatus(), errBody)
 	}
 
-	return c.JSON(http.StatusOK, users)
+	return c.JSON(http.StatusOK, pfiles)
 }
 
 func (h *PFileHandler) GetByUuid(c echo.Context) error {
@@ -234,4 +238,81 @@ func (h *PFileHandler) ChgState(c echo.Context) error {
 	}
 
 	return c.NoContent(http.StatusOK)
+}
+
+func (h *PFileHandler) UploadEvidence(c echo.Context) (err error) {
+	h.log.Inf("REQ: upload evidence")
+	tUuid := c.Param("uuid")
+	file, err := c.FormFile("file")
+	if err != nil {
+		errBody := dtos.NewErrDto("Upload file is required")
+		return c.JSON(http.StatusBadRequest, errBody)
+	}
+
+	var p dtos.PFileUploadDto
+	err = utils.BindFormToPFileUploadDto(c, &p)
+	if err != nil {
+		errBody := dtos.NewErrDto(err.Error())
+		return c.JSON(http.StatusBadRequest, errBody)
+	}
+
+	if ok, err := utils.IsRequestValid(&p); !ok {
+		errBody, err := dtos.NewValidationErrDto(err.Error())
+		if err != nil {
+			errParse := dtos.NewErrDto(err.Error())
+			return c.JSON(http.StatusBadRequest, errParse)
+		}
+		return c.JSON(http.StatusBadRequest, errBody)
+	}
+
+	ctx := c.Request().Context()
+	pf, rErr := h.PFUsecase.UploadEvidence(ctx, tUuid, p, file)
+	if rErr != nil {
+		errBody := dtos.NewErrDto(rErr.Error())
+		return c.JSON(rErr.GetStatus(), errBody)
+	}
+
+	return c.JSON(http.StatusCreated, pf)
+}
+
+func (h *PFileHandler) DeleteEvidence(c echo.Context) error {
+	h.log.Inf("REQ: delete evidence")
+	ctx := c.Request().Context()
+	tUuid := c.Param("task_uuid")
+	pfUuid := c.Param("file_uuid")
+	if valid := utils.IsValidUUID(tUuid); !valid {
+		errBody := dtos.NewErrDto("Uuid does not conform to the uuid format")
+		return c.JSON(http.StatusBadRequest, errBody)
+	}
+	if valid := utils.IsValidUUID(pfUuid); !valid {
+		errBody := dtos.NewErrDto("Uuid does not conform to the uuid format")
+		return c.JSON(http.StatusBadRequest, errBody)
+	}
+
+	rErr := h.PFUsecase.DeleteEvidence(ctx, tUuid, pfUuid)
+
+	if rErr != nil {
+		errBody := dtos.NewErrDto(rErr.Error())
+		return c.JSON(rErr.GetStatus(), errBody)
+	}
+
+	return c.NoContent(http.StatusOK)
+}
+
+func (h *PFileHandler) GetAllEvidence(c echo.Context) error {
+	h.log.Inf("REQ: get all")
+	ctx := c.Request().Context()
+	tUuid := c.Param("uuid")
+	if valid := utils.IsValidUUID(tUuid); !valid {
+		errBody := dtos.NewErrDto("Uuid does not conform to the uuid format")
+		return c.JSON(http.StatusBadRequest, errBody)
+	}
+
+	evidences, rErr := h.PFUsecase.GetEvidence(ctx, tUuid)
+	if rErr != nil {
+		errBody := dtos.NewErrDto("File fetch failed")
+		return c.JSON(rErr.GetStatus(), errBody)
+	}
+
+	return c.JSON(http.StatusOK, evidences)
 }

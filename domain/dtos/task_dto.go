@@ -14,8 +14,8 @@ type TaskGetDto struct {
 }
 
 type TaskStoreDto struct {
-	Name        string `json:"name" validate:"required,excludesall=!@#?"`
-	Procedure   string `json:"procedure" validate:"required,excludesall=!@#?"`
+	Name        string `json:"name" validate:"required,excludesall=!@?"`
+	Procedure   string `json:"procedure" validate:"required,excludesall=!@?"`
 	DateCreate  string `json:"date_create" validate:"required,datetime=2006-01-02"`
 	Term        int    `json:"term" validate:"required,number"`
 	Dir         string `json:"dir" validate:"required,uuid"`

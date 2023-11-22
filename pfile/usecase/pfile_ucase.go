@@ -22,17 +22,19 @@ type pFileUseCase struct {
 	pFileRepo      domain.PFileRepository
 	dirRepo        domain.DirRepository
 	userRepo       domain.UserRepository
+	taskRepo       domain.TaskRepository
 	contextTimeout time.Duration
 	log            utils.AggregatedLogger
 }
 
 // NewPFileUsecase will create a new pfileUsecase object representation of domain.PFileUsecase interface
-func NewPFileUsecase(pfr domain.PFileRepository, dr domain.DirRepository, ur domain.UserRepository, timeout time.Duration) domain.PFileUsecase {
+func NewPFileUsecase(pfr domain.PFileRepository, dr domain.DirRepository, ur domain.UserRepository, tr domain.TaskRepository, timeout time.Duration) domain.PFileUsecase {
 	logger := utils.NewAggregatedLogger(constants.Usecase, constants.PFile)
 	return &pFileUseCase{
 		pFileRepo:      pfr,
 		dirRepo:        dr,
 		userRepo:       ur,
+		taskRepo:       tr,
 		contextTimeout: timeout,
 		log:            logger,
 	}
@@ -69,6 +71,10 @@ func (u *pFileUseCase) Upload(c context.Context, p dtos.PFileUploadDto, file *mu
 	// TODO: Refactor functions into something cleaner
 	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
 	defer cancel()
+
+	if p.Subtype == "registro" {
+		p.Code = p.Name
+	}
 
 	src, err := file.Open()
 	if err != nil {
@@ -122,43 +128,6 @@ func (u *pFileUseCase) Upload(c context.Context, p dtos.PFileUploadDto, file *mu
 		return
 	}
 
-	approvations := []domain.Approvation{}
-	if p.AppUser1 != "" {
-		approvation := domain.Approvation{
-			UserUuid:   p.AppUser1,
-			IsApproved: p.Chk1,
-		}
-		approvations = append(approvations, approvation)
-	}
-	if p.AppUser2 != "" {
-		approvation := domain.Approvation{
-			UserUuid:   p.AppUser2,
-			IsApproved: p.Chk2,
-		}
-		approvations = append(approvations, approvation)
-	}
-	if p.AppUser3 != "" {
-		approvation := domain.Approvation{
-			UserUuid:   p.AppUser3,
-			IsApproved: p.Chk3,
-		}
-		approvations = append(approvations, approvation)
-	}
-	if len(approvations) == 0 {
-		err := errors.New("File needs at least one approval user")
-		rErr = domain.NewUCaseErr(http.StatusBadRequest, err)
-		return
-	}
-
-	// check approval users
-	for i, ap := range approvations {
-		if exists := u.userRepo.ExistsByUuid(ctx, ap.UserUuid); !exists {
-			err := errors.New(fmt.Sprint("Approval user ", i, " not found. uuid: ", ap.UserUuid))
-			rErr = domain.NewUCaseErr(http.StatusNotFound, err)
-			return
-		}
-	}
-
 	// check name not taken in dir
 	if taken := u.pFileRepo.IsNameTaken(ctx, p.Name, p.Dir); taken {
 		err := errors.New("File name already taken")
@@ -188,8 +157,50 @@ func (u *pFileUseCase) Upload(c context.Context, p dtos.PFileUploadDto, file *mu
 		Term:         p.Term,
 		Subtype:      p.Subtype,
 	}
-	for i := range approvations {
-		approvations[i].PFileUuid = nFileUuid
+
+	// WARN: Change this garbage code
+	approvations := []domain.Approvation{}
+	if p.Subtype != "registro" && p.Subtype != "evidencia" {
+		// approvations := []domain.Approvation{}
+		if p.AppUser1 != "" {
+			approvation := domain.Approvation{
+				UserUuid:   p.AppUser1,
+				IsApproved: p.Chk1,
+			}
+			approvations = append(approvations, approvation)
+		}
+		if p.AppUser2 != "" {
+			approvation := domain.Approvation{
+				UserUuid:   p.AppUser2,
+				IsApproved: p.Chk2,
+			}
+			approvations = append(approvations, approvation)
+		}
+		if p.AppUser3 != "" {
+			approvation := domain.Approvation{
+				UserUuid:   p.AppUser3,
+				IsApproved: p.Chk3,
+			}
+			approvations = append(approvations, approvation)
+		}
+		if len(approvations) == 0 {
+			err := errors.New("File needs at least one approval user")
+			rErr = domain.NewUCaseErr(http.StatusBadRequest, err)
+			return
+		}
+
+		// check approval users
+		for i, ap := range approvations {
+			if exists := u.userRepo.ExistsByUuid(ctx, ap.UserUuid); !exists {
+				err := errors.New(fmt.Sprint("Approval user ", i, " not found. uuid: ", ap.UserUuid))
+				rErr = domain.NewUCaseErr(http.StatusNotFound, err)
+				return
+			}
+		}
+
+		for i := range approvations {
+			approvations[i].PFileUuid = nFileUuid
+		}
 	}
 
 	nUuid, err := u.pFileRepo.StoreUuid(ctx, nPFile, approvations)
@@ -233,10 +244,14 @@ func (u *pFileUseCase) GetByUuid(c context.Context, uuid string) (pFDto dtos.PFi
 		return
 	}
 
-	apps, err := u.pFileRepo.GetApprovations(ctx, uuid)
-	if err != nil {
-		u.log.Err("IN [GetByUuid] failed to get file approvations ->", err)
-		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+	// WARN: Change this garbage code
+	apps := []domain.Approvation{}
+	if pFile.Subtype != "registro" {
+		apps, err = u.pFileRepo.GetApprovations(ctx, uuid)
+		if err != nil {
+			u.log.Err("IN [GetByUuid] failed to get file approvations ->", err)
+			rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+		}
 	}
 
 	pFDto = mapper.MapPFileToPFileGetDto(pFile, apps)
@@ -248,7 +263,11 @@ func (u *pFileUseCase) Delete(c context.Context, uuid string) (rErr domain.Reque
 	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
 	defer cancel()
 
-	// TODO: Add checks before delete
+	if exists := u.pFileRepo.ExistsByUuid(ctx, uuid); !exists {
+		err := errors.New("File not found. uuid: " + uuid)
+		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
+		return
+	}
 
 	err := u.pFileRepo.Delete(ctx, uuid)
 	if err != nil {
@@ -265,22 +284,19 @@ func (u *pFileUseCase) ChgApprovation(c context.Context, pfUuid, userUuid string
 	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
 	defer cancel()
 
-	// TODO: Add exists check
-	_, err := u.pFileRepo.GetByUuid(ctx, pfUuid)
-	if err != nil {
-		u.log.Err("IN [ChgApprovation] failed to fetch pfile {", pfUuid, "} ->", err)
-		err = errors.New("File not found. uuid: " + pfUuid)
+	if exists := u.pFileRepo.ExistsByUuid(ctx, pfUuid); !exists {
+		err := errors.New("File not found. uuid: " + pfUuid)
 		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
 		return
 	}
 
 	if exists := u.pFileRepo.ApprExistsByPK(ctx, pfUuid, userUuid); !exists {
-		err = errors.New(fmt.Sprintf("User %v is not an approvation user of file %v", userUuid, pfUuid))
+		err := errors.New(fmt.Sprintf("User %v is not an approvation user of file %v", userUuid, pfUuid))
 		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
 		return
 	}
 
-	err = u.pFileRepo.ChgApprovation(ctx, pfUuid, userUuid, chk)
+	err := u.pFileRepo.ChgApprovation(ctx, pfUuid, userUuid, chk)
 	if err != nil {
 		u.log.Err("IN [ChgApprovation] failed to approve pfile ", pfUuid, " with user ", userUuid, " -> ", err)
 		err = errors.New("Failed to delete file")
@@ -307,30 +323,27 @@ func (u *pFileUseCase) ChgState(c context.Context, pfUuid, userUuid, stateDesc s
 		return
 	}
 
-	// TODO: Add exists check
-	_, err := u.pFileRepo.GetByUuid(ctx, pfUuid)
-	if err != nil {
-		u.log.Err("IN [Activate] failed to fetch pfile {", pfUuid, "} ->", err)
-		err = errors.New("File not found. uuid: " + pfUuid)
+	if exists := u.pFileRepo.ExistsByUuid(ctx, pfUuid); !exists {
+		err := errors.New("File not found. uuid: " + pfUuid)
 		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
 		return
 	}
 
 	if exists := u.pFileRepo.ExistsStateByDesc(ctx, stateDesc); !exists {
-		err = errors.New("Invalid state description: " + stateDesc)
+		err := errors.New("Invalid state description: " + stateDesc)
 		rErr = domain.NewUCaseErr(http.StatusNotAcceptable, err)
 		return
 	}
 
 	if "activo" == stateDesc {
 		if approved := u.pFileRepo.IsApproved(ctx, pfUuid); !approved {
-			err = errors.New("File has not been approved")
+			err := errors.New("File has not been approved")
 			rErr = domain.NewUCaseErr(http.StatusNotAcceptable, err)
 			return
 		}
 	}
 
-	err = u.pFileRepo.ChgState(ctx, pfUuid, userUuid, stateDesc)
+	err := u.pFileRepo.ChgState(ctx, pfUuid, userUuid, stateDesc)
 	if err != nil {
 		u.log.Err("IN [Activate] failed to activate pfile ", pfUuid, " -> ", err)
 		err = errors.New("Failed to delete file")
@@ -389,6 +402,90 @@ func (u *pFileUseCase) AddDwnHistory(c context.Context, pfUuid, userUuid string)
 		err := errors.New(fmt.Sprint("Could not add download history"))
 		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
 		return
+	}
+
+	return
+}
+
+func (u *pFileUseCase) UploadEvidence(c context.Context, tUuid string, p dtos.PFileUploadDto, file *multipart.FileHeader) (dto dtos.PFileGetDto, rErr domain.RequestErr) {
+	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
+	defer cancel()
+
+	if exists := u.taskRepo.ExistsByUuid(ctx, tUuid); !exists {
+		err := errors.New(fmt.Sprint("Task not found. uuid: ", tUuid))
+		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
+		return
+	}
+
+	p.Code = p.Name
+	p.DateCreation = time.Now().Format(constants.LayoutDate)
+	p.Version = p.Name
+	p.Term = 1
+
+	dto, rErr = u.Upload(ctx, p, file)
+	if rErr != nil {
+		return
+	}
+
+	err := u.pFileRepo.AddEvidence(ctx, tUuid, dto.Uuid)
+	if err != nil {
+		u.log.Err("IN [UploadEvidence] failed to add evidence ->", err)
+		err := errors.New(fmt.Sprint("Failed to upload evidence"))
+		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
+	}
+
+	return
+}
+
+func (u *pFileUseCase) DeleteEvidence(c context.Context, tUuid, pfUuid string) (rErr domain.RequestErr) {
+	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
+	defer cancel()
+
+	if exists := u.taskRepo.ExistsByUuid(ctx, tUuid); !exists {
+		err := errors.New(fmt.Sprint("Task not found. uuid: ", tUuid))
+		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
+		return
+	}
+
+	// TODO: Add checks before delete
+
+	err := u.pFileRepo.DeleteEvidence(ctx, tUuid, pfUuid)
+	if err != nil {
+		u.log.Err("IN [DeleteEvidence] failed to delete evidence {", tUuid, pfUuid, "} ->", err)
+		err = errors.New("Failed to delete evidence")
+		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+		return
+	}
+
+	err = u.pFileRepo.Delete(ctx, pfUuid)
+	if err != nil {
+		u.log.Err("IN [DeleteEvidence] failed to delete pfile {", pfUuid, "} ->", err)
+		err = errors.New("Failed to delete file")
+		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+		return
+	}
+
+	return
+}
+
+func (u *pFileUseCase) GetEvidence(c context.Context, tUuid string) (res []dtos.PFileGetEvidenceDto, rErr domain.RequestErr) {
+	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
+	defer cancel()
+
+	evidences, err := u.pFileRepo.GetEvidence(ctx, tUuid)
+	if err != nil {
+		u.log.Err("IN [GetEvidence] failed to get evidences ->", err)
+		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+		return
+	}
+
+	res = make([]dtos.PFileGetEvidenceDto, len(evidences), len(evidences))
+	for i, e := range evidences {
+		res[i].TaskUuid = e.TaskUuid
+		res[i].PFileUuid = e.PFileUuid
+		res[i].PFileName = e.PFileName
+		res[i].PFileFsPath = e.PFileFsPath
+		res[i].DateCreation = e.DateCreation.Format(constants.LayoutDate)
 	}
 
 	return

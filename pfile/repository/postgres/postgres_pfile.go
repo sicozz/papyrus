@@ -321,6 +321,34 @@ func (r *postgresPFileRepository) Delete(ctx context.Context, uuid string) (err 
 		return
 	}
 
+	dwnQuery := `DELETE FROM download WHERE pfile = $1`
+	dwnStmt, err := tx.PrepareContext(ctx, dwnQuery)
+	if err != nil {
+		r.log.Err("IN [Delete] failed to prepare context ->", err)
+		return
+	}
+	defer dwnStmt.Close()
+
+	_, err = dwnStmt.ExecContext(ctx, uuid)
+	if uuid == "" && err != nil {
+		r.log.Err("IN [Delete] failed to exec statement ->", err)
+		return
+	}
+
+	upQuery := `DELETE FROM upload WHERE pfile = $1`
+	upStmt, err := tx.PrepareContext(ctx, upQuery)
+	if err != nil {
+		r.log.Err("IN [Delete] failed to prepare context ->", err)
+		return
+	}
+	defer upStmt.Close()
+
+	_, err = upStmt.ExecContext(ctx, uuid)
+	if uuid == "" && err != nil {
+		r.log.Err("IN [Delete] failed to exec statement ->", err)
+		return
+	}
+
 	query := `DELETE FROM pfile WHERE uuid = $1`
 	stmt, err := tx.PrepareContext(ctx, query)
 	if err != nil {
@@ -330,8 +358,7 @@ func (r *postgresPFileRepository) Delete(ctx context.Context, uuid string) (err 
 	defer stmt.Close()
 
 	_, err = stmt.ExecContext(ctx, uuid)
-	// WARN: This thing is to be deleted when you apply prev exists check in usecase
-	if uuid == "" || err != nil {
+	if err != nil {
 		r.log.Err("IN [Delete] failed to exec statement ->", err)
 		return
 	}
@@ -562,6 +589,88 @@ func (r *postgresPFileRepository) AddDwnHistory(ctx context.Context, date time.T
 	_, err = stmt.ExecContext(ctx, date, userUuid, pfUuid)
 	if err != nil {
 		r.log.Err("IN [AddDwnHistory] failed to exec statement ->", err)
+		return
+	}
+
+	return
+}
+
+func (r *postgresPFileRepository) GetEvidence(ctx context.Context, tUuid string) (res []domain.Evidence, err error) {
+	query :=
+		`SELECT
+			e.task_uuid AS task_uuid,
+			pf.uuid AS file_uuid,
+			pf.name AS file_name,
+			pf.fs_path AS file_fs_path,
+			pf.date_creation AS file_date_create
+		FROM
+			evidence e
+			INNER JOIN pfile pf ON(pf.uuid = e.pfile_uuid)
+			WHERE e.task_uuid = $1`
+
+	rows, err := r.Conn.QueryContext(ctx, query, tUuid)
+	if err != nil {
+		res = nil
+		return
+	}
+
+	defer func() {
+		errRow := rows.Close()
+		if errRow != nil {
+			r.log.Err("IN [GetEvidence] failed to close *rows ->", err)
+		}
+	}()
+
+	res = []domain.Evidence{}
+	for rows.Next() {
+		t := domain.Evidence{}
+		err = rows.Scan(
+			&t.TaskUuid,
+			&t.PFileUuid,
+			&t.PFileName,
+			&t.PFileFsPath,
+			&t.DateCreation,
+		)
+
+		if err != nil {
+			r.log.Err("IN [GetEvidence] failed to scan evidence ->", err)
+		}
+		res = append(res, t)
+	}
+
+	return
+}
+
+func (r *postgresPFileRepository) AddEvidence(ctx context.Context, tUuid, pfUuid string) (err error) {
+	query := `INSERT INTO evidence (task_uuid, pfile_uuid) VALUES ($1, $2)`
+	stmt, err := r.Conn.PrepareContext(ctx, query)
+	if err != nil {
+		r.log.Err("IN [AddEvidence] failed to prepare context ->", err)
+		return
+	}
+	defer stmt.Close()
+
+	_, err = stmt.ExecContext(ctx, tUuid, pfUuid)
+	if err != nil {
+		r.log.Err("IN [AddEvidence] failed to exec statement ->", err)
+		return
+	}
+
+	return
+}
+
+func (r *postgresPFileRepository) DeleteEvidence(ctx context.Context, tUuid, pfUuid string) (err error) {
+	query := `DELETE FROM evidence WHERE task_uuid = $1 AND pfile_uuid = $2`
+	stmt, err := r.Conn.PrepareContext(ctx, query)
+	if err != nil {
+		r.log.Err("IN [DeleteEvidence] failed to prepare context ->", err)
+		return
+	}
+	defer stmt.Close()
+
+	_, err = stmt.ExecContext(ctx, tUuid, pfUuid)
+	if err != nil {
+		r.log.Err("IN [DeleteEvidence] failed to exec statement ->", err)
 		return
 	}
 

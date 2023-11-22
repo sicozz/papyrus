@@ -42,19 +42,40 @@ func BindFormToPFileUploadDto(c echo.Context, p *dtos.PFileUploadDto) (err error
 	}
 	p.RespUser = val
 
-	if val = c.FormValue("approval_user1"); "" == val {
-		return errors.New("File approval user 1 is required. approval_user1:")
+	if val = c.FormValue("subtype"); "" == val {
+		return errors.New("File subtype is required. subtype:")
 	}
-	p.AppUser1 = val
+	p.Subtype = val
 
-	if val = c.FormValue("user_check1"); "" == val {
-		return errors.New("File user check 1 is required. user_check1:")
+	if p.Subtype != "registro" && p.Subtype != "evidencia" {
+		if val = c.FormValue("approval_user1"); "" == val {
+			return errors.New("File approval user 1 is required. approval_user1:")
+		}
+		p.AppUser1 = val
+
+		if val = c.FormValue("user_check1"); "" == val {
+			return errors.New("File user check 1 is required. user_check1:")
+		}
+		boolval, err = strconv.ParseBool(val)
+		if err != nil {
+			return errors.New("File user check 1 must be of type boolean")
+		}
+		p.Chk1 = boolval
+
+		if val = c.FormValue("version"); "" == val {
+			return errors.New("File version is required. version:")
+		}
+		p.Version = val
+
+		if val = c.FormValue("term"); "" == val {
+			return errors.New("File term is required. term:")
+		}
+		term, err := strconv.ParseInt(val, 10, 64)
+		if err != nil {
+			return errors.New("File term must be of type integer")
+		}
+		p.Term = int(term)
 	}
-	boolval, err = strconv.ParseBool(val)
-	if err != nil {
-		return errors.New("File user check 1 must be of type boolean")
-	}
-	p.Chk1 = boolval
 
 	if val = c.FormValue("approval_user2"); "" != val {
 		p.AppUser2 = val
@@ -81,25 +102,6 @@ func BindFormToPFileUploadDto(c echo.Context, p *dtos.PFileUploadDto) (err error
 		}
 		p.Chk3 = boolval
 	}
-
-	if val = c.FormValue("version"); "" == val {
-		return errors.New("File version is required. version:")
-	}
-	p.Version = val
-
-	if val = c.FormValue("term"); "" == val {
-		return errors.New("File term is required. term:")
-	}
-	term, err := strconv.ParseInt(val, 10, 64)
-	if err != nil {
-		return errors.New("File term must be of type integer")
-	}
-	p.Term = int(term)
-
-	if val = c.FormValue("subtype"); "" == val {
-		return errors.New("File subtype is required. subtype:")
-	}
-	p.Subtype = val
 
 	return nil
 }

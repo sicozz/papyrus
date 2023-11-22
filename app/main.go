@@ -102,7 +102,8 @@ func main() {
 	pfr := _pFileRepo.NewPostgresPFileRepository(dbConn)
 	pfDr := _dirRepo.NewPostgresDirRepository(dbConn)
 	pfUr := _userRepo.NewPostgresUserRepository(dbConn)
-	pfu := _pFileUsecase.NewPFileUsecase(pfr, pfDr, pfUr, timeoutContext)
+	pfTr := _taskRepo.NewPostgresTaskRepository(dbConn)
+	pfu := _pFileUsecase.NewPFileUsecase(pfr, pfDr, pfUr, pfTr, timeoutContext)
 	_pFileHttpDelivery.NewPFileHandler(e, pfu)
 
 	tr := _taskRepo.NewPostgresTaskRepository(dbConn)

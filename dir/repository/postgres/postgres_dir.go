@@ -221,18 +221,44 @@ func (r *postgresDirRepository) Store(ctx context.Context, d *domain.Dir) (uuid 
 
 // Delete dir by uuid
 func (r *postgresDirRepository) Delete(ctx context.Context, uuid string) (err error) {
-	query := `DELETE FROM dir WHERE uuid = $1`
-	stmt, err := r.Conn.PrepareContext(ctx, query)
+	tx, err := r.Conn.Begin()
+	if err != nil {
+		r.log.Err("IN [Delete] failed to begin transaction ->", err)
+	}
+	defer tx.Rollback()
+
+	permissionQuery := `DELETE FROM permission WHERE dir_uuid = $1`
+	permissionStmt, err := r.Conn.PrepareContext(ctx, permissionQuery)
 	if err != nil {
 		r.log.Err("IN [Delete] failed to prepare context ->", err)
 		return
 	}
-	defer stmt.Close()
+	defer permissionStmt.Close()
 
-	_, err = stmt.ExecContext(ctx, uuid)
+	_, err = permissionStmt.ExecContext(ctx, uuid)
 	if uuid == "" && err == nil {
 		r.log.Err("IN [Delete] failed to exec statement ->", err)
 		return
+	}
+
+	dirQuery := `DELETE FROM dir WHERE uuid = $1`
+	dirStmt, err := r.Conn.PrepareContext(ctx, dirQuery)
+	if err != nil {
+		r.log.Err("IN [Delete] failed to prepare context ->", err)
+		return
+	}
+	defer dirStmt.Close()
+
+	_, err = dirStmt.ExecContext(ctx, uuid)
+	if err != nil {
+		r.log.Err("IN [Delete] failed to exec statement ->", err)
+		return err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		r.log.Err("IN [Delete] failed to commit changes -> ", err)
+		return err
 	}
 
 	return

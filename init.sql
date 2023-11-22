@@ -73,7 +73,7 @@ CREATE TABLE download (
     uuid   UUID       PRIMARY KEY DEFAULT gen_random_uuid(),
     date   TIMESTAMP  NOT NULL,
     user_  UUID       REFERENCES user_ NOT NULL,
-    pfile   UUID       REFERENCES pfile NOT NULL
+    pfile  UUID       REFERENCES pfile NOT NULL
 );
 
 CREATE TABLE upload (
@@ -87,27 +87,6 @@ CREATE TABLE permission (
     user_uuid   UUID  REFERENCES user_(uuid),
     dir_uuid    UUID  REFERENCES dir(uuid),
     PRIMARY KEY (user_uuid, dir_uuid)
-);
-
--- CREATE TABLE write_permission (
---     uuid     UUID     PRIMARY KEY DEFAULT gen_random_uuid(),
---     allowed  BOOLEAN  NOT NULL,
---     user_    UUID     REFERENCES user_ NOT NULL,
---     pfile     UUID     REFERENCES pfile NOT NULL
--- );
-
--- CREATE TABLE read_permission (
---     uuid     UUID     PRIMARY KEY DEFAULT gen_random_uuid(),
---     allowed  BOOLEAN  NOT NULL,
---     user_    UUID     REFERENCES user_ NOT NULL,
---     pfile     UUID     REFERENCES pfile NOT NULL
--- );
-
-CREATE TABLE write_permission (
-    uuid     UUID     PRIMARY KEY DEFAULT gen_random_uuid(),
-    allowed  BOOLEAN  NOT NULL,
-    user_    UUID     REFERENCES user_ NOT NULL,
-    pfile     UUID     REFERENCES pfile NOT NULL
 );
 
 CREATE TABLE project_state (

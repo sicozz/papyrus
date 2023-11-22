@@ -277,6 +277,55 @@ func (u *userUsecase) ChgPasswd(c context.Context, uuid string, data dtos.UserCh
 	return
 }
 
+func (u *userUsecase) RstPasswd(c context.Context, uuid string, data dtos.UserChgPasswdDto) (rErr domain.RequestErr) {
+	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
+	defer cancel()
+
+	if data.NPasswd != data.ReNPasswd {
+		err := errors.New("New passwords dont match")
+		rErr = domain.NewUCaseErr(http.StatusNotAcceptable, err)
+		return
+	}
+
+	if exists := u.userRepo.ExistsByUuid(ctx, uuid); !exists {
+		err := errors.New(fmt.Sprint("User not found. uuid: ", uuid))
+		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
+		return
+	}
+
+	user, err := u.userRepo.GetByUuid(ctx, uuid)
+	if err != nil {
+		u.log.Err("IN [RstPasswd] failed to get user ->", err)
+		err = errors.New(fmt.Sprint("User patch failed. uuid: ", uuid))
+		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
+		return
+	}
+
+	sa, err := u.userRepo.GetByUuid(ctx, "00000000-0000-0000-0000-000000000001")
+	if err != nil {
+		u.log.Err("IN [RstPasswd] failed to get user ->", err)
+		err = errors.New(fmt.Sprint("User patch failed. uuid: ", uuid))
+		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
+		return
+	}
+
+	if auth := u.userRepo.Auth(ctx, sa.Username, data.Passwd); !auth {
+		err = errors.New("Wrong password")
+		rErr = domain.NewUCaseErr(http.StatusNotAcceptable, err)
+		return
+	}
+
+	err = u.userRepo.ChgPasswd(ctx, user.Username, data.NPasswd)
+	if err != nil {
+		u.log.Err("IN [RstPasswd] failed to change password ->", err)
+		err = errors.New(fmt.Sprint("User patch failed: ", err))
+		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+		return
+	}
+
+	return
+}
+
 func (u *userUsecase) Login(c context.Context, uname string, passwd string) (res dtos.UserGetDto, rErr domain.RequestErr) {
 	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
 	defer cancel()

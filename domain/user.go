@@ -40,6 +40,7 @@ type UserUsecase interface {
 	Delete(c context.Context, uname string) RequestErr
 	Update(c context.Context, uuid string, d dtos.UserUpdateDto) RequestErr
 	ChgPasswd(c context.Context, uuid string, data dtos.UserChgPasswdDto) RequestErr
+	RstPasswd(c context.Context, uuid string, data dtos.UserChgPasswdDto) RequestErr
 
 	GetUserPermittedDirs(c context.Context, uUuid string) ([]dtos.DirGetDto, RequestErr)
 	AddPermission(c context.Context, uUuid, dUuid string) RequestErr

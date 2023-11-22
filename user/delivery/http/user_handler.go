@@ -27,6 +27,7 @@ func NewUserHandler(e *echo.Echo, uu domain.UserUsecase) {
 	e.DELETE("/user/:uname", handler.Delete)
 	e.PATCH("/user/:uuid", handler.Update)
 	e.PATCH("/user/:uuid/chg_password", handler.ChgPasswd)
+	e.PATCH("/user/:uuid/rst_password", handler.RstPasswd)
 	e.POST("/login", handler.Login)
 
 	e.GET("/user/:uuid/permission", handler.GetUserPermittedDirs)
@@ -212,6 +213,46 @@ func (h *UserHandler) ChgPasswd(c echo.Context) error {
 	}
 
 	rErr := h.UUsecase.ChgPasswd(ctx, uuid, data)
+	if rErr != nil {
+		errBody := dtos.NewErrDto(rErr.Error())
+		return c.JSON(rErr.GetStatus(), errBody)
+	}
+
+	return c.NoContent(http.StatusOK)
+}
+
+func (h *UserHandler) RstPasswd(c echo.Context) error {
+	h.log.Inf("REQ: reset password")
+	ctx := c.Request().Context()
+
+	uuid := c.Param("uuid")
+	if valid := utils.IsValidUUID(uuid); !valid {
+		errBody := dtos.NewErrDto("Uuid does not conform to the uuid format")
+		return c.JSON(http.StatusBadRequest, errBody)
+	}
+
+	if valid := utils.IsValidUUID(uuid); !valid {
+		errBody := dtos.NewErrDto("Uuid does not conform to the uuid format")
+		return c.JSON(http.StatusBadRequest, errBody)
+	}
+
+	var data dtos.UserChgPasswdDto
+	err := c.Bind(&data)
+	if err != nil {
+		errBody := dtos.NewErrDto(fmt.Sprint("Req body binding failed: ", err))
+		return c.JSON(http.StatusBadRequest, errBody)
+	}
+
+	if ok, err := utils.IsRequestValid(&data); !ok {
+		errBody, err := dtos.NewValidationErrDto(err.Error())
+		if err != nil {
+			errValid := dtos.NewErrDto(fmt.Sprint("Req body validation failed: ", err))
+			return c.JSON(http.StatusBadRequest, errValid)
+		}
+		return c.JSON(http.StatusBadRequest, errBody)
+	}
+
+	rErr := h.UUsecase.RstPasswd(ctx, uuid, data)
 	if rErr != nil {
 		errBody := dtos.NewErrDto(rErr.Error())
 		return c.JSON(rErr.GetStatus(), errBody)

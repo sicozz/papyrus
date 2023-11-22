@@ -48,13 +48,11 @@ DECLARE
     res BOOLEAN := FALSE;
 BEGIN
     rootUuid := '00000000-0000-0000-0000-000000000000';
-    u := dirUuid;
+    u := destDir;
 
     WHILE u <> rootUuid LOOP
         SELECT parent_dir INTO v FROM dir WHERE uuid = u;
-        -- TODO: Try fixing relation, it is not to find out if destDir
-        -- is over dirUuid, but to check if dirUuid is over destDir
-        IF destDir = v THEN
+        IF dirUuid = v THEN
             res := TRUE;
             u := rootUuid;
         ELSE

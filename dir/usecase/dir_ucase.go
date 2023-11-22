@@ -89,7 +89,16 @@ func (u *dirUsecase) GetAll(c context.Context) (res []dtos.DirGetDto, rErr domai
 			if pf.Uuid == res[j].Uuid {
 				// TODO: put this type and state in mapper
 				res[j].Type = "documento"
+				// WARN: Esto es demasiado mediocre
+				if pf.Subtype == "registro" || pf.Subtype == "evidencia" {
+					res[j].Type = pf.Subtype
+				}
 				res[j].State = pf.State
+
+				res[j].RespUser = pf.RespUser
+				res[j].Subtype = pf.Subtype
+				res[j].Datecreate = pf.DateCreation.Format(constants.LayoutDate)
+				res[j].Term = pf.Term
 			}
 		}
 	}
@@ -99,6 +108,7 @@ func (u *dirUsecase) GetAll(c context.Context) (res []dtos.DirGetDto, rErr domai
 				// TODO: put this type and state in mapper
 				res[j].Type = "tarea"
 				res[j].State = t.State
+				res[j].Term = t.Term
 			}
 		}
 	}
@@ -168,11 +178,14 @@ func (u *dirUsecase) GetDocsByUser(c context.Context, uuid string) (res []dtos.D
 
 	res = []dtos.DocsNotDirGetDto{}
 	for _, pf := range pFiles {
-		apps, err := u.pFileRepo.GetApprovations(ctx, pf.Uuid)
-		if err != nil {
-			u.log.Err("IN [GetDocsByUser] failed to get file approvations ->", err)
-			rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
-			return
+		apps := []domain.Approvation{}
+		if pf.Subtype != "registro" {
+			apps, err = u.pFileRepo.GetApprovations(ctx, pf.Uuid)
+			if err != nil {
+				u.log.Err("IN [GetDocsByUser] failed to get file approvations ->", err)
+				rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+				return
+			}
 		}
 
 		dnd := mapper.MapPFileToDocsNotDirGetDto(pf, apps)

@@ -109,7 +109,7 @@ CREATE TABLE plan_state (
 
 CREATE TABLE plan (
     uuid              UUID           PRIMARY KEY DEFAULT gen_random_uuid(),
-    title             VARCHAR(1024)    NOT NULL,
+    title             VARCHAR(1024)  NOT NULL,
     description       VARCHAR(2048)  NOT NULL,
     origin            VARCHAR(2048)  NOT NULL,
     analysis          VARCHAR(2048)  NOT NULL,
@@ -117,6 +117,7 @@ CREATE TABLE plan (
     record_date       TIMESTAMP      NOT NULL,
     termination_date  TIMESTAMP      NOT NULL,
     state             SERIAL         REFERENCES plan_state NOT NULL,
+    stage             SERIAL         NOT NULL,
     project           UUID           REFERENCES project NOT NULL,
     issuing_user_     UUID           REFERENCES user_ NOT NULL,
     offender_user_    UUID           REFERENCES user_ NOT NULL,

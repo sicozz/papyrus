@@ -16,6 +16,9 @@ import (
 	_pFileHttpDelivery "github.com/sicozz/papyrus/pfile/delivery/http"
 	_pFileRepo "github.com/sicozz/papyrus/pfile/repository/postgres"
 	_pFileUsecase "github.com/sicozz/papyrus/pfile/usecase"
+	_planHttpDelivery "github.com/sicozz/papyrus/plan/delivery/http"
+	_planRepo "github.com/sicozz/papyrus/plan/repository/postgres"
+	_planUsecase "github.com/sicozz/papyrus/plan/usecase"
 	_roleRepo "github.com/sicozz/papyrus/role/repository/postgres"
 	_taskHttpDelivery "github.com/sicozz/papyrus/task/delivery/http"
 	_taskRepo "github.com/sicozz/papyrus/task/repository/postgres"
@@ -111,6 +114,13 @@ func main() {
 	tUr := _userRepo.NewPostgresUserRepository(dbConn)
 	tU := _taskUsecase.NewTaskUsecase(tr, tDr, tUr, timeoutContext)
 	_taskHttpDelivery.NewTaskHandler(e, tU)
+
+	pr := _planRepo.NewPostgresPlanRepository(dbConn)
+	pUr := _userRepo.NewPostgresUserRepository(dbConn)
+	pDr := _dirRepo.NewPostgresDirRepository(dbConn)
+	pTr := _taskRepo.NewPostgresTaskRepository(dbConn)
+	pu := _planUsecase.NewPlanUsecase(pr, pUr, pDr, pTr, timeoutContext)
+	_planHttpDelivery.NewPlanHandler(e, pu)
 
 	e.Logger.Fatal(e.Start(":9090"))
 	/**

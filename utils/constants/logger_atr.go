@@ -20,4 +20,5 @@ const (
 	Dir       Domain = "DIR"
 	PFile     Domain = "PFILE"
 	Task      Domain = "TASK"
+	Plan      Domain = "PLAN"
 )

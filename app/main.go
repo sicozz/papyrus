@@ -99,7 +99,8 @@ func main() {
 	dUr := _userRepo.NewPostgresUserRepository(dbConn)
 	dPfr := _pFileRepo.NewPostgresPFileRepository(dbConn)
 	dTr := _taskRepo.NewPostgresTaskRepository(dbConn)
-	du := _dirUsecase.NewDirUsecase(dr, dUr, dPfr, dTr, timeoutContext)
+	dPr := _planRepo.NewPostgresPlanRepository(dbConn)
+	du := _dirUsecase.NewDirUsecase(dr, dUr, dPfr, dTr, dPr, timeoutContext)
 	_dirHttpDelivery.NewDirHandler(e, du)
 
 	pfr := _pFileRepo.NewPostgresPFileRepository(dbConn)

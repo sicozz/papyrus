@@ -89,7 +89,26 @@ func (u *taskUsecase) GetByUser(c context.Context, uuid string) (res []dtos.Task
 
 	tasks, err := u.taskRepo.GetByUser(ctx, uuid)
 	if err != nil {
-		u.log.Err(fmt.Sprintf("IN [GetByUuid] failed to get tasks from user uuid: %v -> %v", uuid, err))
+		u.log.Err(fmt.Sprintf("IN [GetByUser] failed to get tasks from user uuid: %v -> %v", uuid, err))
+		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+		return
+	}
+
+	res = make([]dtos.TaskGetDto, len(tasks), len(tasks))
+	for i, t := range tasks {
+		res[i] = mapper.MapTaskToTaskGetDto(t)
+	}
+
+	return
+}
+
+func (u *taskUsecase) GetByPlan(c context.Context, uuid string) (res []dtos.TaskGetDto, rErr domain.RequestErr) {
+	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
+	defer cancel()
+
+	tasks, err := u.taskRepo.GetByPlan(ctx, uuid)
+	if err != nil {
+		u.log.Err(fmt.Sprintf("IN [GetByPlan] failed to get tasks from plan uuid: %v -> %v", uuid, err))
 		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
 		return
 	}
@@ -143,6 +162,7 @@ func (u *taskUsecase) Store(c context.Context, p dtos.TaskStoreDto) (res dtos.Ta
 		Dir:          p.Dir,
 		CreatorUser:  p.CreatorUser,
 		RecvUser:     p.RecvUser,
+		Plan:         p.Plan,
 	}
 
 	nUuid, err := u.taskRepo.Store(ctx, t)
@@ -162,6 +182,79 @@ func (u *taskUsecase) Store(c context.Context, p dtos.TaskStoreDto) (res dtos.Ta
 	}
 
 	res = mapper.MapTaskToTaskGetDto(nTask)
+
+	return
+}
+
+func (u *taskUsecase) StoreMultiple(c context.Context, inputDtos []dtos.TaskStoreDto) (res []dtos.TaskGetDto, rErr domain.RequestErr) {
+	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
+	defer cancel()
+
+	tasks := []domain.Task{}
+	for _, iDto := range inputDtos {
+		// parse date_creation
+		dateCreation, err := time.Parse(constants.LayoutDate, iDto.DateCreate)
+		if err != nil {
+			u.log.Err("IN [StoreMultiple] failed to parse DateCreation ->", err)
+			rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+			return
+		}
+
+		// check dir
+		if exists := u.dirRepo.ExistsByUuid(ctx, iDto.Dir); !exists {
+			err := errors.New(fmt.Sprint("Dir not found. uuid: ", iDto.Dir))
+			rErr = domain.NewUCaseErr(http.StatusNotFound, err)
+			return
+		}
+
+		// check creator user
+		if exists := u.userRepo.ExistsByUuid(ctx, iDto.CreatorUser); !exists {
+			err := errors.New(fmt.Sprint("Creator user not found. uuid: ", iDto.CreatorUser))
+			rErr = domain.NewUCaseErr(http.StatusNotFound, err)
+			return
+		}
+
+		// check receiver user
+		if exists := u.userRepo.ExistsByUuid(ctx, iDto.RecvUser); !exists {
+			err := errors.New(fmt.Sprint("Receiver user not found. uuid: ", iDto.RecvUser))
+			rErr = domain.NewUCaseErr(http.StatusNotFound, err)
+			return
+		}
+
+		t := domain.Task{
+			Name:         iDto.Name,
+			Procedure:    iDto.Procedure,
+			DateCreation: dateCreation,
+			Term:         iDto.Term,
+			Dir:          iDto.Dir,
+			CreatorUser:  iDto.CreatorUser,
+			RecvUser:     iDto.RecvUser,
+			Plan:         iDto.Plan,
+		}
+
+		tasks = append(tasks, t)
+	}
+
+	err := u.taskRepo.StoreMultiple(ctx, tasks)
+	if err != nil {
+		u.log.Err("IN [StoreMultiple] failed to store tasks ->", err)
+		err := errors.New("Failed to store tasks")
+		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
+		return
+	}
+
+	nTasks, err := u.taskRepo.GetByPlan(ctx, tasks[0].Plan)
+	if err != nil {
+		u.log.Err("IN [StoreMultiple] failed to retrieve new tasks ->", err)
+		err := errors.New("Failed to retrieve new tasks")
+		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
+		return
+	}
+
+	res = []dtos.TaskGetDto{}
+	for _, nT := range nTasks {
+		res = append(res, mapper.MapTaskToTaskGetDto(nT))
+	}
 
 	return
 }

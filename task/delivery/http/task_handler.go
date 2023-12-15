@@ -21,8 +21,10 @@ func NewTaskHandler(e *echo.Echo, tu domain.TaskUsecase) {
 	handler := &TaskHandler{tu, logger}
 	e.GET("/task", handler.GetAll)
 	e.POST("/task", handler.Store)
+	e.POST("/task/multiple", handler.StoreMultiple)
 	e.GET("/task/:uuid", handler.GetByUuid)
 	e.GET("/task/user/:uuid", handler.GetByUser)
+	e.GET("/task/plan/:uuid", handler.GetByPlan)
 	e.DELETE("/task/:task_uuid/user/:user_uuid", handler.Delete)
 	e.PATCH("/task/:task_uuid/user/:user_uuid/check", handler.ChgCheck)
 	e.PATCH("/task/:task_uuid/user/:user_uuid/state", handler.ChgState)
@@ -89,6 +91,36 @@ func (h *TaskHandler) Store(c echo.Context) (err error) {
 	return c.JSON(http.StatusCreated, dir)
 }
 
+func (h *TaskHandler) StoreMultiple(c echo.Context) (err error) {
+	h.log.Inf("REQ: store")
+	var inputDtos []dtos.TaskStoreDto
+	err = c.Bind(&inputDtos)
+	if err != nil {
+		errBody := dtos.NewErrDto(err.Error())
+		return c.JSON(http.StatusBadRequest, errBody)
+	}
+
+	for _, d := range inputDtos {
+		if ok, err := utils.IsRequestValid(&d); !ok {
+			errBody, err := dtos.NewValidationErrDto(err.Error())
+			if err != nil {
+				errParse := dtos.NewErrDto(err.Error())
+				return c.JSON(http.StatusBadRequest, errParse)
+			}
+			return c.JSON(http.StatusBadRequest, errBody)
+		}
+	}
+
+	ctx := c.Request().Context()
+	newTasks, rErr := h.TUsecase.StoreMultiple(ctx, inputDtos)
+	if rErr != nil {
+		errBody := dtos.NewErrDto(rErr.Error())
+		return c.JSON(rErr.GetStatus(), errBody)
+	}
+
+	return c.JSON(http.StatusCreated, newTasks)
+}
+
 func (h *TaskHandler) GetByUser(c echo.Context) error {
 	h.log.Inf("REQ: get by user")
 	ctx := c.Request().Context()
@@ -107,6 +139,26 @@ func (h *TaskHandler) GetByUser(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, dir)
+}
+
+func (h *TaskHandler) GetByPlan(c echo.Context) error {
+	h.log.Inf("REQ: get by plan")
+	ctx := c.Request().Context()
+
+	uuid := c.Param("uuid")
+	if valid := utils.IsValidUUID(uuid); !valid {
+		errBody := dtos.NewErrDto("Uuid does not conform to the uuid format")
+		return c.JSON(http.StatusBadRequest, errBody)
+	}
+
+	tasks, rErr := h.TUsecase.GetByPlan(ctx, uuid)
+
+	if rErr != nil {
+		errBody := dtos.NewErrDto(rErr.Error())
+		return c.JSON(rErr.GetStatus(), errBody)
+	}
+
+	return c.JSON(http.StatusOK, tasks)
 }
 
 func (h *TaskHandler) ChgCheck(c echo.Context) (err error) {

@@ -19,18 +19,20 @@ type dirUsecase struct {
 	userRepo       domain.UserRepository
 	pFileRepo      domain.PFileRepository
 	taskRepo       domain.TaskRepository
+	planRepo       domain.PlanRepository
 	contextTimeout time.Duration
 	log            utils.AggregatedLogger
 }
 
 // NewDirUsecase will create a new dirUsecase object representation of domain.DirUsecase interface
-func NewDirUsecase(dr domain.DirRepository, ur domain.UserRepository, pfr domain.PFileRepository, tr domain.TaskRepository, timeout time.Duration) domain.DirUsecase {
+func NewDirUsecase(dr domain.DirRepository, ur domain.UserRepository, pfr domain.PFileRepository, tr domain.TaskRepository, pr domain.PlanRepository, timeout time.Duration) domain.DirUsecase {
 	logger := utils.NewAggregatedLogger(constants.Usecase, constants.Dir)
 	return &dirUsecase{
 		dirRepo:        dr,
 		userRepo:       ur,
 		pFileRepo:      pfr,
 		taskRepo:       tr,
+		planRepo:       pr,
 		contextTimeout: timeout,
 		log:            logger,
 	}
@@ -112,6 +114,18 @@ func (u *dirUsecase) GetAll(c context.Context) (res []dtos.DirGetDto, rErr domai
 			}
 		}
 	}
+
+	plans, err := u.planRepo.GetAll(ctx)
+	if err != nil {
+		u.log.Err("IN [GetAll] failed to get plan ->", err)
+		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+		return
+	}
+	for _, plan := range plans {
+		planDirDto := mapper.MapPlanToDirGetDto(plan)
+		res = append(res, planDirDto)
+	}
+
 	return
 }
 

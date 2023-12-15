@@ -11,6 +11,7 @@ type TaskGetDto struct {
 	CreatorUser  string `json:"creator_user"`
 	RecvUser     string `json:"receiver_user"`
 	Chk          bool   `json:"check"`
+	Plan         string `json:"plan"`
 }
 
 type TaskStoreDto struct {
@@ -21,6 +22,7 @@ type TaskStoreDto struct {
 	Dir         string `json:"dir" validate:"required,uuid"`
 	CreatorUser string `json:"creator_user" validate:"required,uuid"`
 	RecvUser    string `json:"receiver_user" validate:"required,uuid"`
+	Plan        string `json:"plan"`
 }
 
 type TaskChgCheck struct {
@@ -29,4 +31,8 @@ type TaskChgCheck struct {
 
 type TaskChgStateDto struct {
 	StateDesc string `json:"state" validate:"required,excludesall=!@#?"`
+}
+
+type Tmptest struct {
+	Name string `json:"name"`
 }

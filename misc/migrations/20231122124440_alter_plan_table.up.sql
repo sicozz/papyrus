@@ -49,10 +49,5 @@ ADD action5_desc      VARCHAR(2048),
 ADD action5_date      VARCHAR(2048),
 ADD action5_user      VARCHAR(36);
 
--- Create the 'action' table
--- CREATE TABLE action (
---     uuid          UUID           PRIMARY KEY DEFAULT gen_random_uuid(),
---     description   VARCHAR(2048)  NOT NULL,
---     creator_user  UUID           REFERENCES user_ NOT NULL,
---     date_close    TIMESTAMP      NOT NULL  -- Removed semicolon here
--- );
+ALTER TABLE task
+ADD plan              VARCHAR(36);

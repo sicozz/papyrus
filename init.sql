@@ -142,5 +142,4 @@ CREATE TABLE task (
     creator_user   UUID           REFERENCES user_ NOT NULL,
     recv_user      UUID           REFERENCES user_,
     chk            BOOLEAN        NOT NULL
-    -- plan           UUID           REFERENCES plan
 );

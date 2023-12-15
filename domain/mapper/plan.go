@@ -43,3 +43,14 @@ func MapPlanToPlanGetDto(p domain.Plan) dtos.PlanGetDto {
 		Action5user:  p.Action5user,
 	}
 }
+
+func MapPlanToDirGetDto(p domain.Plan) dtos.DirGetDto {
+	return dtos.DirGetDto{
+		Uuid:      p.Uuid,
+		Name:      p.Name,
+		ParentDir: p.Dir,
+		Term:      p.Term,
+		RespUser:  p.RespUser,
+		Type:      "plan",
+	}
+}

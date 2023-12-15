@@ -18,17 +18,20 @@ type Task struct {
 	CreatorUser  string
 	RecvUser     string
 	Check        bool
+	Plan         string
 }
 
 type TaskUsecase interface {
 	GetAll(c context.Context) ([]dtos.TaskGetDto, RequestErr)
 	GetByUuid(c context.Context, uuid string) (dtos.TaskGetDto, RequestErr)
 	Store(c context.Context, t dtos.TaskStoreDto) (dtos.TaskGetDto, RequestErr)
+	StoreMultiple(c context.Context, inputDtos []dtos.TaskStoreDto) ([]dtos.TaskGetDto, RequestErr)
 	ChgCheck(c context.Context, tUuid, uUuid string, chk bool) RequestErr
 	ChgState(c context.Context, tUuid, uUuid string, desc string) RequestErr
 	Delete(c context.Context, tUuid, uUuid string) RequestErr
 
 	GetByUser(c context.Context, uuid string) ([]dtos.TaskGetDto, RequestErr)
+	GetByPlan(c context.Context, uuid string) ([]dtos.TaskGetDto, RequestErr)
 }
 
 type TaskRepository interface {
@@ -36,6 +39,7 @@ type TaskRepository interface {
 	GetByUuid(ctx context.Context, uuid string) (Task, error)
 	ExistsByUuid(ctx context.Context, uuid string) bool
 	Store(ctx context.Context, t Task) (string, error)
+	StoreMultiple(ctx context.Context, tasks []Task) error
 	ChgCheck(ctx context.Context, tUuid string, uUuid string, chk bool) error
 	ChgState(ctx context.Context, tUuid string, uUuid string, desc string) error
 	Delete(ctx context.Context, tUuid, uUuid string) error
@@ -43,4 +47,5 @@ type TaskRepository interface {
 	ExistsStateByDesc(ctx context.Context, desc string) bool
 
 	GetByUser(c context.Context, uuid string) ([]Task, error)
+	GetByPlan(c context.Context, uuid string) ([]Task, error)
 }

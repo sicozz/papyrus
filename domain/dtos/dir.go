@@ -19,7 +19,7 @@ type DirGetDto struct {
 	Open      bool   `json:"open"`
 	State     string `json:"state"`
 
-	// Only file attributes
+	// file and/or plan attributes
 	RespUser   string `json:"responsible_user"`
 	Subtype    string `json:"subtype"`
 	Datecreate string `json:"date_create"`

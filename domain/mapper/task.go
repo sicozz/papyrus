@@ -18,6 +18,7 @@ func MapTaskToTaskGetDto(t domain.Task) dtos.TaskGetDto {
 		CreatorUser:  t.CreatorUser,
 		RecvUser:     t.RecvUser,
 		Chk:          t.Check,
+		Plan:         t.Plan,
 	}
 }
 

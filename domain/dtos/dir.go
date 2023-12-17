@@ -20,10 +20,11 @@ type DirGetDto struct {
 	State     string `json:"state"`
 
 	// file and/or plan attributes
-	RespUser   string `json:"responsible_user"`
-	Subtype    string `json:"subtype"`
-	Datecreate string `json:"date_create"`
-	Term       int    `json:"term"`
+	RespUser    string `json:"responsible_user"`
+	CreatorUser string `json:"creator_user"`
+	Subtype     string `json:"subtype"`
+	Datecreate  string `json:"date_create"`
+	Term        int    `json:"term"`
 }
 
 type DirStoreDto struct {

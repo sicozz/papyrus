@@ -17,7 +17,7 @@ type Plan struct {
 	CreatorUser  string
 	RespUser     string
 	DateCreation time.Time
-	DateClose    time.Time
+	DateClose    string
 	Causes       string
 	Conclusions  string
 	State        string

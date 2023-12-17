@@ -1,32 +1,34 @@
-code=00_code
-name=00_name
-origin=00_origin
-action_type=00_action_type
-term:=32
-creator_user=00000000-0000-0000-0000-000000000001
-responsible_user=00000000-0000-0000-0000-000000000001
-date_create=2001-02-21
-date_close=2099-02-21
-causes=00_causes
-conclusions=00_conclusions
-parent_dir=00000000-0000-0000-0000-000000000000
-state=00_state
-stage:=1
-action0desc=""
-action0date=""
-action0user=""
-action1desc=""
-action1date=""
-action1user=""
-action2desc=""
-action2date=""
-action2user=""
-action3desc=""
-action3date=""
-action3user=""
-action4desc=""
-action4date=""
-action4user=""
-action5desc=""
-action5date=""
-action5user=""
+{
+  "code": "00_code",
+  "name": "00_name",
+  "origin": "00_origin",
+  "action_type": "00_action_type",
+  "term": 32,
+  "creator_user": "00000000-0000-0000-0000-000000000001",
+  "responsible_user": "00000000-0000-0000-0000-000000000001",
+  "date_create": "2001-02-21",
+  "date_close": "",
+  "causes": "",
+  "conclusions": "",
+  "parent_dir": "00000000-0000-0000-0000-000000000000",
+  "state": "00_state",
+  "stage": 1,
+  "action0desc": "",
+  "action0date": "",
+  "action0user": "",
+  "action1desc": "",
+  "action1date": "",
+  "action1user": "",
+  "action2desc": "",
+  "action2date": "",
+  "action2user": "",
+  "action3desc": "",
+  "action3date": "",
+  "action3user": "",
+  "action4desc": "",
+  "action4date": "",
+  "action4user": "",
+  "action5desc": "",
+  "action5date": "",
+  "action5user": ""
+}

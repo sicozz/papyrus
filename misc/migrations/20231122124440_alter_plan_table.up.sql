@@ -24,9 +24,9 @@ ADD term              INTEGER        NOT NULL,
 ADD creator_user      UUID           REFERENCES user_ NOT NULL,
 ADD resp_user         UUID           REFERENCES user_ NOT NULL,
 ADD date_create       TIMESTAMP      NOT NULL,
-ADD date_close        TIMESTAMP      NOT NULL,
-ADD causes            VARCHAR(2048)  NOT NULL,
-ADD conclusions       VARCHAR(2048)  NOT NULL,
+ADD date_close        VARCHAR(2048),
+ADD causes            VARCHAR(2048),
+ADD conclusions       VARCHAR(2048),
 ADD state             VARCHAR(2048)  NOT NULL,
 ADD stage             SERIAL         NOT NULL,
 ADD dir               UUID           REFERENCES dir NOT NULL,
@@ -50,4 +50,4 @@ ADD action5_date      VARCHAR(2048),
 ADD action5_user      VARCHAR(36);
 
 ALTER TABLE task
-ADD plan              VARCHAR(36);
+ADD plan              VARCHAR(36) DEFAULT '0';

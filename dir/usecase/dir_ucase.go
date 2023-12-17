@@ -123,6 +123,12 @@ func (u *dirUsecase) GetAll(c context.Context) (res []dtos.DirGetDto, rErr domai
 	}
 	for _, plan := range plans {
 		planDirDto := mapper.MapPlanToDirGetDto(plan)
+		for _, d := range res {
+			if d.Uuid == planDirDto.ParentDir {
+				planDirDto.Path = d.Path
+				planDirDto.Depth = d.Depth
+			}
+		}
 		res = append(res, planDirDto)
 	}
 

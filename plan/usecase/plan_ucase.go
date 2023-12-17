@@ -89,12 +89,12 @@ func (u *planUsecase) Store(c context.Context, dto dtos.PlanStoreDto) (res dtos.
 		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
 		return
 	}
-	dateClose, err := time.Parse(constants.LayoutDate, dto.DateClose)
-	if err != nil {
-		u.log.Err("IN [Store] failed to parse DateClose ->", err)
-		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
-		return
-	}
+	// dateClose, err := time.Parse(constants.LayoutDate, dto.DateClose)
+	// if err != nil {
+	// 	u.log.Err("IN [Store] failed to parse DateClose ->", err)
+	// 	rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+	// 	return
+	// }
 
 	if exists := u.dirRepo.ExistsByUuid(ctx, dto.Dir); !exists {
 		err := errors.New(fmt.Sprint("Plan dir not found. uuid: ", dto.Dir))
@@ -123,30 +123,31 @@ func (u *planUsecase) Store(c context.Context, dto dtos.PlanStoreDto) (res dtos.
 		CreatorUser:  dto.CreatorUser,
 		RespUser:     dto.RespUser,
 		DateCreation: dateCreation,
-		DateClose:    dateClose,
-		Causes:       dto.Causes,
-		Conclusions:  dto.Conclusions,
-		Dir:          dto.Dir,
-		State:        dto.State,
-		Stage:        dto.Stage,
-		Action0desc:  dto.Action0desc,
-		Action0date:  dto.Action0date,
-		Action0user:  dto.Action0user,
-		Action1desc:  dto.Action1desc,
-		Action1date:  dto.Action1date,
-		Action1user:  dto.Action1user,
-		Action2desc:  dto.Action2desc,
-		Action2date:  dto.Action2date,
-		Action2user:  dto.Action2user,
-		Action3desc:  dto.Action3desc,
-		Action3date:  dto.Action3date,
-		Action3user:  dto.Action3user,
-		Action4desc:  dto.Action4desc,
-		Action4date:  dto.Action4date,
-		Action4user:  dto.Action4user,
-		Action5desc:  dto.Action5desc,
-		Action5date:  dto.Action5date,
-		Action5user:  dto.Action5user,
+		// DateClose: dateClose,
+		DateClose:   dto.DateClose,
+		Causes:      dto.Causes,
+		Conclusions: dto.Conclusions,
+		Dir:         dto.Dir,
+		State:       dto.State,
+		Stage:       dto.Stage,
+		Action0desc: dto.Action0desc,
+		Action0date: dto.Action0date,
+		Action0user: dto.Action0user,
+		Action1desc: dto.Action1desc,
+		Action1date: dto.Action1date,
+		Action1user: dto.Action1user,
+		Action2desc: dto.Action2desc,
+		Action2date: dto.Action2date,
+		Action2user: dto.Action2user,
+		Action3desc: dto.Action3desc,
+		Action3date: dto.Action3date,
+		Action3user: dto.Action3user,
+		Action4desc: dto.Action4desc,
+		Action4date: dto.Action4date,
+		Action4user: dto.Action4user,
+		Action5desc: dto.Action5desc,
+		Action5date: dto.Action5date,
+		Action5user: dto.Action5user,
 	}
 
 	nUuid, err := u.planRepo.Store(ctx, p)
@@ -180,12 +181,12 @@ func (u *planUsecase) Update(c context.Context, uuid string, dto dtos.PlanUpdate
 		return
 	}
 
-	dateClose, err := time.Parse(constants.LayoutDate, dto.DateClose)
-	if err != nil {
-		u.log.Err("IN [Store] failed to parse DateClose ->", err)
-		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
-		return
-	}
+	// dateClose, err := time.Parse(constants.LayoutDate, dto.DateClose)
+	// if err != nil {
+	// 	u.log.Err("IN [Store] failed to parse DateClose ->", err)
+	// 	rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+	// 	return
+	// }
 
 	if exists := u.dirRepo.ExistsByUuid(ctx, dto.Dir); !exists {
 		err := errors.New(fmt.Sprint("Plan dir not found. uuid: ", dto.Dir))
@@ -200,12 +201,13 @@ func (u *planUsecase) Update(c context.Context, uuid string, dto dtos.PlanUpdate
 	}
 
 	p := domain.Plan{
-		Name:        dto.Name,
-		Origin:      dto.Origin,
-		ActionType:  dto.ActionType,
-		Term:        dto.Term,
-		RespUser:    dto.RespUser,
-		DateClose:   dateClose,
+		Name:       dto.Name,
+		Origin:     dto.Origin,
+		ActionType: dto.ActionType,
+		Term:       dto.Term,
+		RespUser:   dto.RespUser,
+		// DateClose:   dateClose,
+		DateClose:   dto.DateClose,
 		Causes:      dto.Causes,
 		Conclusions: dto.Conclusions,
 		Dir:         dto.Dir,
@@ -231,7 +233,7 @@ func (u *planUsecase) Update(c context.Context, uuid string, dto dtos.PlanUpdate
 		Action5user: dto.Action5user,
 	}
 
-	err = u.planRepo.Update(ctx, uuid, p)
+	err := u.planRepo.Update(ctx, uuid, p)
 	if err != nil {
 		u.log.Err("IN [Update] failed to update plan ->", err)
 		err := errors.New("Failed to update plan")

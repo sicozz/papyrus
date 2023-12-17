@@ -47,12 +47,12 @@ type PlanStoreDto struct {
 	CreatorUser  string `json:"creator_user" validate:"required,excludesall=!@?"`
 	RespUser     string `json:"responsible_user" validate:"required,excludesall=!@?"`
 	DateCreation string `json:"date_create" validate:"required,excludesall=!@?"`
-	DateClose    string `json:"date_close" validate:"required,excludesall=!@?"`
-	Causes       string `json:"causes" validate:"required,excludesall=!@?"`
-	Conclusions  string `json:"conclusions" validate:"required,excludesall=!@?"`
+	DateClose    string `json:"date_close" validate:"excludesall=!@?"`
 	Dir          string `json:"parent_dir" validate:"required,excludesall=!@?"`
 	State        string `json:"state" validate:"required,excludesall=!@?"`
 	Stage        int    `json:"stage" validate:"required,excludesall=!@?"`
+	Causes       string `json:"causes" validate:"excludesall=!@?"`
+	Conclusions  string `json:"conclusions" validate:"excludesall=!@?"`
 
 	Action0desc string `json:"action0_desc" validate:"excludesall=!@?"`
 	Action0date string `json:"action0_date" validate:"excludesall=!@?"`

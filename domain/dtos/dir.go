@@ -24,6 +24,7 @@ type DirGetDto struct {
 	CreatorUser string `json:"creator_user"`
 	Subtype     string `json:"subtype"`
 	Datecreate  string `json:"date_create"`
+	DateClose   string `json:"date_close"`
 	Term        int    `json:"term"`
 }
 

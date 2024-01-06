@@ -45,14 +45,24 @@ func MapPlanToPlanGetDto(p domain.Plan) dtos.PlanGetDto {
 	}
 }
 
-func MapPlanToDirGetDto(p domain.Plan) dtos.DirGetDto {
-	return dtos.DirGetDto{
-		Uuid:        p.Uuid,
-		Name:        p.Name,
-		ParentDir:   p.Dir,
-		Term:        p.Term,
-		CreatorUser: p.CreatorUser,
-		RespUser:    p.RespUser,
-		Type:        "plan",
+func MapPlanToDir(p domain.Plan) domain.Dir {
+	return domain.Dir{
+		Uuid:      p.Uuid,
+		Name:      p.Name,
+		ParentDir: p.Dir,
+	}
+}
+
+func MapPlanToDocsNotDirGetDto(p domain.Plan) dtos.DocsNotDirGetDto {
+	return dtos.DocsNotDirGetDto{
+		Uuid:         p.Uuid,
+		Code:         p.Code,
+		Name:         p.Name,
+		DateCreation: p.DateCreation.Format(constants.LayoutDate),
+		Term:         p.Term,
+		State:        p.State,
+		ParentDir:    p.Dir,
+		CreatorUser:  p.CreatorUser,
+		RespUser:     p.RespUser,
 	}
 }

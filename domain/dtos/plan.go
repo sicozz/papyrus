@@ -80,9 +80,9 @@ type PlanUpdateDto struct {
 	ActionType  string `json:"action_type" validate:"required,excludesall=!@?"`
 	Term        int    `json:"term" validate:"required,excludesall=!@?"`
 	RespUser    string `json:"responsible_user" validate:"required,excludesall=!@?"`
-	DateClose   string `json:"date_close" validate:"required,excludesall=!@?"`
-	Causes      string `json:"causes" validate:"required,excludesall=!@?"`
-	Conclusions string `json:"conclusions" validate:"required,excludesall=!@?"`
+	DateClose   string `json:"date_close" validate:"excludesall=!@?"`
+	Causes      string `json:"causes" validate:"excludesall=!@?"`
+	Conclusions string `json:"conclusions" validate:"excludesall=!@?"`
 	Dir         string `json:"parent_dir" validate:"required,excludesall=!@?"`
 	State       string `json:"state" validate:"required,excludesall=!@?"`
 	Stage       int    `json:"stage" validate:"required,excludesall=!@?"`

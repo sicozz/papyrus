@@ -21,8 +21,7 @@ func NewPostgresPlanRepository(conn *sql.DB) domain.PlanRepository {
 }
 
 func (r *postgresPlanRepository) GetAll(ctx context.Context) (res []domain.Plan, err error) {
-	query :=
-		`SELECT
+	query := `SELECT
 			uuid,
 			code,
 			name,
@@ -120,8 +119,7 @@ func (r *postgresPlanRepository) GetAll(ctx context.Context) (res []domain.Plan,
 }
 
 func (r *postgresPlanRepository) GetByUuid(ctx context.Context, uuid string) (res domain.Plan, err error) {
-	query :=
-		`SELECT
+	query := `SELECT
 			uuid,
 			code,
 			name,
@@ -207,6 +205,104 @@ func (r *postgresPlanRepository) GetByUuid(ctx context.Context, uuid string) (re
 	return
 }
 
+func (r *postgresPlanRepository) GetByUser(ctx context.Context, uuid string) (res []domain.Plan, err error) {
+	query := `SELECT
+			uuid,
+			code,
+			name,
+			origin,
+			action_type,
+			term,
+			creator_user,
+			resp_user,
+			date_create,
+			date_close,
+			causes,
+			conclusions,
+			state,
+			stage,
+			dir,
+			action0_desc,
+			action0_date,
+			action0_user,
+			action1_desc,
+			action1_date,
+			action1_user,
+			action2_desc,
+			action2_date,
+			action2_user,
+			action3_desc,
+			action3_date,
+			action3_user,
+			action4_desc,
+			action4_date,
+			action4_user,
+			action5_desc,
+			action5_date,
+			action5_user
+		FROM plan p WHERE creator_user = $1 or resp_user = $1`
+
+	rows, err := r.Conn.QueryContext(ctx, query, uuid)
+	if err != nil {
+		res = nil
+		return
+	}
+
+	defer func() {
+		errRow := rows.Close()
+		if errRow != nil {
+			r.log.Err("IN [GetAll] failed to close *rows ->", err)
+		}
+	}()
+
+	res = make([]domain.Plan, 0)
+	for rows.Next() {
+		p := domain.Plan{}
+		err = rows.Scan(
+			&p.Uuid,
+			&p.Code,
+			&p.Name,
+			&p.Origin,
+			&p.ActionType,
+			&p.Term,
+			&p.CreatorUser,
+			&p.RespUser,
+			&p.DateCreation,
+			&p.DateClose,
+			&p.Causes,
+			&p.Conclusions,
+			&p.State,
+			&p.Stage,
+			&p.Dir,
+			&p.Action0desc,
+			&p.Action0date,
+			&p.Action0user,
+			&p.Action1desc,
+			&p.Action1date,
+			&p.Action1user,
+			&p.Action2desc,
+			&p.Action2date,
+			&p.Action2user,
+			&p.Action3desc,
+			&p.Action3date,
+			&p.Action3user,
+			&p.Action4desc,
+			&p.Action4date,
+			&p.Action4user,
+			&p.Action5desc,
+			&p.Action5date,
+			&p.Action5user,
+		)
+
+		if err != nil {
+			r.log.Err("IN [GetAll] failed to scan plan ->", err)
+		}
+		res = append(res, p)
+	}
+
+	return
+}
+
 func (r *postgresPlanRepository) ExistsByUuid(ctx context.Context, uuid string) (res bool) {
 	query := `SELECT COUNT(*) > 0 FROM plan WHERE uuid = $1`
 	stmt, err := r.Conn.PrepareContext(ctx, query)
@@ -225,8 +321,7 @@ func (r *postgresPlanRepository) ExistsByUuid(ctx context.Context, uuid string) 
 }
 
 func (r *postgresPlanRepository) Store(ctx context.Context, p domain.Plan) (uuid string, err error) {
-	query :=
-		`INSERT INTO plan (
+	query := `INSERT INTO plan (
 			code,
 			name,
 			origin,
@@ -347,8 +442,7 @@ func (r *postgresPlanRepository) Store(ctx context.Context, p domain.Plan) (uuid
 }
 
 func (r *postgresPlanRepository) Update(ctx context.Context, uuid string, p domain.Plan) (err error) {
-	query :=
-		`UPDATE plan SET
+	query := `UPDATE plan SET
 			name = $2,
 			origin = $3,
 			action_type = $4,

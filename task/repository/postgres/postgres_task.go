@@ -21,8 +21,7 @@ func NewPostgresTaskRepository(conn *sql.DB) domain.TaskRepository {
 }
 
 func (r *postgresTaskRepository) GetAll(ctx context.Context) (res []domain.Task, err error) {
-	query :=
-		`SELECT
+	query := `SELECT
 			uuid,
 			name,
 			procedure,
@@ -78,8 +77,7 @@ func (r *postgresTaskRepository) GetAll(ctx context.Context) (res []domain.Task,
 }
 
 func (r *postgresTaskRepository) GetByUuid(ctx context.Context, uuid string) (res domain.Task, err error) {
-	query :=
-		`SELECT
+	query := `SELECT
 			uuid,
 			name,
 			procedure,
@@ -127,8 +125,7 @@ func (r *postgresTaskRepository) GetByUuid(ctx context.Context, uuid string) (re
 }
 
 func (r *postgresTaskRepository) GetByUser(ctx context.Context, uuid string) (res []domain.Task, err error) {
-	query :=
-		`SELECT
+	query := `SELECT
 			uuid,
 			name,
 			procedure,
@@ -183,9 +180,64 @@ func (r *postgresTaskRepository) GetByUser(ctx context.Context, uuid string) (re
 	return
 }
 
+func (r *postgresTaskRepository) GetByCreatorOrRecv(ctx context.Context, uuid string) (res []domain.Task, err error) {
+	query := `SELECT
+			uuid,
+			name,
+			procedure,
+			date_creation,
+			term,
+			ts.description AS state,
+			dir,
+			creator_user,
+			recv_user,
+			chk
+		FROM
+			task t
+			INNER JOIN task_state ts ON(t.state = ts.code)
+		WHERE
+			recv_user = $1 or creator_user = $1`
+
+	rows, err := r.Conn.QueryContext(ctx, query, uuid)
+	if err != nil {
+		res = nil
+		return
+	}
+
+	defer func() {
+		errRow := rows.Close()
+		if errRow != nil {
+			r.log.Err("IN [GetByUser] failed to close *rows ->", err)
+		}
+	}()
+
+	res = make([]domain.Task, 0)
+	for rows.Next() {
+		t := domain.Task{}
+		err = rows.Scan(
+			&t.Uuid,
+			&t.Name,
+			&t.Procedure,
+			&t.DateCreation,
+			&t.Term,
+			&t.State,
+			&t.Dir,
+			&t.CreatorUser,
+			&t.RecvUser,
+			&t.Check,
+		)
+
+		if err != nil {
+			r.log.Err("IN [GetByUser] failed to scan dir ->", err)
+		}
+		res = append(res, t)
+	}
+
+	return
+}
+
 func (r *postgresTaskRepository) GetByPlan(ctx context.Context, uuid string) (res []domain.Task, err error) {
-	query :=
-		`SELECT
+	query := `SELECT
 			uuid,
 			name,
 			procedure,
@@ -278,8 +330,7 @@ func (r *postgresTaskRepository) ChgCheck(ctx context.Context, tUuid string, uUu
 }
 
 func (r *postgresTaskRepository) ChgState(ctx context.Context, tUuid string, uUuid string, desc string) (err error) {
-	query :=
-		`UPDATE task AS t
+	query := `UPDATE task AS t
 		SET state = ts.code
 		FROM task_state AS ts
 		WHERE
@@ -304,8 +355,7 @@ func (r *postgresTaskRepository) ChgState(ctx context.Context, tUuid string, uUu
 }
 
 func (r *postgresTaskRepository) Store(ctx context.Context, t domain.Task) (uuid string, err error) {
-	query :=
-		`INSERT INTO task (
+	query := `INSERT INTO task (
 			name,
 			procedure,
 			date_creation,
@@ -367,8 +417,7 @@ func (r *postgresTaskRepository) StoreMultiple(ctx context.Context, tasks []doma
 	}
 	defer tx.Rollback()
 
-	query :=
-		`INSERT INTO task (
+	query := `INSERT INTO task (
 			name,
 			procedure,
 			date_creation,

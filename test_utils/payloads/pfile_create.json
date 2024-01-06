@@ -1,0 +1,1 @@
+-F "code=00_code" -F "name=00_name" -F "date_create=2001-02-01" -F "type=documento" -F "dir=00000000-0000-0000-0000-000000000000" -F "responsible_user=00000000-0000-0000-0000-000000000001" -F "subtype=registro" -F "file=@tmp"

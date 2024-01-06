@@ -71,6 +71,17 @@ func (u *dirUsecase) GetAll(c context.Context) (res []dtos.DirGetDto, rErr domai
 		dirs = append(dirs, taskDirDto)
 	}
 
+	plans, err := u.planRepo.GetAll(ctx)
+	if err != nil {
+		u.log.Err("IN [GetAll] failed to get plan ->", err)
+		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+		return
+	}
+	for _, p := range plans {
+		planDirDto := mapper.MapPlanToDir(p)
+		dirs = append(dirs, planDirDto)
+	}
+
 	nChild, err := u.dirRepo.GetNChild(ctx, constants.RootDirUuid)
 	if err != nil {
 		u.log.Err("IN [GetAll] failed to get root children number ->", err)
@@ -114,22 +125,19 @@ func (u *dirUsecase) GetAll(c context.Context) (res []dtos.DirGetDto, rErr domai
 			}
 		}
 	}
-
-	plans, err := u.planRepo.GetAll(ctx)
-	if err != nil {
-		u.log.Err("IN [GetAll] failed to get plan ->", err)
-		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
-		return
-	}
-	for _, plan := range plans {
-		planDirDto := mapper.MapPlanToDirGetDto(plan)
-		for _, d := range res {
-			if d.Uuid == planDirDto.ParentDir {
-				planDirDto.Path = d.Path
-				planDirDto.Depth = d.Depth
+	for _, p := range plans {
+		for j := range res {
+			if p.Uuid == res[j].Uuid {
+				// TODO: put this type and state in mapper
+				res[j].Type = "plan"
+				res[j].State = p.State
+				res[j].CreatorUser = p.CreatorUser
+				res[j].RespUser = p.RespUser
+				res[j].Datecreate = p.DateCreation.Format(constants.LayoutDate)
+				res[j].DateClose = p.DateClose
+				res[j].Term = p.Term
 			}
 		}
-		res = append(res, planDirDto)
 	}
 
 	return
@@ -196,6 +204,13 @@ func (u *dirUsecase) GetDocsByUser(c context.Context, uuid string) (res []dtos.D
 		return
 	}
 
+	plans, err := u.planRepo.GetByUser(ctx, uuid)
+	if err != nil {
+		u.log.Err("IN [GetDocsByUser] failed to get plans ->", err)
+		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+		return
+	}
+
 	res = []dtos.DocsNotDirGetDto{}
 	for _, pf := range pFiles {
 		apps := []domain.Approvation{}
@@ -238,6 +253,24 @@ func (u *dirUsecase) GetDocsByUser(c context.Context, uuid string) (res []dtos.D
 		dnd.Depth, err = u.dirRepo.GetDepth(ctx, dnd.ParentDir)
 		if err != nil {
 			u.log.Err("IN [GetDocsByUser] failed to get task depth ->", err)
+			rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+			return
+		}
+		res = append(res, dnd)
+	}
+
+	for _, p := range plans {
+		dnd := mapper.MapPlanToDocsNotDirGetDto(p)
+		dnd.Type = "plan"
+		dnd.Path, err = u.dirRepo.GetPath(ctx, dnd.ParentDir)
+		if err != nil {
+			u.log.Err("IN [GetDocsByUser] failed to get plan path ->", err)
+			rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+			return
+		}
+		dnd.Depth, err = u.dirRepo.GetDepth(ctx, dnd.ParentDir)
+		if err != nil {
+			u.log.Err("IN [GetDocsByUser] failed to get plan depth ->", err)
 			rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
 			return
 		}

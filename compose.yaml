@@ -8,6 +8,8 @@ services:
     depends_on:
       papyrus_db:
         condition: service_healthy
+    volumes:
+      - ./pps_fs:/app/pps_fs
 
   papyrus_db:
     image: postgres:15

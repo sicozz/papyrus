@@ -32,6 +32,10 @@ func NewDirHandler(e *echo.Echo, du domain.DirUsecase) {
 	// e.POST("/file/upload", handler.StoreDoc)
 
 	e.GET("/dir/user_docs/:uuid", handler.GetDocsNotDirByUser)
+
+	e.GET("/dir/:uuid/size", handler.GetDirSize)
+
+	e.POST("/dir/recursive_permission", handler.AddRecursivePermission)
 }
 
 func (h *DirHandler) GetAll(c echo.Context) error {
@@ -60,7 +64,7 @@ func (h *DirHandler) GetByUuid(c echo.Context) error {
 	dir, rErr := h.DUsecase.GetByUuid(ctx, uuid)
 
 	if rErr != nil {
-		errBody := dtos.NewErrDto("Dir fetch failed")
+		errBody := dtos.NewErrDto(rErr.Error())
 		return c.JSON(rErr.GetStatus(), errBody)
 	}
 
@@ -230,4 +234,51 @@ func (h *DirHandler) GetDocsNotDirByUser(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, dir)
+}
+
+func (h *DirHandler) GetDirSize(c echo.Context) error {
+	h.log.Inf("REQ: get by uuid")
+	ctx := c.Request().Context()
+
+	uuid := c.Param("uuid")
+	if valid := utils.IsValidUUID(uuid); !valid {
+		errBody := dtos.NewErrDto("Uuid does not conform to the uuid format")
+		return c.JSON(http.StatusBadRequest, errBody)
+	}
+
+	res, rErr := h.DUsecase.GetDirSize(ctx, uuid)
+	if rErr != nil {
+		return c.JSON(rErr.GetStatus(), rErr.Error())
+	}
+
+	return c.JSON(http.StatusOK, res)
+}
+
+func (h *DirHandler) AddRecursivePermission(c echo.Context) error {
+	h.log.Inf("REQ: AddRecursivePermission")
+	ctx := c.Request().Context()
+
+	var data dtos.UserAddPermissionDto
+	err := c.Bind(&data)
+	if err != nil {
+		errBody := dtos.NewErrDto(fmt.Sprint("Req body binding failed: ", err))
+		return c.JSON(http.StatusBadRequest, errBody)
+	}
+
+	if ok, err := utils.IsRequestValid(&data); !ok {
+		errBody, err := dtos.NewValidationErrDto(err.Error())
+		if err != nil {
+			errValid := dtos.NewErrDto(fmt.Sprint("Req body validation failed: ", err))
+			return c.JSON(http.StatusBadRequest, errValid)
+		}
+		return c.JSON(http.StatusBadRequest, errBody)
+	}
+
+	rErr := h.DUsecase.AddRecursivePermission(ctx, data)
+	if rErr != nil {
+		errBody := dtos.NewErrDto(rErr.Error())
+		return c.JSON(rErr.GetStatus(), errBody)
+	}
+
+	return c.NoContent(http.StatusOK)
 }

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/sicozz/papyrus/domain"
@@ -146,6 +147,12 @@ func (u *dirUsecase) GetAll(c context.Context) (res []dtos.DirGetDto, rErr domai
 func (u *dirUsecase) GetByUuid(c context.Context, uuid string) (res dtos.DirGetDto, rErr domain.RequestErr) {
 	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
 	defer cancel()
+
+	if exists := u.dirRepo.ExistsByUuid(ctx, uuid); !exists {
+		err := errors.New("Dir not found")
+		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
+		return
+	}
 
 	dir, err := u.dirRepo.GetByUuid(ctx, uuid)
 	if err != nil {
@@ -372,30 +379,73 @@ func (u *dirUsecase) Delete(c context.Context, uuid string) (rErr domain.Request
 		return
 	}
 
+	dirs, err := u.dirRepo.GetAll(ctx)
+	if err != nil {
+		u.log.Err("IN [Delete] failed to get dirs ->", err)
+		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+		return
+	}
+
+	path, err := u.dirRepo.GetPath(ctx, uuid)
+	if err != nil {
+		u.log.Err("IN [Delete] failed to get dir path ->", err)
+		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+		return
+	}
+
 	nChild, err := u.dirRepo.GetNChild(ctx, uuid)
 	if err != nil {
-		u.log.Err("IN [Delete] failed to delete dir {", uuid, "} ->", err)
-		err = errors.New("Failed to check directory children")
+		u.log.Err("IN [Delete] failed to get dir children number ->", err)
 		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
 		return
 	}
 
-	if nChild > 0 {
-		err = errors.New("Directory must be empty")
-		rErr = domain.NewUCaseErr(http.StatusNotAcceptable, err)
-		return
-	}
-
-	// TODO: Add nFiles != 0 constraint
-	// TODO: Add nPlans != 0 constraint
-
-	err = u.dirRepo.Delete(ctx, uuid)
+	depth, err := u.dirRepo.GetDepth(ctx, uuid)
 	if err != nil {
-		u.log.Err("IN [Delete] failed to delete dir {", uuid, "} ->", err)
-		err = errors.New("Failed to delete directory")
+		u.log.Err("IN [Delete] failed to get dir depth ->", err)
 		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
 		return
 	}
+
+	subtree, err := fillDetailsBFS(uuid, dirs, path, nChild, depth)
+	if err != nil {
+		u.log.Err("IN [Delete] failed to fill tree details ->", err)
+		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+		return
+	}
+
+	for i := len(subtree) - 1; i >= 0; i-- {
+		err = u.dirRepo.Delete(ctx, subtree[i].Uuid)
+		if err != nil {
+			u.log.Err("IN [Delete] failed to delete dir {", uuid, "} ->", err)
+			err = errors.New("Failed to delete directory")
+			rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+			return
+		}
+	}
+
+	// No checks for dir deletion since client knows better (for a qas...)
+	// nChild, err := u.dirRepo.GetNChild(ctx, uuid)
+	// if err != nil {
+	// 	u.log.Err("IN [Delete] failed to delete dir {", uuid, "} ->", err)
+	// 	err = errors.New("Failed to check directory children")
+	// 	rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+	// 	return
+	// }
+
+	// if nChild > 0 {
+	// 	err = errors.New("Directory must be empty")
+	// 	rErr = domain.NewUCaseErr(http.StatusNotAcceptable, err)
+	// 	return
+	// }
+
+	// err = u.dirRepo.Delete(ctx, uuid)
+	// if err != nil {
+	// 	u.log.Err("IN [Delete] failed to delete dir {", uuid, "} ->", err)
+	// 	err = errors.New("Failed to delete directory")
+	// 	rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+	// 	return
+	// }
 
 	return
 }
@@ -527,6 +577,148 @@ func (u *dirUsecase) Duplicate(c context.Context, p dtos.DirDuplicateDto) (res [
 	}
 
 	res = nBranchDtos
+
+	return
+}
+
+func (u *dirUsecase) GetDirSize(c context.Context, uuid string) (res dtos.DirSizeGetDto, rErr domain.RequestErr) {
+	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
+	defer cancel()
+
+	if exists := u.dirRepo.ExistsByUuid(ctx, uuid); !exists {
+		err := errors.New("Dir not found")
+		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
+		return
+	}
+
+	dirs, err := u.dirRepo.GetAll(ctx)
+	if err != nil {
+		u.log.Err("IN [GetDirSize] failed to get dirs ->", err)
+		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+		return
+	}
+
+	path, err := u.dirRepo.GetPath(ctx, uuid)
+	if err != nil {
+		u.log.Err("IN [GetDirSize] failed to get dir path ->", err)
+		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+		return
+	}
+
+	nChild, err := u.dirRepo.GetNChild(ctx, uuid)
+	if err != nil {
+		u.log.Err("IN [GetDirSize] failed to get dir children number ->", err)
+		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+		return
+	}
+
+	depth, err := u.dirRepo.GetDepth(ctx, uuid)
+	if err != nil {
+		u.log.Err("IN [GetDirSize] failed to get dir depth ->", err)
+		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+		return
+	}
+
+	subtree, err := fillDetailsBFS(uuid, dirs, path, nChild, depth)
+	if err != nil {
+		u.log.Err("IN [GetDirSize] failed to fill tree details ->", err)
+		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+		return
+	}
+
+	dirPfiles := []domain.PFile{}
+	for _, d := range subtree {
+		subdirPFiles, err := u.pFileRepo.GetByDir(ctx, d.Uuid)
+		if err != nil {
+			u.log.Err("IN [GetDirSize] failed to get subdir files ->", err)
+			rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+			return
+		}
+		dirPfiles = append(dirPfiles, subdirPFiles...)
+	}
+
+	var dirSize int64 = 0
+	for _, dPF := range dirPfiles {
+		fileInfo, err := os.Stat(dPF.FsPath)
+		if err != nil {
+			u.log.Err("IN [GetDirSize] failed to get file size ->", err)
+			rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+			return
+		}
+		dirSize += fileInfo.Size()
+		res.FileCount += 1
+	}
+
+	res.Size = fmt.Sprintf("%.2f GB", float64(dirSize)/(1024*1024*1024))
+
+	return
+}
+
+func (u *dirUsecase) AddRecursivePermission(c context.Context, d dtos.UserAddPermissionDto) (rErr domain.RequestErr) {
+	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
+	defer cancel()
+
+	if exists := u.userRepo.ExistsByUuid(ctx, d.UserUuid); !exists {
+		err := errors.New("User not found. uuid:" + d.UserUuid)
+		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
+		return
+	}
+
+	if exists := u.dirRepo.ExistsByUuid(ctx, d.DirUuid); !exists {
+		err := errors.New("Dir not found. uuid:" + d.DirUuid)
+		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
+		return
+	}
+
+	dirs, err := u.dirRepo.GetAll(ctx)
+	if err != nil {
+		u.log.Err("IN [Delete] failed to get dirs ->", err)
+		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+		return
+	}
+
+	path, err := u.dirRepo.GetPath(ctx, d.DirUuid)
+	if err != nil {
+		u.log.Err("IN [Delete] failed to get dir path ->", err)
+		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+		return
+	}
+
+	nChild, err := u.dirRepo.GetNChild(ctx, d.DirUuid)
+	if err != nil {
+		u.log.Err("IN [Delete] failed to get dir children number ->", err)
+		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+		return
+	}
+
+	depth, err := u.dirRepo.GetDepth(ctx, d.DirUuid)
+	if err != nil {
+		u.log.Err("IN [Delete] failed to get dir depth ->", err)
+		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+		return
+	}
+
+	subtree, err := fillDetailsBFS(d.DirUuid, dirs, path, nChild, depth)
+	if err != nil {
+		u.log.Err("IN [Delete] failed to fill tree details ->", err)
+		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+		return
+	}
+
+	for _, subdir := range subtree {
+		if exists := u.userRepo.ExistsPermission(ctx, d.UserUuid, subdir.Uuid); exists {
+			continue
+		}
+
+		p := domain.Permission{UserUuid: d.UserUuid, DirUuid: subdir.Uuid}
+
+		err := u.userRepo.AddPermission(ctx, p)
+		if err != nil {
+			u.log.Err("IN [AddPermission] failed to add permission -> ", err)
+			rErr = domain.NewUCaseErr(http.StatusNotFound, err)
+			return
+		}
+	}
 
 	return
 }

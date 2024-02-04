@@ -316,7 +316,7 @@ func (h *UserHandler) RevokePermission(c echo.Context) error {
 }
 
 func (h *UserHandler) GetUserPermittedDirs(c echo.Context) error {
-	h.log.Inf("REQ: get all")
+	h.log.Inf("REQ: get user permintted dirs")
 	ctx := c.Request().Context()
 
 	userUuid := c.Param("uuid")
@@ -327,7 +327,7 @@ func (h *UserHandler) GetUserPermittedDirs(c echo.Context) error {
 
 	dirs, rErr := h.UUsecase.GetUserPermittedDirs(ctx, userUuid)
 	if rErr != nil {
-		errBody := dtos.NewErrDto("Dir fetch failed")
+		errBody := dtos.NewErrDto(rErr.Error())
 		return c.JSON(rErr.GetStatus(), errBody)
 	}
 

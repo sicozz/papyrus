@@ -28,6 +28,11 @@ type DirGetDto struct {
 	Term        int    `json:"term"`
 }
 
+type DirSizeGetDto struct {
+	Size      string `json:"size"`
+	FileCount int    `json:"file_count"`
+}
+
 type DirStoreDto struct {
 	Name      string `json:"name" validate:"required,excludesall=!@#?"`
 	ParentDir string `json:"parent_dir" validate:"required,uuid"`

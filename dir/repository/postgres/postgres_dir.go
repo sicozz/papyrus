@@ -227,31 +227,78 @@ func (r *postgresDirRepository) Delete(ctx context.Context, uuid string) (err er
 	}
 	defer tx.Rollback()
 
+	// Pfile delete
+	pfileQuery := `DELETE FROM pfile WHERE dir = $1`
+	pfileStmt, err := r.Conn.PrepareContext(ctx, pfileQuery)
+	if err != nil {
+		r.log.Err("IN [Delete] failed to prepare PFILE context ->", err)
+		return
+	}
+	defer pfileStmt.Close()
+
+	_, err = pfileStmt.ExecContext(ctx, uuid)
+	if err != nil {
+		r.log.Err("IN [Delete] failed to exec PFILE statement ->", err)
+		return
+	}
+
+	// Task delete
+	taskQuery := `DELETE FROM task WHERE dir = $1`
+	taskStmt, err := r.Conn.PrepareContext(ctx, taskQuery)
+	if err != nil {
+		r.log.Err("IN [Delete] failed to prepare TASK context ->", err)
+		return
+	}
+	defer taskStmt.Close()
+
+	_, err = taskStmt.ExecContext(ctx, uuid)
+	if err != nil {
+		r.log.Err("IN [Delete] failed to exec TASK statement ->", err)
+		return
+	}
+
+	// Plan delete
+	planQuery := `DELETE FROM plan WHERE dir = $1`
+	planStmt, err := r.Conn.PrepareContext(ctx, planQuery)
+	if err != nil {
+		r.log.Err("IN [Delete] failed to prepare PLAN context ->", err)
+		return
+	}
+	defer planStmt.Close()
+
+	_, err = planStmt.ExecContext(ctx, uuid)
+	if err != nil {
+		r.log.Err("IN [Delete] failed to exec PLAN statement ->", err)
+		return
+	}
+
+	// Permission delete
 	permissionQuery := `DELETE FROM permission WHERE dir_uuid = $1`
 	permissionStmt, err := r.Conn.PrepareContext(ctx, permissionQuery)
 	if err != nil {
-		r.log.Err("IN [Delete] failed to prepare context ->", err)
+		r.log.Err("IN [Delete] failed to prepare PERMISSON context ->", err)
 		return
 	}
 	defer permissionStmt.Close()
 
 	_, err = permissionStmt.ExecContext(ctx, uuid)
-	if uuid == "" && err == nil {
-		r.log.Err("IN [Delete] failed to exec statement ->", err)
+	if err != nil {
+		r.log.Err("IN [Delete] failed to exec PERMISSON statement ->", err)
 		return
 	}
 
+	// Delete the dir itself
 	dirQuery := `DELETE FROM dir WHERE uuid = $1`
 	dirStmt, err := r.Conn.PrepareContext(ctx, dirQuery)
 	if err != nil {
-		r.log.Err("IN [Delete] failed to prepare context ->", err)
+		r.log.Err("IN [Delete] failed to prepare DIR context ->", err)
 		return
 	}
 	defer dirStmt.Close()
 
 	_, err = dirStmt.ExecContext(ctx, uuid)
 	if err != nil {
-		r.log.Err("IN [Delete] failed to exec statement ->", err)
+		r.log.Err("IN [Delete] failed to exec DIR statement ->", err)
 		return err
 	}
 

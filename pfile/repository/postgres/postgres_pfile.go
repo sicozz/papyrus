@@ -155,6 +155,71 @@ func (r *postgresPFileRepository) GetByUser(ctx context.Context, uuid string) (r
 	return
 }
 
+func (r *postgresPFileRepository) GetByDir(ctx context.Context, uuid string) (res []domain.PFile, err error) {
+	query :=
+		`SELECT
+			uuid,
+			pf.code,
+			name,
+			fs_path,
+			date_creation,
+			date_input,
+			pft.description AS pfile_type,
+			pfst.description AS pfile_state,
+			dir,
+			version,
+			term,
+			subtype,
+			resp_user
+		FROM
+			pfile pf
+			INNER JOIN pfile_type pft ON(pf.type = pft.code)
+			INNER JOIN pfile_state pfst ON(pf.state = pfst.code)
+		WHERE
+			dir = $1`
+
+	stmt, err := r.Conn.PrepareContext(ctx, query)
+	if err != nil {
+		r.log.Err("IN [GetByDir] failed to prepare context ->", err)
+		return
+	}
+	defer stmt.Close()
+
+	rows, err := stmt.QueryContext(ctx, uuid)
+	if err != nil {
+		r.log.Err("In [GetByDir] failed to exec statement ->", err)
+	}
+
+	res = make([]domain.PFile, 0)
+	for rows.Next() {
+		t := domain.PFile{}
+		err = rows.Scan(
+			&t.Uuid,
+			&t.Code,
+			&t.Name,
+			&t.FsPath,
+			&t.DateCreation,
+			&t.DateInput,
+			&t.Type,
+			&t.State,
+			&t.Dir,
+			&t.Version,
+			&t.Term,
+			&t.Subtype,
+			&t.RespUser,
+		)
+
+		if err != nil {
+			r.log.Err("IN [GetByDir]: failed to scan pfile ->", err)
+			return nil, err
+		}
+
+		res = append(res, t)
+	}
+
+	return
+}
+
 func (r *postgresPFileRepository) StoreUuid(ctx context.Context, pf domain.PFile, apps []domain.Approvation) (uuid string, err error) {
 	query :=
 		`INSERT INTO pfile (

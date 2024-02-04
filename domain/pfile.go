@@ -63,6 +63,7 @@ type PFileRepository interface {
 	GetAll(ctx context.Context) ([]PFile, error)
 	GetByUuid(ctx context.Context, uuid string) (PFile, error)
 	GetByUser(ctx context.Context, uuid string) ([]PFile, error)
+	GetByDir(ctx context.Context, uuid string) ([]PFile, error)
 
 	// Update(ctx context.Context, uuid string, p dtos.PFileUpdateDto) error
 	Delete(ctx context.Context, uuid string) error

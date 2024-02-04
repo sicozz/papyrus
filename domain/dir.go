@@ -24,6 +24,9 @@ type DirUsecase interface {
 	Delete(c context.Context, uuid string) RequestErr
 	Move(c context.Context, uuid string, nPUuid string) RequestErr
 	Duplicate(c context.Context, p dtos.DirDuplicateDto) ([]dtos.DirGetDto, RequestErr)
+
+	GetDirSize(c context.Context, uuid string) (dtos.DirSizeGetDto, RequestErr)
+	AddRecursivePermission(c context.Context, d dtos.UserAddPermissionDto) RequestErr
 }
 
 // DirRepository represents the dir's repository contract

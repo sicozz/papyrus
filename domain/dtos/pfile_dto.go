@@ -54,6 +54,10 @@ type PFileChgStateDto struct {
 	StateDesc string `json:"state" validate:"required,excludesall=!@#?"`
 }
 
+type PFileChgNameDto struct {
+	NewName string `json:"new_name" validate:"required,excludesall=!@#?"`
+}
+
 type PFileDownloadDto struct {
 	UserUuid   string `json:"user_uuid" validate:"required,uuid"`
 	Registered bool   `json:"registered" validate:"required,boolean"`

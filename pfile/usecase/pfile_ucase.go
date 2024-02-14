@@ -554,3 +554,30 @@ func (u *pFileUseCase) GetEvidence(c context.Context, tUuid string) (res []dtos.
 
 	return
 }
+
+func (u *pFileUseCase) ChgName(c context.Context, pfUuid, userUuid, newName string) (rErr domain.RequestErr) {
+	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
+	defer cancel()
+
+	if exists := u.userRepo.ExistsByUuid(ctx, userUuid); !exists {
+		err := errors.New("Responsible user not found. uuid: " + userUuid)
+		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
+		return
+	}
+
+	if exists := u.pFileRepo.ExistsByUuid(ctx, pfUuid); !exists {
+		err := errors.New("File not found. uuid: " + pfUuid)
+		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
+		return
+	}
+
+	err := u.pFileRepo.ChgName(ctx, pfUuid, userUuid, newName)
+	if err != nil {
+		u.log.Err("IN [ChgName] failed to change pfile name ", pfUuid, " -> ", err)
+		err = errors.New("Failed to change file name")
+		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+		return
+	}
+
+	return
+}

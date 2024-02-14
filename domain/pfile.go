@@ -57,6 +57,8 @@ type PFileUsecase interface {
 	GetEvidence(c context.Context, tUuid string) ([]dtos.PFileGetEvidenceDto, RequestErr)
 	UploadEvidence(c context.Context, tUuid string, p dtos.PFileUploadDto, file *multipart.FileHeader) (dtos.PFileGetDto, RequestErr)
 	DeleteEvidence(c context.Context, tUuid, pfUuid string) RequestErr
+
+	ChgName(c context.Context, pfUuid, userUuid, newName string) RequestErr
 }
 
 type PFileRepository interface {
@@ -94,4 +96,6 @@ type PFileRepository interface {
 
 	// pfile_stage ops
 	ExistsStageByDesc(ctx context.Context, desc string) bool
+
+	ChgName(c context.Context, pfUuid, userUuid, newName string) error
 }

@@ -741,3 +741,27 @@ func (r *postgresPFileRepository) DeleteEvidence(ctx context.Context, tUuid, pfU
 
 	return
 }
+
+func (r *postgresPFileRepository) ChgName(ctx context.Context, pfUuid, userUuid, newName string) (err error) {
+	query :=
+		`UPDATE pfile AS pf
+		SET name = $3
+		WHERE
+			pf.uuid = $1 AND
+			pf.resp_user = $2`
+
+	stmt, err := r.Conn.PrepareContext(ctx, query)
+	if err != nil {
+		r.log.Err("IN [ChgName] failed to prepare context ->", err)
+		return
+	}
+	defer stmt.Close()
+
+	_, err = stmt.ExecContext(ctx, pfUuid, userUuid, newName)
+	if err != nil {
+		r.log.Err("IN [ChgName] failed to exec statement ->", err)
+		return
+	}
+
+	return
+}

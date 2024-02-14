@@ -154,6 +154,11 @@ func (u *userUsecase) Store(c context.Context, p dtos.UserStore) (res dtos.UserG
 		return
 	}
 
+	msg := fmt.Sprintf(
+		"Su usuario ha sido creado y su password es: %v",
+		user.Password,
+	)
+	utils.SendMail(user.Email, msg)
 	res = mapper.MapUserToUserGetDto(user)
 
 	return
@@ -233,6 +238,17 @@ func (u *userUsecase) Update(c context.Context, uuid string, p dtos.UserUpdateDt
 		return
 	}
 
+	if p.State != user.State.Description {
+		var state_msg string
+		if p.State == "inactivo" {
+			state_msg = "inactivado"
+		} else {
+			state_msg = "activado"
+		}
+		msg := fmt.Sprintf("Su usuario ha sido %v", state_msg)
+		utils.SendMail(user.Email, msg)
+	}
+
 	return
 }
 
@@ -273,6 +289,12 @@ func (u *userUsecase) ChgPasswd(c context.Context, uuid string, data dtos.UserCh
 		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
 		return
 	}
+
+	msg := fmt.Sprintf(
+		"Su nuevo password es: %v",
+		data.NPasswd,
+	)
+	utils.SendMail(user.Email, msg)
 
 	return
 }

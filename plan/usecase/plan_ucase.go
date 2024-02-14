@@ -168,6 +168,28 @@ func (u *planUsecase) Store(c context.Context, dto dtos.PlanStoreDto) (res dtos.
 
 	res = mapper.MapPlanToPlanGetDto(nPlan)
 
+	respUser, err := u.userRepo.GetByUuid(ctx, nPlan.RespUser)
+	if err != nil {
+		u.log.Err("IN [Store] failed to retrieve responsible user ->", err)
+		u.log.Err("IN [Store] failed to send task email ->", err)
+		return
+	}
+	dirPath, err := u.dirRepo.GetPath(ctx, nPlan.Dir)
+	if err != nil {
+		u.log.Err("IN [Store] failed to retrieve dir ->", err)
+		u.log.Err("IN [Store] failed to send task email ->", err)
+		return
+	}
+	msg := fmt.Sprintf(
+		"Se ha creado el nuevo plan de acción %v en la carpeta %v y usted ha sido designado como Responsable",
+		nPlan.Name,
+		dirPath,
+	)
+	err = utils.SendMail(respUser.Email, msg)
+	if err != nil {
+		u.log.Err("IN [Store] failed to send email to receiver user", err)
+	}
+
 	return
 }
 
@@ -250,6 +272,32 @@ func (u *planUsecase) Update(c context.Context, uuid string, dto dtos.PlanUpdate
 	}
 
 	res = mapper.MapPlanToPlanGetDto(nPlan)
+
+	if dto.State != "revisado" {
+		return
+	}
+
+	respUser, err := u.userRepo.GetByUuid(ctx, nPlan.RespUser)
+	if err != nil {
+		u.log.Err("IN [Store] failed to retrieve responsible user ->", err)
+		u.log.Err("IN [Store] failed to send task email ->", err)
+		return
+	}
+	dirPath, err := u.dirRepo.GetPath(ctx, nPlan.Dir)
+	if err != nil {
+		u.log.Err("IN [Store] failed to retrieve dir ->", err)
+		u.log.Err("IN [Store] failed to send task email ->", err)
+		return
+	}
+	msg := fmt.Sprintf(
+		"El plan %v en la carpeta %v se revisó y está esperando para ser Cerrado",
+		nPlan.Name,
+		dirPath,
+	)
+	err = utils.SendMail(respUser.Email, msg)
+	if err != nil {
+		u.log.Err("IN [Store] failed to send email to receiver user", err)
+	}
 
 	return
 }

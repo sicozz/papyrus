@@ -183,6 +183,28 @@ func (u *taskUsecase) Store(c context.Context, p dtos.TaskStoreDto) (res dtos.Ta
 
 	res = mapper.MapTaskToTaskGetDto(nTask)
 
+	rcvUser, err := u.userRepo.GetByUuid(ctx, p.RecvUser)
+	if err != nil {
+		u.log.Err("IN [Store] failed to retrieve responsible user ->", err)
+		u.log.Err("IN [Store] failed to send task email ->", err)
+		return
+	}
+	dirPath, err := u.dirRepo.GetPath(ctx, nTask.Dir)
+	if err != nil {
+		u.log.Err("IN [Store] failed to retrieve dir ->", err)
+		u.log.Err("IN [Store] failed to send task email ->", err)
+		return
+	}
+	msg := fmt.Sprintf(
+		"Se le ha asignado la tarea %v en la carpeta %v",
+		nTask.Name,
+		dirPath,
+	)
+	err = utils.SendMail(rcvUser.Email, msg)
+	if err != nil {
+		u.log.Err("IN [Store] failed to send email to receiver user", err)
+	}
+
 	return
 }
 
@@ -254,6 +276,27 @@ func (u *taskUsecase) StoreMultiple(c context.Context, inputDtos []dtos.TaskStor
 	res = []dtos.TaskGetDto{}
 	for _, nT := range nTasks {
 		res = append(res, mapper.MapTaskToTaskGetDto(nT))
+		rcvUser, err := u.userRepo.GetByUuid(ctx, nT.RecvUser)
+		if err != nil {
+			u.log.Err("IN [Store] failed to retrieve responsible user ->", err)
+			u.log.Err("IN [Store] failed to send task email ->", err)
+			return
+		}
+		dirPath, err := u.dirRepo.GetPath(ctx, nT.Dir)
+		if err != nil {
+			u.log.Err("IN [Store] failed to retrieve dir ->", err)
+			u.log.Err("IN [Store] failed to send task email ->", err)
+			return
+		}
+		msg := fmt.Sprintf(
+			"Se le ha asignado la tarea %v en la carpeta %v",
+			nT.Name,
+			dirPath,
+		)
+		err = utils.SendMail(rcvUser.Email, msg)
+		if err != nil {
+			u.log.Err("IN [Store] failed to send email to receiver user", err)
+		}
 	}
 
 	return
@@ -297,6 +340,30 @@ func (u *taskUsecase) ChgCheck(c context.Context, tUuid, uUuid string, chk bool)
 		err = errors.New("Failed to check task")
 		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
 		return
+	}
+
+	if chk == true {
+		rcvUser, err := u.userRepo.GetByUuid(ctx, t.RecvUser)
+		if err != nil {
+			u.log.Err("IN [Store] failed to retrieve responsible user ->", err)
+			u.log.Err("IN [Store] failed to send task email ->", err)
+			return
+		}
+		dirPath, err := u.dirRepo.GetPath(ctx, t.Dir)
+		if err != nil {
+			u.log.Err("IN [Store] failed to retrieve dir ->", err)
+			u.log.Err("IN [Store] failed to send task email ->", err)
+			return
+		}
+		msg := fmt.Sprintf(
+			"La tarea %v en la carpeta %v se ejecutó y está esperando para ser Cumplida.",
+			t.Name,
+			dirPath,
+		)
+		err = utils.SendMail(rcvUser.Email, msg)
+		if err != nil {
+			u.log.Err("IN [Store] failed to send email to receiver user", err)
+		}
 	}
 
 	return

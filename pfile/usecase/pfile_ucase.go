@@ -220,6 +220,20 @@ func (u *pFileUseCase) Upload(c context.Context, p dtos.PFileUploadDto, file *mu
 		return
 	}
 
+	if err := u.sendDocCreationEmail(ctx, nPFile, p.AppUser1); err != nil {
+		u.log.Err("IN [Upload] failed send email to approval user 1")
+	}
+	if p.AppUser2 != "" {
+		if err := u.sendDocCreationEmail(ctx, nPFile, p.AppUser2); err != nil {
+			u.log.Err("IN [Upload] failed send email to approval user 2")
+		}
+	}
+	if p.AppUser3 != "" {
+		if err := u.sendDocCreationEmail(ctx, nPFile, p.AppUser3); err != nil {
+			u.log.Err("IN [Upload] failed send email to approval user 3")
+		}
+	}
+
 	// WARN: Change this to usecase getbyuuid
 	dto, err = u.GetByUuid(ctx, nUuid)
 	if err != nil {
@@ -230,6 +244,24 @@ func (u *pFileUseCase) Upload(c context.Context, p dtos.PFileUploadDto, file *mu
 	}
 
 	return
+}
+
+func (u *pFileUseCase) sendDocCreationEmail(ctx context.Context, pf domain.PFile, user_uuid string) error {
+	user, err := u.userRepo.GetByUuid(ctx, user_uuid)
+	if err != nil {
+		return err
+	}
+	dirPath, err := u.dirRepo.GetPath(ctx, pf.Dir)
+	if err != nil {
+		return err
+	}
+
+	msg := fmt.Sprintf(
+		"Se ha creado el nuevo documento %v en la carpeta %v y usted ha sido designado como revisor",
+		pf.Name,
+		dirPath,
+	)
+	return utils.SendMail(user.Email, msg)
 }
 
 func (u *pFileUseCase) GetByUuid(c context.Context, uuid string) (pFDto dtos.PFileGetDto, rErr domain.RequestErr) {
@@ -309,6 +341,38 @@ func (u *pFileUseCase) ChgApprovation(c context.Context, pfUuid, userUuid string
 	}
 
 	u.pFileRepo.ChgStateBypass(ctx, pfUuid, "activo")
+
+	approvations, err := u.pFileRepo.GetApprovations(ctx, pfUuid)
+	if err != nil {
+		u.log.Err("IN [ChgApprovation] failed to get approvations for pfile: ", pfUuid)
+	}
+
+	acum := true
+	for _, app := range approvations {
+		acum = acum && app.IsApproved
+	}
+	if acum == true {
+		pf, err := u.pFileRepo.GetByUuid(ctx, pfUuid)
+		if err != nil {
+			u.log.Err("IN [ChgApprovation] failed to get pfile: ", pfUuid)
+			return
+		}
+		respUser, err := u.userRepo.GetByUuid(ctx, pf.RespUser)
+		if err != nil {
+			u.log.Err("IN [ChgApprovation] failed to responsible user for pfile: ", pfUuid)
+			return
+		}
+		dirPath, err := u.dirRepo.GetPath(ctx, pf.Dir)
+		if err != nil {
+			return
+		}
+		msg := fmt.Sprintf(
+			"El documento %v en la carpeta %v ha sido revisado y está listo para ser Activado",
+			pf.Name,
+			dirPath,
+		)
+		utils.SendMail(respUser.Email, msg)
+	}
 
 	return
 }

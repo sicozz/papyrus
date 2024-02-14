@@ -1,4 +1,4 @@
-package mail
+package utils
 
 import (
 	"fmt"
@@ -13,7 +13,7 @@ const (
 	Port    = 465
 )
 
-func sendMail(to, msg string) error {
+func SendMail(to, msg string) error {
 	auth := smtp.PlainAuth("", Sender, Passwd, Server)
 
 	sliceTo := []string{to}

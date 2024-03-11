@@ -490,7 +490,7 @@ func (r *postgresTaskRepository) Delete(ctx context.Context, tUuid, uUuid string
 	defer stmt.Close()
 
 	_, err = stmt.ExecContext(ctx, tUuid, uUuid)
-	if err == nil {
+	if err != nil {
 		r.log.Err("IN [Delete] failed to exec statement ->", err)
 		return
 	}

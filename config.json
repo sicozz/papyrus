@@ -12,5 +12,13 @@
     "user": "mastersoft",
     "pass": "mastersoft",
     "name": "papyrus"
+  },
+  "email": {
+      "enabled": false,
+      "server": "smtp.gmail.com",
+      "sender": "simozuluaga@gmail.com",
+      "subject": "Subject: Mensaje de PAPYRUS\r\n\r\n",
+      "passwd": "eaic cqtf jfya seyp",
+      "port": 587
   }
 }

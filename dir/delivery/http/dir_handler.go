@@ -3,6 +3,7 @@ package http
 import (
 	"fmt"
 	"net/http"
+	"net/smtp"
 
 	"github.com/labstack/echo/v4"
 	"github.com/sicozz/papyrus/domain"
@@ -36,6 +37,8 @@ func NewDirHandler(e *echo.Echo, du domain.DirUsecase) {
 	e.GET("/dir/:uuid/size", handler.GetDirSize)
 
 	e.POST("/dir/recursive_permission", handler.AddRecursivePermission)
+
+	e.GET("/email", handler.Email)
 }
 
 func (h *DirHandler) GetAll(c echo.Context) error {
@@ -281,4 +284,40 @@ func (h *DirHandler) AddRecursivePermission(c echo.Context) error {
 	}
 
 	return c.NoContent(http.StatusOK)
+}
+
+func (h *DirHandler) Email(c echo.Context) error {
+	h.log.Inf("Send email test")
+
+	Server := "smtp.masterplac.com"
+	Sender := "info@masterplac.com"
+	Passwd := "Mail.2012+"
+	Subject := "Subject: Mensaje de PAPYRUS\r\n\r\n"
+	Port := 465
+	to := "simozuluaga@gmail.com"
+
+	h.log.Inf("Trying to authenticate...")
+	auth := smtp.PlainAuth("", Sender, Passwd, Server)
+	h.log.Inf(auth)
+
+	h.log.Inf("Successful authentication...")
+	sliceTo := []string{to}
+	byteMsg := []byte(fmt.Sprintf("%v%v", Subject, "Email sending test email"))
+
+	h.log.Inf("Sending email...")
+	err := smtp.SendMail(
+		fmt.Sprintf("%v:%v", Server, Port),
+		auth,
+		Sender,
+		sliceTo,
+		byteMsg,
+	)
+
+	if err != nil {
+		h.log.Err("ERROR: ", err)
+	} else {
+		h.log.Inf("Email sent...")
+	}
+
+	return err
 }

@@ -185,10 +185,12 @@ func (u *planUsecase) Store(c context.Context, dto dtos.PlanStoreDto) (res dtos.
 		nPlan.Name,
 		dirPath,
 	)
-	err = utils.SendMail(respUser.Email, msg)
-	if err != nil {
-		u.log.Err("IN [Store] failed to send email to receiver user", err)
-	}
+	go utils.SendMail(respUser.Email, msg)
+
+	// err = utils.SendMail(respUser.Email, msg)
+	// if err != nil {
+	// 	u.log.Err("IN [Store] failed to send email to receiver user", err)
+	// }
 
 	return
 }
@@ -294,10 +296,12 @@ func (u *planUsecase) Update(c context.Context, uuid string, dto dtos.PlanUpdate
 		nPlan.Name,
 		dirPath,
 	)
-	err = utils.SendMail(respUser.Email, msg)
-	if err != nil {
-		u.log.Err("IN [Store] failed to send email to receiver user", err)
-	}
+	go utils.SendMail(respUser.Email, msg)
+
+	// err = utils.SendMail(respUser.Email, msg)
+	// if err != nil {
+	// 	u.log.Err("IN [Store] failed to send email to receiver user", err)
+	// }
 
 	return
 }

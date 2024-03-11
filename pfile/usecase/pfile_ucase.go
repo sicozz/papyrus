@@ -136,8 +136,8 @@ func (u *pFileUseCase) Upload(c context.Context, p dtos.PFileUploadDto, file *mu
 	}
 
 	// check code not taken
-	if taken := u.pFileRepo.ExistsByCode(ctx, p.Code); taken {
-		err := errors.New("File code already taken")
+	if taken := u.pFileRepo.ExistsByCodeVersion(ctx, p.Code, p.Version); taken {
+		err := errors.New("File code-version already taken")
 		rErr = domain.NewUCaseErr(http.StatusNotAcceptable, err)
 		return
 	}
@@ -220,19 +220,19 @@ func (u *pFileUseCase) Upload(c context.Context, p dtos.PFileUploadDto, file *mu
 		return
 	}
 
-	if err := u.sendDocCreationEmail(ctx, nPFile, p.AppUser1); err != nil {
-		u.log.Err("IN [Upload] failed send email to approval user 1")
-	}
-	if p.AppUser2 != "" {
-		if err := u.sendDocCreationEmail(ctx, nPFile, p.AppUser2); err != nil {
-			u.log.Err("IN [Upload] failed send email to approval user 2")
-		}
-	}
-	if p.AppUser3 != "" {
-		if err := u.sendDocCreationEmail(ctx, nPFile, p.AppUser3); err != nil {
-			u.log.Err("IN [Upload] failed send email to approval user 3")
-		}
-	}
+	// if err := u.sendDocCreationEmail(ctx, nPFile, p.AppUser1); err != nil {
+	// 	u.log.Err("IN [Upload] failed send email to approval user 1")
+	// }
+	// if p.AppUser2 != "" {
+	// 	if err := u.sendDocCreationEmail(ctx, nPFile, p.AppUser2); err != nil {
+	// 		u.log.Err("IN [Upload] failed send email to approval user 2")
+	// 	}
+	// }
+	// if p.AppUser3 != "" {
+	// 	if err := u.sendDocCreationEmail(ctx, nPFile, p.AppUser3); err != nil {
+	// 		u.log.Err("IN [Upload] failed send email to approval user 3")
+	// 	}
+	// }
 
 	// WARN: Change this to usecase getbyuuid
 	dto, err = u.GetByUuid(ctx, nUuid)
@@ -243,25 +243,41 @@ func (u *pFileUseCase) Upload(c context.Context, p dtos.PFileUploadDto, file *mu
 		return
 	}
 
+	dirPath, err := u.dirRepo.GetPath(ctx, p.Dir)
+	if err != nil {
+		u.log.Err("IN [Upload] failed to send email ->", err)
+	}
+	approvalUser1, err := u.userRepo.GetByUuid(ctx, p.AppUser1)
+	if err != nil {
+		u.log.Err("IN [Upload] send email ->", err)
+	}
+
+	go u.sendDocCreationEmail(p.Name, dirPath, approvalUser1.Email)
+	if p.AppUser2 != "" {
+		approvalUser2, err := u.userRepo.GetByUuid(ctx, p.AppUser2)
+		if err != nil {
+			u.log.Err("IN [Upload] send email ->", err)
+		}
+		go u.sendDocCreationEmail(p.Name, dirPath, approvalUser2.Email)
+	}
+	if p.AppUser3 != "" {
+		approvalUser3, err := u.userRepo.GetByUuid(ctx, p.AppUser3)
+		if err != nil {
+			u.log.Err("IN [Upload] send email ->", err)
+		}
+		go u.sendDocCreationEmail(p.Name, dirPath, approvalUser3.Email)
+	}
+
 	return
 }
 
-func (u *pFileUseCase) sendDocCreationEmail(ctx context.Context, pf domain.PFile, user_uuid string) error {
-	user, err := u.userRepo.GetByUuid(ctx, user_uuid)
-	if err != nil {
-		return err
-	}
-	dirPath, err := u.dirRepo.GetPath(ctx, pf.Dir)
-	if err != nil {
-		return err
-	}
-
+func (u *pFileUseCase) sendDocCreationEmail(docName, dirPath, userEmail string) error {
 	msg := fmt.Sprintf(
 		"Se ha creado el nuevo documento %v en la carpeta %v y usted ha sido designado como revisor",
-		pf.Name,
+		docName,
 		dirPath,
 	)
-	return utils.SendMail(user.Email, msg)
+	return utils.SendMail(userEmail, msg)
 }
 
 func (u *pFileUseCase) GetByUuid(c context.Context, uuid string) (pFDto dtos.PFileGetDto, rErr domain.RequestErr) {
@@ -371,7 +387,7 @@ func (u *pFileUseCase) ChgApprovation(c context.Context, pfUuid, userUuid string
 			pf.Name,
 			dirPath,
 		)
-		utils.SendMail(respUser.Email, msg)
+		go utils.SendMail(respUser.Email, msg)
 	}
 
 	return
@@ -483,7 +499,7 @@ func (u *pFileUseCase) UploadEvidence(c context.Context, tUuid string, p dtos.PF
 
 	p.Code = p.Name
 	p.DateCreation = time.Now().Format(constants.LayoutDate)
-	p.Version = p.Name
+	p.Version = "0000000000"
 	p.Term = 1
 
 	dto, rErr = u.Upload(ctx, p, file)

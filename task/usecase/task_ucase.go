@@ -200,10 +200,12 @@ func (u *taskUsecase) Store(c context.Context, p dtos.TaskStoreDto) (res dtos.Ta
 		nTask.Name,
 		dirPath,
 	)
-	err = utils.SendMail(rcvUser.Email, msg)
-	if err != nil {
-		u.log.Err("IN [Store] failed to send email to receiver user", err)
-	}
+	go utils.SendMail(rcvUser.Email, msg)
+
+	// err = utils.SendMail(rcvUser.Email, msg)
+	// if err != nil {
+	// 	u.log.Err("IN [Store] failed to send email to receiver user", err)
+	// }
 
 	return
 }
@@ -293,10 +295,12 @@ func (u *taskUsecase) StoreMultiple(c context.Context, inputDtos []dtos.TaskStor
 			nT.Name,
 			dirPath,
 		)
-		err = utils.SendMail(rcvUser.Email, msg)
-		if err != nil {
-			u.log.Err("IN [Store] failed to send email to receiver user", err)
-		}
+		go utils.SendMail(rcvUser.Email, msg)
+
+		// err = utils.SendMail(rcvUser.Email, msg)
+		// if err != nil {
+		// 	u.log.Err("IN [Store] failed to send email to receiver user", err)
+		// }
 	}
 
 	return
@@ -360,10 +364,12 @@ func (u *taskUsecase) ChgCheck(c context.Context, tUuid, uUuid string, chk bool)
 			t.Name,
 			dirPath,
 		)
-		err = utils.SendMail(rcvUser.Email, msg)
-		if err != nil {
-			u.log.Err("IN [Store] failed to send email to receiver user", err)
-		}
+		go utils.SendMail(rcvUser.Email, msg)
+
+		// err = utils.SendMail(rcvUser.Email, msg)
+		// if err != nil {
+		// 	u.log.Err("IN [Store] failed to send email to receiver user", err)
+		// }
 	}
 
 	return

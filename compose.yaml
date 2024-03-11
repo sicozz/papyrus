@@ -10,6 +10,7 @@ services:
         condition: service_healthy
     volumes:
       - ./pps_fs:/app/pps_fs
+      - ./config.json:/app/config.json
 
   papyrus_db:
     image: postgres:15

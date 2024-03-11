@@ -82,6 +82,13 @@ func main() {
 		}
 	}()
 
+	utils.Enabled = viper.GetBool(`email.enabled`)
+	utils.Server = viper.GetString(`email.server`)
+	utils.Sender = viper.GetString(`email.sender`)
+	utils.Subject = viper.GetString(`email.subject`)
+	utils.Passwd = viper.GetString(`email.passwd`)
+	utils.Port = viper.GetInt(`email.port`)
+
 	e := echo.New()
 	e.Use(middleware.CORS())
 

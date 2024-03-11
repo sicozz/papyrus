@@ -471,6 +471,23 @@ func (r *postgresPFileRepository) ExistsByCode(ctx context.Context, code string)
 	return
 }
 
+func (r *postgresPFileRepository) ExistsByCodeVersion(ctx context.Context, code, version string) (res bool) {
+	query := `SELECT COUNT(*) > 0 FROM pfile WHERE code = $1 AND version = $2`
+	stmt, err := r.Conn.PrepareContext(ctx, query)
+	if err != nil {
+		r.log.Err("IN [ExistsByCodeVersion] failed to prepare context ->", err)
+		return
+	}
+	defer stmt.Close()
+
+	err = stmt.QueryRowContext(ctx, code, version).Scan(&res)
+	if err != nil {
+		r.log.Err("IN [ExistsByCodeVersion] failed to exec statement ->", err)
+	}
+
+	return
+}
+
 func (r *postgresPFileRepository) IsNameTaken(ctx context.Context, name string, dirUuid string) (res bool) {
 	query := `SELECT COUNT(*) > 0 FROM pfile WHERE name = $1 AND dir = $2`
 	stmt, err := r.Conn.PrepareContext(ctx, query)

@@ -79,6 +79,7 @@ type PFileRepository interface {
 
 	ExistsByUuid(ctx context.Context, uuid string) bool
 	ExistsByCode(ctx context.Context, code string) bool
+	ExistsByCodeVersion(ctx context.Context, code, version string) bool
 	IsNameTaken(ctx context.Context, name string, dirUuid string) bool
 	IsApproved(ctx context.Context, uuid string) bool
 

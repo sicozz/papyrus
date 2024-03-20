@@ -639,3 +639,59 @@ func (r *postgresUserRepository) GetHistoryDownloads(ctx context.Context, uUuid 
 
 	return
 }
+
+func (r *postgresUserRepository) HasDependentFiles(ctx context.Context, uUuid string) (res bool) {
+	query := `SELECT COUNT(*) > 0 FROM pfile WHERE resp_user = $1`
+	stmt, err := r.Conn.PrepareContext(ctx, query)
+	if err != nil {
+		r.log.Err("IN [HasDependentFiles] failed to prepare context ->", err)
+		return
+	}
+	defer stmt.Close()
+
+	err = stmt.QueryRowContext(ctx, uUuid).Scan(&res)
+
+	return
+}
+
+func (r *postgresUserRepository) HasDependentApprovations(ctx context.Context, uUuid string) (res bool) {
+	query := `SELECT COUNT(*) > 0 FROM approvation WHERE user_uuid = $1`
+	stmt, err := r.Conn.PrepareContext(ctx, query)
+	if err != nil {
+		r.log.Err("IN [HasDependentApprovations] failed to prepare context ->", err)
+		return
+	}
+	defer stmt.Close()
+
+	err = stmt.QueryRowContext(ctx, uUuid).Scan(&res)
+
+	return
+}
+
+func (r *postgresUserRepository) HasDependentUploads(ctx context.Context, uUuid string) (res bool) {
+	query := `SELECT COUNT(*) > 0 FROM upload WHERE user_ = $1`
+	stmt, err := r.Conn.PrepareContext(ctx, query)
+	if err != nil {
+		r.log.Err("IN [HasDependentUploads] failed to prepare context ->", err)
+		return
+	}
+	defer stmt.Close()
+
+	err = stmt.QueryRowContext(ctx, uUuid).Scan(&res)
+
+	return
+}
+
+func (r *postgresUserRepository) HasDependentDownloads(ctx context.Context, uUuid string) (res bool) {
+	query := `SELECT COUNT(*) > 0 FROM download WHERE user_ = $1`
+	stmt, err := r.Conn.PrepareContext(ctx, query)
+	if err != nil {
+		r.log.Err("IN [HasDependentDownloads] failed to prepare context ->", err)
+		return
+	}
+	defer stmt.Close()
+
+	err = stmt.QueryRowContext(ctx, uUuid).Scan(&res)
+
+	return
+}

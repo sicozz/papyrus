@@ -183,6 +183,12 @@ func (u *taskUsecase) Store(c context.Context, p dtos.TaskStoreDto) (res dtos.Ta
 
 	res = mapper.MapTaskToTaskGetDto(nTask)
 
+	creatorUser, err := u.userRepo.GetByUuid(ctx, p.CreatorUser)
+	if err != nil {
+		u.log.Err("IN [Store] failed to retrieve creator user ->", err)
+		u.log.Err("IN [Store] failed to send task email ->", err)
+		return
+	}
 	rcvUser, err := u.userRepo.GetByUuid(ctx, p.RecvUser)
 	if err != nil {
 		u.log.Err("IN [Store] failed to retrieve responsible user ->", err)
@@ -196,10 +202,14 @@ func (u *taskUsecase) Store(c context.Context, p dtos.TaskStoreDto) (res dtos.Ta
 		return
 	}
 	msg := fmt.Sprintf(
-		"Se le ha asignado la tarea %v en la carpeta %v",
+		"Este es un mensaje del sistema Papyrus.\nEl usuario %v le ha asignado el dia %v la tarea %v en la carpeta %v, con las siguientes actividades:\n%v",
+		creatorUser.Username,
+		nTask.DateCreation.Format("Monday, January 2, 2006 15:04:05"),
 		nTask.Name,
 		dirPath,
+		nTask.Procedure,
 	)
+	u.log.Inf("Mail msg:", msg)
 	go utils.SendMail(rcvUser.Email, msg)
 
 	// err = utils.SendMail(rcvUser.Email, msg)
@@ -347,7 +357,7 @@ func (u *taskUsecase) ChgCheck(c context.Context, tUuid, uUuid string, chk bool)
 	}
 
 	if chk == true {
-		rcvUser, err := u.userRepo.GetByUuid(ctx, t.RecvUser)
+		creatorUser, err := u.userRepo.GetByUuid(ctx, t.CreatorUser)
 		if err != nil {
 			u.log.Err("IN [Store] failed to retrieve responsible user ->", err)
 			u.log.Err("IN [Store] failed to send task email ->", err)
@@ -364,7 +374,7 @@ func (u *taskUsecase) ChgCheck(c context.Context, tUuid, uUuid string, chk bool)
 			t.Name,
 			dirPath,
 		)
-		go utils.SendMail(rcvUser.Email, msg)
+		go utils.SendMail(creatorUser.Email, msg)
 
 		// err = utils.SendMail(rcvUser.Email, msg)
 		// if err != nil {

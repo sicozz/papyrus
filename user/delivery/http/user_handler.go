@@ -262,7 +262,7 @@ func (h *UserHandler) RstPasswd(c echo.Context) error {
 }
 
 func (h *UserHandler) AddPermission(c echo.Context) error {
-	h.log.Inf("REQ: change password")
+	h.log.Inf("REQ: add permission")
 	ctx := c.Request().Context()
 
 	var data dtos.UserAddPermissionDto

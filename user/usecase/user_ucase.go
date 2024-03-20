@@ -175,7 +175,44 @@ func (u *userUsecase) Delete(c context.Context, uname string) (rErr domain.Reque
 		return
 	}
 
-	err := u.userRepo.Delete(ctx, uname)
+	user, err := u.userRepo.GetByUsername(ctx, uname)
+	if err != nil {
+		u.log.Err("IN [Login] failed to get user -> ", err)
+		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+		return
+	}
+
+	if "inactivo" != user.State.Description {
+		err = errors.New("Cannot delete an active user")
+		rErr = domain.NewUCaseErr(http.StatusNotAcceptable, err)
+		return
+	}
+
+	if has := u.userRepo.HasDependentFiles(ctx, user.Uuid); has {
+		err = errors.New("Cannot delete user with dependent files")
+		rErr = domain.NewUCaseErr(http.StatusNotAcceptable, err)
+		return
+	}
+
+	if has := u.userRepo.HasDependentApprovations(ctx, user.Uuid); has {
+		err = errors.New("Cannot delete user with dependent files")
+		rErr = domain.NewUCaseErr(http.StatusNotAcceptable, err)
+		return
+	}
+
+	if has := u.userRepo.HasDependentUploads(ctx, user.Uuid); has {
+		err = errors.New("Cannot delete user with dependent uploads history")
+		rErr = domain.NewUCaseErr(http.StatusNotAcceptable, err)
+		return
+	}
+
+	if has := u.userRepo.HasDependentDownloads(ctx, user.Uuid); has {
+		err = errors.New("Cannot delete user with dependent downloads history")
+		rErr = domain.NewUCaseErr(http.StatusNotAcceptable, err)
+		return
+	}
+
+	err = u.userRepo.Delete(ctx, uname)
 	if err != nil {
 		u.log.Err("IN [Delete] failed to delete user {", uname, "} ->", err)
 		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
@@ -382,7 +419,7 @@ func (u *userUsecase) AddPermission(c context.Context, uUuid, dUuid string) (rEr
 	}
 
 	if exists := u.dirRepo.ExistsByUuid(ctx, dUuid); !exists {
-		err := errors.New("Dir not found. uuid:" + uUuid)
+		err := errors.New("Dir not found. uuid:" + dUuid)
 		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
 		return
 	}

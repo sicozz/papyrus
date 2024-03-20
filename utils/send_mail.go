@@ -21,11 +21,14 @@ func SendMail(to, msg string) error {
 	if !Enabled {
 		return errors.New("Email sending not enabled in config.json file")
 	}
+	
+	finalMsg := fmt.Sprintf("%v\nEntrar al sistema: http://192.168.10.140:8080", msg)
+
 	logger := NewAggregatedLogger("EMAIL", "EMAIL")
 	auth := smtp.PlainAuth("", Sender, Passwd, Server)
 
 	sliceTo := []string{to}
-	byteMsg := []byte(fmt.Sprintf("%v%v", Subject, msg))
+	byteMsg := []byte(fmt.Sprintf("%v%v", Subject, finalMsg))
 
 	logger.Inf("Sending email...")
 	err := smtp.SendMail(

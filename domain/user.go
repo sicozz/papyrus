@@ -77,4 +77,9 @@ type UserRepository interface {
 	RevokePermission(c context.Context, uUuid string, dUuid string) error
 
 	GetHistoryDownloads(c context.Context, uUuid string) ([]dtos.UserHistoryGetDto, error)
+
+	HasDependentFiles(c context.Context, uUuid string) bool
+	HasDependentApprovations(c context.Context, uUuid string) bool
+	HasDependentUploads(c context.Context, uUuid string) bool
+	HasDependentDownloads(c context.Context, uUuid string) bool
 }

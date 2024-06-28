@@ -109,7 +109,7 @@ func (u *dirUsecase) GetAll(c context.Context) (res []dtos.DirGetDto, rErr domai
 				}
 				res[j].State = pf.State
 
-				res[j].RespUser = pf.RespUser
+				res[j].CreatorUser = pf.RespUser
 				res[j].Subtype = pf.Subtype
 				res[j].Datecreate = pf.DateCreation.Format(constants.LayoutDate)
 				res[j].Term = pf.Term
@@ -123,6 +123,7 @@ func (u *dirUsecase) GetAll(c context.Context) (res []dtos.DirGetDto, rErr domai
 				res[j].Type = "tarea"
 				res[j].State = t.State
 				res[j].Term = t.Term
+				res[j].RespUser = t.RecvUser
 			}
 		}
 	}
@@ -204,7 +205,7 @@ func (u *dirUsecase) GetDocsByUser(c context.Context, uuid string) (res []dtos.D
 		return
 	}
 
-	pFiles, err := u.pFileRepo.GetByUser(ctx, uuid)
+	pFiles, err := u.pFileRepo.GetByApprovalUser(ctx, uuid)
 	if err != nil {
 		u.log.Err("IN [GetDocsByUser] failed to get pfiles ->", err)
 		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
@@ -278,6 +279,106 @@ func (u *dirUsecase) GetDocsByUser(c context.Context, uuid string) (res []dtos.D
 		dnd.Depth, err = u.dirRepo.GetDepth(ctx, dnd.ParentDir)
 		if err != nil {
 			u.log.Err("IN [GetDocsByUser] failed to get plan depth ->", err)
+			rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+			return
+		}
+		res = append(res, dnd)
+	}
+
+	return
+}
+
+func (u *dirUsecase) GetOwnedDocsByUser(c context.Context, uuid string) (res []dtos.DocsNotDirGetDto, rErr domain.RequestErr) {
+	ctx, cancel := context.WithTimeout(c, u.contextTimeout)
+	defer cancel()
+
+	if exists := u.userRepo.ExistsByUuid(ctx, uuid); !exists {
+		err := errors.New("User not found. uuid: " + uuid)
+		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
+		return
+	}
+
+	tasks, err := u.taskRepo.GetOwnedByUser(ctx, uuid)
+	if err != nil {
+		u.log.Err("IN [GetOwnedDocsByUser] failed to get tasks ->", err)
+		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+		return
+	}
+
+	pFiles, err := u.pFileRepo.GetByUser(ctx, uuid)
+	if err != nil {
+		u.log.Err("IN [GetOwnedDocsByUser] failed to get pfiles ->", err)
+		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+		return
+	}
+
+	plans, err := u.planRepo.GetOwnedByUser(ctx, uuid)
+	if err != nil {
+		u.log.Err("IN [GetOwnedDocsByUser] failed to get plans ->", err)
+		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+		return
+	}
+
+	res = []dtos.DocsNotDirGetDto{}
+	for _, pf := range pFiles {
+		apps := []domain.Approvation{}
+		if pf.Subtype != "registro" {
+			apps, err = u.pFileRepo.GetApprovations(ctx, pf.Uuid)
+			if err != nil {
+				u.log.Err("IN [GetOwnedDocsByUser] failed to get file approvations ->", err)
+				rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+				return
+			}
+		}
+
+		dnd := mapper.MapPFileToDocsNotDirGetDto(pf, apps)
+		dnd.Type = "documento"
+		dnd.Path, err = u.dirRepo.GetPath(ctx, dnd.ParentDir)
+		if err != nil {
+			u.log.Err("IN [GetOwnedDocsByUser] failed to get file path ->", err)
+			rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+			return
+		}
+		dnd.Depth, err = u.dirRepo.GetDepth(ctx, dnd.ParentDir)
+		if err != nil {
+			u.log.Err("IN [GetOwnedDocsByUser] failed to get file depth ->", err)
+			rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+			return
+		}
+
+		res = append(res, dnd)
+	}
+
+	for _, t := range tasks {
+		dnd := mapper.MapTaskToDocsNotDirGetDto(t)
+		dnd.Type = "tarea"
+		dnd.Path, err = u.dirRepo.GetPath(ctx, dnd.ParentDir)
+		if err != nil {
+			u.log.Err("IN [GetOwnedDocsByUser] failed to get task path ->", err)
+			rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+			return
+		}
+		dnd.Depth, err = u.dirRepo.GetDepth(ctx, dnd.ParentDir)
+		if err != nil {
+			u.log.Err("IN [GetOwnedDocsByUser] failed to get task depth ->", err)
+			rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+			return
+		}
+		res = append(res, dnd)
+	}
+
+	for _, p := range plans {
+		dnd := mapper.MapPlanToDocsNotDirGetDto(p)
+		dnd.Type = "plan"
+		dnd.Path, err = u.dirRepo.GetPath(ctx, dnd.ParentDir)
+		if err != nil {
+			u.log.Err("IN [GetOwnedDocsByUser] failed to get plan path ->", err)
+			rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+			return
+		}
+		dnd.Depth, err = u.dirRepo.GetDepth(ctx, dnd.ParentDir)
+		if err != nil {
+			u.log.Err("IN [GetOwnedDocsByUser] failed to get plan depth ->", err)
 			rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
 			return
 		}

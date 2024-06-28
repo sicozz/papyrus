@@ -33,6 +33,7 @@ func NewDirHandler(e *echo.Echo, du domain.DirUsecase) {
 	// e.POST("/file/upload", handler.StoreDoc)
 
 	e.GET("/dir/user_docs/:uuid", handler.GetDocsNotDirByUser)
+	e.GET("/dir/user_owned_docs/:uuid", handler.GetOwnedDocsNotDirByUser)
 
 	e.GET("/dir/:uuid/size", handler.GetDirSize)
 
@@ -231,6 +232,25 @@ func (h *DirHandler) GetDocsNotDirByUser(c echo.Context) error {
 	}
 
 	dir, rErr := h.DUsecase.GetDocsByUser(ctx, uuid)
+
+	if rErr != nil {
+		return c.JSON(rErr.GetStatus(), rErr.Error())
+	}
+
+	return c.JSON(http.StatusOK, dir)
+}
+
+func (h *DirHandler) GetOwnedDocsNotDirByUser(c echo.Context) error {
+	h.log.Inf("REQ: get owned docs not dir by user")
+	ctx := c.Request().Context()
+
+	uuid := c.Param("uuid")
+	if valid := utils.IsValidUUID(uuid); !valid {
+		errBody := dtos.NewErrDto("Uuid does not conform to the uuid format")
+		return c.JSON(http.StatusBadRequest, errBody)
+	}
+
+	dir, rErr := h.DUsecase.GetOwnedDocsByUser(ctx, uuid)
 
 	if rErr != nil {
 		return c.JSON(rErr.GetStatus(), rErr.Error())

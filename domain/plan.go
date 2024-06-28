@@ -64,6 +64,7 @@ type PlanRepository interface {
 	GetAll(c context.Context) ([]Plan, error)
 	GetByUuid(c context.Context, uuid string) (Plan, error)
 	GetByUser(c context.Context, uuid string) ([]Plan, error)
+	GetOwnedByUser(c context.Context, uuid string) ([]Plan, error)
 	Store(c context.Context, p Plan) (string, error)
 	Update(c context.Context, uuid string, p Plan) error
 	Delete(c context.Context, uuid string) error

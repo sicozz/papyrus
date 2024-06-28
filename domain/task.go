@@ -47,6 +47,7 @@ type TaskRepository interface {
 	ExistsStateByDesc(ctx context.Context, desc string) bool
 
 	GetByUser(c context.Context, uuid string) ([]Task, error)
+	GetOwnedByUser(c context.Context, uuid string) ([]Task, error)
 	GetByCreatorOrRecv(c context.Context, uuid string) ([]Task, error)
 	GetByPlan(c context.Context, uuid string) ([]Task, error)
 }

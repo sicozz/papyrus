@@ -10,10 +10,10 @@ type PFileGetDto struct {
 	Type         string `json:"type"`
 	State        string `json:"state"`
 	Dir          string `json:"dir"`
-	RespUser     string `json:"responsible_user"`
-	AppUser1     string `json:"approval_user1"`
-	AppUser2     string `json:"approval_user2"`
-	AppUser3     string `json:"approval_user3"`
+	RespUser     string `json:"creator_user"`
+	AppUser1     string `json:"responsible_user1"`
+	AppUser2     string `json:"responsible_user2"`
+	AppUser3     string `json:"responsible_user3"`
 
 	// TODO: make this a checks of boolean type
 	Chk1    string `json:"user_check1"`
@@ -30,11 +30,11 @@ type PFileUploadDto struct {
 	DateCreation string `json:"date_create" validate:"required,datetime=2006-01-02"`
 	Type         string `json:"type" validate:"required,excludesall=!@#?"`
 	Dir          string `json:"dir" validate:"required,uuid"`
-	RespUser     string `json:"responsible_user" validate:"required,uuid"`
+	RespUser     string `json:"creator_user" validate:"required,uuid"`
 	// AppUser1     string `json:"approval_user1" validate:"required,uuid"`
-	AppUser1 string `json:"approval_user1" validate:"omitempty,uuid"`
-	AppUser2 string `json:"approval_user2" validate:"omitempty,uuid"`
-	AppUser3 string `json:"approval_user3" validate:"omitempty,uuid"`
+	AppUser1 string `json:"responsible_user1" validate:"omitempty,uuid"`
+	AppUser2 string `json:"responsible_user2" validate:"omitempty,uuid"`
+	AppUser3 string `json:"responsible_user3" validate:"omitempty,uuid"`
 
 	Chk1 bool `json:"user_check1"`
 	Chk2 bool `json:"user_check2"`

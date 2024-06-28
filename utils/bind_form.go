@@ -37,8 +37,8 @@ func BindFormToPFileUploadDto(c echo.Context, p *dtos.PFileUploadDto) (err error
 	}
 	p.Dir = val
 
-	if val = c.FormValue("responsible_user"); "" == val {
-		return errors.New("File responsible user is required. responsible_user:")
+	if val = c.FormValue("creator_user"); "" == val {
+		return errors.New("File creator user is required. creator_user:")
 	}
 	p.RespUser = val
 
@@ -48,8 +48,8 @@ func BindFormToPFileUploadDto(c echo.Context, p *dtos.PFileUploadDto) (err error
 	p.Subtype = val
 
 	if p.Subtype != "registro" && p.Subtype != "evidencia" {
-		if val = c.FormValue("approval_user1"); "" == val {
-			return errors.New("File approval user 1 is required. approval_user1:")
+		if val = c.FormValue("responsible_user1"); "" == val {
+			return errors.New("File responsible user 1 is required. responsible_user1:")
 		}
 		p.AppUser1 = val
 
@@ -77,7 +77,7 @@ func BindFormToPFileUploadDto(c echo.Context, p *dtos.PFileUploadDto) (err error
 		p.Term = int(term)
 	}
 
-	if val = c.FormValue("approval_user2"); "" != val {
+	if val = c.FormValue("responsible_user2"); "" != val {
 		p.AppUser2 = val
 
 		if val = c.FormValue("user_check2"); "" == val {
@@ -90,7 +90,7 @@ func BindFormToPFileUploadDto(c echo.Context, p *dtos.PFileUploadDto) (err error
 		p.Chk2 = boolval
 	}
 
-	if val = c.FormValue("approval_user3"); "" != val {
+	if val = c.FormValue("responsible_user3"); "" != val {
 		p.AppUser3 = val
 
 		if val = c.FormValue("user_check3"); "" == val {

@@ -139,17 +139,131 @@ func (r *postgresPFileRepository) GetByUuid(ctx context.Context, uuid string) (r
 }
 
 func (r *postgresPFileRepository) GetByUser(ctx context.Context, uuid string) (res []domain.PFile, err error) {
-	pfiles, err := r.GetAll(ctx)
+	query :=
+		`SELECT
+			uuid,
+			pf.code,
+			name,
+			fs_path,
+			date_creation,
+			date_input,
+			pft.description AS pfile_type,
+			pfst.description AS pfile_state,
+			dir,
+			version,
+			term,
+			subtype,
+			resp_user
+		FROM
+			pfile pf
+			INNER JOIN pfile_type pft ON(pf.type = pft.code)
+			INNER JOIN pfile_state pfst ON(pf.state = pfst.code)
+		WHERE
+			resp_user = $1`
+
+	stmt, err := r.Conn.PrepareContext(ctx, query)
 	if err != nil {
-		r.log.Err("IN [GetByUser] failed to get all pfiles ->", err)
+		r.log.Err("IN [GetByUser] failed to prepare context ->", err)
 		return
 	}
+	defer stmt.Close()
 
-	res = []domain.PFile{}
-	for _, pf := range pfiles {
-		if pf.RespUser == uuid {
-			res = append(res, pf)
+	rows, err := stmt.QueryContext(ctx, uuid)
+	if err != nil {
+		r.log.Err("In [GetByUser] failed to exec statement ->", err)
+	}
+
+	res = make([]domain.PFile, 0)
+	for rows.Next() {
+		t := domain.PFile{}
+		err = rows.Scan(
+			&t.Uuid,
+			&t.Code,
+			&t.Name,
+			&t.FsPath,
+			&t.DateCreation,
+			&t.DateInput,
+			&t.Type,
+			&t.State,
+			&t.Dir,
+			&t.Version,
+			&t.Term,
+			&t.Subtype,
+			&t.RespUser,
+		)
+
+		if err != nil {
+			r.log.Err("IN [GetByUser]: failed to scan pfile ->", err)
+			return nil, err
 		}
+
+		res = append(res, t)
+	}
+
+	return
+}
+
+func (r *postgresPFileRepository) GetByApprovalUser(ctx context.Context, uuid string) (res []domain.PFile, err error) {
+	query :=
+		`SELECT
+			uuid,
+			pf.code,
+			name,
+			fs_path,
+			date_creation,
+			date_input,
+			pft.description AS pfile_type,
+			pfst.description AS pfile_state,
+			dir,
+			version,
+			term,
+			subtype,
+			resp_user
+		FROM
+			pfile pf
+			INNER JOIN pfile_type pft ON(pf.type = pft.code)
+			INNER JOIN pfile_state pfst ON(pf.state = pfst.code)
+			INNER JOIN approvation appr ON(appr.pfile_uuid = pf.uuid)
+		WHERE
+			appr.user_uuid = $1`
+
+	stmt, err := r.Conn.PrepareContext(ctx, query)
+	if err != nil {
+		r.log.Err("IN [GetByApprovalUser] failed to prepare context ->", err)
+		return
+	}
+	defer stmt.Close()
+
+	rows, err := stmt.QueryContext(ctx, uuid)
+	if err != nil {
+		r.log.Err("In [GetByApprovalUser] failed to exec statement ->", err)
+	}
+
+	res = make([]domain.PFile, 0)
+	for rows.Next() {
+		t := domain.PFile{}
+		err = rows.Scan(
+			&t.Uuid,
+			&t.Code,
+			&t.Name,
+			&t.FsPath,
+			&t.DateCreation,
+			&t.DateInput,
+			&t.Type,
+			&t.State,
+			&t.Dir,
+			&t.Version,
+			&t.Term,
+			&t.Subtype,
+			&t.RespUser,
+		)
+
+		if err != nil {
+			r.log.Err("IN [GetByApprovalUser]: failed to scan pfile ->", err)
+			return nil, err
+		}
+
+		res = append(res, t)
 	}
 
 	return

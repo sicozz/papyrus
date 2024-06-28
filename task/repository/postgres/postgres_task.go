@@ -180,6 +180,62 @@ func (r *postgresTaskRepository) GetByUser(ctx context.Context, uuid string) (re
 	return
 }
 
+func (r *postgresTaskRepository) GetOwnedByUser(ctx context.Context, uuid string) (res []domain.Task, err error) {
+	query := `SELECT
+			uuid,
+			name,
+			procedure,
+			date_creation,
+			term,
+			ts.description AS state,
+			dir,
+			creator_user,
+			recv_user,
+			chk
+		FROM
+			task t
+			INNER JOIN task_state ts ON(t.state = ts.code)
+		WHERE
+			creator_user = $1`
+
+	rows, err := r.Conn.QueryContext(ctx, query, uuid)
+	if err != nil {
+		res = nil
+		return
+	}
+
+	defer func() {
+		errRow := rows.Close()
+		if errRow != nil {
+			r.log.Err("IN [GetOwnedByUser] failed to close *rows ->", err)
+		}
+	}()
+
+	res = make([]domain.Task, 0)
+	for rows.Next() {
+		t := domain.Task{}
+		err = rows.Scan(
+			&t.Uuid,
+			&t.Name,
+			&t.Procedure,
+			&t.DateCreation,
+			&t.Term,
+			&t.State,
+			&t.Dir,
+			&t.CreatorUser,
+			&t.RecvUser,
+			&t.Check,
+		)
+
+		if err != nil {
+			r.log.Err("IN [GetOwnedByUser] failed to scan dir ->", err)
+		}
+		res = append(res, t)
+	}
+
+	return
+}
+
 func (r *postgresTaskRepository) GetByCreatorOrRecv(ctx context.Context, uuid string) (res []domain.Task, err error) {
 	query := `SELECT
 			uuid,

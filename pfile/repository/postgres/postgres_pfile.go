@@ -30,6 +30,7 @@ func (r *postgresPFileRepository) GetAll(ctx context.Context) (res []domain.PFil
 			fs_path,
 			date_creation,
 			date_input,
+			date_close,
 			pft.description AS pfile_type,
 			pfst.description AS pfile_state,
 			dir,
@@ -64,6 +65,7 @@ func (r *postgresPFileRepository) GetAll(ctx context.Context) (res []domain.PFil
 			&t.FsPath,
 			&t.DateCreation,
 			&t.DateInput,
+			&t.DateClose,
 			&t.Type,
 			&t.State,
 			&t.Dir,
@@ -93,6 +95,7 @@ func (r *postgresPFileRepository) GetByUuid(ctx context.Context, uuid string) (r
 			fs_path,
 			date_creation,
 			date_input,
+			date_close,
 			pft.description AS pfile_type,
 			pfst.description AS pfile_state,
 			dir,
@@ -121,6 +124,7 @@ func (r *postgresPFileRepository) GetByUuid(ctx context.Context, uuid string) (r
 		&res.FsPath,
 		&res.DateCreation,
 		&res.DateInput,
+		&res.DateClose,
 		&res.Type,
 		&res.State,
 		&res.Dir,
@@ -147,6 +151,7 @@ func (r *postgresPFileRepository) GetByUser(ctx context.Context, uuid string) (r
 			fs_path,
 			date_creation,
 			date_input,
+			date_close,
 			pft.description AS pfile_type,
 			pfst.description AS pfile_state,
 			dir,
@@ -183,6 +188,7 @@ func (r *postgresPFileRepository) GetByUser(ctx context.Context, uuid string) (r
 			&t.FsPath,
 			&t.DateCreation,
 			&t.DateInput,
+			&t.DateClose,
 			&t.Type,
 			&t.State,
 			&t.Dir,
@@ -212,6 +218,7 @@ func (r *postgresPFileRepository) GetByApprovalUser(ctx context.Context, uuid st
 			fs_path,
 			date_creation,
 			date_input,
+			date_close,
 			pft.description AS pfile_type,
 			pfst.description AS pfile_state,
 			dir,
@@ -249,6 +256,7 @@ func (r *postgresPFileRepository) GetByApprovalUser(ctx context.Context, uuid st
 			&t.FsPath,
 			&t.DateCreation,
 			&t.DateInput,
+			&t.DateClose,
 			&t.Type,
 			&t.State,
 			&t.Dir,
@@ -278,6 +286,7 @@ func (r *postgresPFileRepository) GetByDir(ctx context.Context, uuid string) (re
 			fs_path,
 			date_creation,
 			date_input,
+			date_close,
 			pft.description AS pfile_type,
 			pfst.description AS pfile_state,
 			dir,
@@ -314,6 +323,7 @@ func (r *postgresPFileRepository) GetByDir(ctx context.Context, uuid string) (re
 			&t.FsPath,
 			&t.DateCreation,
 			&t.DateInput,
+			&t.DateClose,
 			&t.Type,
 			&t.State,
 			&t.Dir,
@@ -343,6 +353,7 @@ func (r *postgresPFileRepository) StoreUuid(ctx context.Context, pf domain.PFile
 			fs_path,
 			date_creation,
 			date_input,
+			date_close,
 			type,
 			state,
 			dir,
@@ -364,7 +375,8 @@ func (r *postgresPFileRepository) StoreUuid(ctx context.Context, pf domain.PFile
 			$10,
 			$11,
 			$12,
-			$13
+			$13,
+			$14
 		)
 		RETURNING uuid`
 
@@ -389,6 +401,7 @@ func (r *postgresPFileRepository) StoreUuid(ctx context.Context, pf domain.PFile
 		pf.FsPath,
 		pf.DateCreation,
 		pf.DateInput,
+		pf.DateClose,
 		1,
 		1,
 		pf.Dir,
@@ -636,6 +649,25 @@ func (r *postgresPFileRepository) ExistsTypeByDesc(ctx context.Context, desc str
 	return
 }
 
+func (r *postgresPFileRepository) SetDateClose(ctx context.Context, pfUuid string) (err error) {
+	query := `UPDATE pfile SET date_close = $1 WHERE uuid = $2`
+	stmt, err := r.Conn.PrepareContext(ctx, query)
+	if err != nil {
+		r.log.Err("IN [SetDateCheck] failed to prepare context ->", err)
+		return
+	}
+	defer stmt.Close()
+
+	dateClose := time.Now().Format(constants.LayoutDate)
+	_, err = stmt.ExecContext(ctx, dateClose, pfUuid)
+	if err != nil {
+		r.log.Err("IN [SetDateCheck] failed to exec statement ->", err)
+		return
+	}
+
+	return
+}
+
 func (r *postgresPFileRepository) ExistsStateByDesc(ctx context.Context, desc string) (res bool) {
 	query := `SELECT COUNT(*) > 0 FROM pfile_state WHERE description = $1`
 	stmt, err := r.Conn.PrepareContext(ctx, query)
@@ -648,6 +680,32 @@ func (r *postgresPFileRepository) ExistsStateByDesc(ctx context.Context, desc st
 	err = stmt.QueryRowContext(ctx, desc).Scan(&res)
 	if err != nil {
 		r.log.Err("IN [ExistsStateByDesc] failed to exec statement ->", err)
+	}
+
+	return
+}
+
+func (r *postgresPFileRepository) ChgState(ctx context.Context, pfUuid, userUuid, stateDesc string) (err error) {
+	query :=
+		`UPDATE pfile AS pf
+		SET state = pfs.code
+		FROM pfile_state AS pfs
+		WHERE
+			pfs.description = $3 AND
+			pf.uuid = $1 AND
+			pf.resp_user = $2`
+
+	stmt, err := r.Conn.PrepareContext(ctx, query)
+	if err != nil {
+		r.log.Err("IN [ChgState] failed to prepare context ->", err)
+		return
+	}
+	defer stmt.Close()
+
+	_, err = stmt.ExecContext(ctx, pfUuid, userUuid, stateDesc)
+	if err != nil {
+		r.log.Err("IN [ChgState] failed to exec statement ->", err)
+		return
 	}
 
 	return
@@ -682,32 +740,6 @@ func (r *postgresPFileRepository) ChgApprovation(ctx context.Context, pfUuid, us
 	_, err = stmt.ExecContext(ctx, chk, pfUuid, userUuid)
 	if err != nil {
 		r.log.Err("IN [Approve] failed to exec statement ->", err)
-		return
-	}
-
-	return
-}
-
-func (r *postgresPFileRepository) ChgState(ctx context.Context, pfUuid, userUuid, stateDesc string) (err error) {
-	query :=
-		`UPDATE pfile AS pf
-		SET state = pfs.code
-		FROM pfile_state AS pfs
-		WHERE
-			pfs.description = $3 AND
-			pf.uuid = $1 AND
-			pf.resp_user = $2`
-
-	stmt, err := r.Conn.PrepareContext(ctx, query)
-	if err != nil {
-		r.log.Err("IN [ChgState] failed to prepare context ->", err)
-		return
-	}
-	defer stmt.Close()
-
-	_, err = stmt.ExecContext(ctx, pfUuid, userUuid, stateDesc)
-	if err != nil {
-		r.log.Err("IN [ChgState] failed to exec statement ->", err)
 		return
 	}
 

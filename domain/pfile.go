@@ -16,6 +16,7 @@ type PFile struct {
 	FsPath       string // path type?
 	DateCreation time.Time
 	DateInput    time.Time
+	DateClose    string
 	Type         string
 	State        string
 	Dir          string
@@ -95,6 +96,7 @@ type PFileRepository interface {
 
 	// pfile_state ops
 	ExistsStateByDesc(ctx context.Context, desc string) bool
+	SetDateClose(ctx context.Context, pfUuid string) error
 
 	// pfile_stage ops
 	ExistsStageByDesc(ctx context.Context, desc string) bool

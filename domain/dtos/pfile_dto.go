@@ -7,6 +7,7 @@ type PFileGetDto struct {
 	FsPath       string `json:"fs_path"`
 	DateCreation string `json:"date_create"`
 	DateInput    string `json:"date_input"`
+	DateClose    string `json:"date_close"`
 	Type         string `json:"type"`
 	State        string `json:"state"`
 	Dir          string `json:"dir"`

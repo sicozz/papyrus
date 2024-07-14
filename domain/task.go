@@ -12,6 +12,8 @@ type Task struct {
 	Name         string
 	Procedure    string
 	DateCreation time.Time
+	DateCheck    string
+	DateClose    string
 	Term         int
 	State        string
 	Dir          string
@@ -45,6 +47,7 @@ type TaskRepository interface {
 	Delete(ctx context.Context, tUuid, uUuid string) error
 
 	ExistsStateByDesc(ctx context.Context, desc string) bool
+	SetDateCheck(ctx context.Context, tUuid string) error
 
 	GetByUser(c context.Context, uuid string) ([]Task, error)
 	GetOwnedByUser(c context.Context, uuid string) ([]Task, error)

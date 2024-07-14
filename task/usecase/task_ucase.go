@@ -357,6 +357,11 @@ func (u *taskUsecase) ChgCheck(c context.Context, tUuid, uUuid string, chk bool)
 	}
 
 	if chk == true {
+		err = u.taskRepo.SetDateCheck(ctx, tUuid)
+		if err != nil {
+			u.log.Err("IN [Store] failed to set date_check for task ->", err)
+			return
+		}
 		creatorUser, err := u.userRepo.GetByUuid(ctx, t.CreatorUser)
 		if err != nil {
 			u.log.Err("IN [Store] failed to retrieve responsible user ->", err)

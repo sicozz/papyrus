@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"database/sql"
+	"time"
 
 	"github.com/sicozz/papyrus/domain"
 	"github.com/sicozz/papyrus/utils"
@@ -26,6 +27,8 @@ func (r *postgresTaskRepository) GetAll(ctx context.Context) (res []domain.Task,
 			name,
 			procedure,
 			date_creation,
+			date_check,
+			date_close,
 			term,
 			ts.description AS state,
 			dir,
@@ -58,6 +61,8 @@ func (r *postgresTaskRepository) GetAll(ctx context.Context) (res []domain.Task,
 			&t.Name,
 			&t.Procedure,
 			&t.DateCreation,
+			&t.DateCheck,
+			&t.DateClose,
 			&t.Term,
 			&t.State,
 			&t.Dir,
@@ -82,6 +87,8 @@ func (r *postgresTaskRepository) GetByUuid(ctx context.Context, uuid string) (re
 			name,
 			procedure,
 			date_creation,
+			date_check,
+			date_close,
 			term,
 			ts.description AS state,
 			dir,
@@ -107,6 +114,8 @@ func (r *postgresTaskRepository) GetByUuid(ctx context.Context, uuid string) (re
 		&res.Name,
 		&res.Procedure,
 		&res.DateCreation,
+		&res.DateCheck,
+		&res.DateClose,
 		&res.Term,
 		&res.State,
 		&res.Dir,
@@ -130,6 +139,8 @@ func (r *postgresTaskRepository) GetByUser(ctx context.Context, uuid string) (re
 			name,
 			procedure,
 			date_creation,
+			date_check,
+			date_close,
 			term,
 			ts.description AS state,
 			dir,
@@ -163,6 +174,8 @@ func (r *postgresTaskRepository) GetByUser(ctx context.Context, uuid string) (re
 			&t.Name,
 			&t.Procedure,
 			&t.DateCreation,
+			&t.DateCheck,
+			&t.DateClose,
 			&t.Term,
 			&t.State,
 			&t.Dir,
@@ -186,6 +199,8 @@ func (r *postgresTaskRepository) GetOwnedByUser(ctx context.Context, uuid string
 			name,
 			procedure,
 			date_creation,
+			date_check,
+			date_close,
 			term,
 			ts.description AS state,
 			dir,
@@ -219,6 +234,8 @@ func (r *postgresTaskRepository) GetOwnedByUser(ctx context.Context, uuid string
 			&t.Name,
 			&t.Procedure,
 			&t.DateCreation,
+			&t.DateCheck,
+			&t.DateClose,
 			&t.Term,
 			&t.State,
 			&t.Dir,
@@ -242,6 +259,8 @@ func (r *postgresTaskRepository) GetByCreatorOrRecv(ctx context.Context, uuid st
 			name,
 			procedure,
 			date_creation,
+			date_check,
+			date_close,
 			term,
 			ts.description AS state,
 			dir,
@@ -275,6 +294,8 @@ func (r *postgresTaskRepository) GetByCreatorOrRecv(ctx context.Context, uuid st
 			&t.Name,
 			&t.Procedure,
 			&t.DateCreation,
+			&t.DateCheck,
+			&t.DateClose,
 			&t.Term,
 			&t.State,
 			&t.Dir,
@@ -298,6 +319,8 @@ func (r *postgresTaskRepository) GetByPlan(ctx context.Context, uuid string) (re
 			name,
 			procedure,
 			date_creation,
+			date_check,
+			date_close,
 			term,
 			ts.description AS state,
 			dir,
@@ -332,6 +355,8 @@ func (r *postgresTaskRepository) GetByPlan(ctx context.Context, uuid string) (re
 			&t.Name,
 			&t.Procedure,
 			&t.DateCreation,
+			&t.DateCheck,
+			&t.DateClose,
 			&t.Term,
 			&t.State,
 			&t.Dir,
@@ -415,6 +440,8 @@ func (r *postgresTaskRepository) Store(ctx context.Context, t domain.Task) (uuid
 			name,
 			procedure,
 			date_creation,
+			date_check,
+			date_close,
 			term,
 			state,
 			dir,
@@ -433,7 +460,9 @@ func (r *postgresTaskRepository) Store(ctx context.Context, t domain.Task) (uuid
 			$7,
 			$8,
 			$9,
-			$10
+			$10,
+			$11,
+			$12
 		)
 		RETURNING uuid`
 
@@ -449,6 +478,8 @@ func (r *postgresTaskRepository) Store(ctx context.Context, t domain.Task) (uuid
 		t.Name,
 		t.Procedure,
 		t.DateCreation,
+		t.DateCheck,
+		t.DateClose,
 		t.Term,
 		1,
 		t.Dir,
@@ -477,6 +508,8 @@ func (r *postgresTaskRepository) StoreMultiple(ctx context.Context, tasks []doma
 			name,
 			procedure,
 			date_creation,
+			date_check,
+			date_close,
 			term,
 			state,
 			dir,
@@ -495,7 +528,9 @@ func (r *postgresTaskRepository) StoreMultiple(ctx context.Context, tasks []doma
 			$7,
 			$8,
 			$9,
-			$10
+			$10,
+			$11,
+			$12
 		)
 		RETURNING uuid`
 
@@ -512,6 +547,8 @@ func (r *postgresTaskRepository) StoreMultiple(ctx context.Context, tasks []doma
 			t.Name,
 			t.Procedure,
 			t.DateCreation,
+			t.DateCheck,
+			t.DateClose,
 			t.Term,
 			1,
 			t.Dir,
@@ -566,6 +603,25 @@ func (r *postgresTaskRepository) ExistsStateByDesc(ctx context.Context, desc str
 	err = stmt.QueryRowContext(ctx, desc).Scan(&res)
 	if err != nil {
 		r.log.Err("IN [ExistsStateByDesc] failed to exec statement ->", err)
+	}
+
+	return
+}
+
+func (r *postgresTaskRepository) SetDateCheck(ctx context.Context, tUuid string) (err error) {
+	query := `UPDATE task SET date_check = $1 WHERE uuid = $2`
+	stmt, err := r.Conn.PrepareContext(ctx, query)
+	if err != nil {
+		r.log.Err("IN [SetDateCheck] failed to prepare context ->", err)
+		return
+	}
+	defer stmt.Close()
+
+	dateCheck := time.Now().Format(constants.LayoutDate)
+	_, err = stmt.ExecContext(ctx, dateCheck, tUuid)
+	if err != nil {
+		r.log.Err("IN [SetDateCheck] failed to exec statement ->", err)
+		return
 	}
 
 	return

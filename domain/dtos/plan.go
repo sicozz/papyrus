@@ -10,6 +10,7 @@ type PlanGetDto struct {
 	CreatorUser  string       `json:"creator_user" validate:"required,excludesall=!@?"`
 	RespUser     string       `json:"responsible_user" validate:"required,excludesall=!@?"`
 	DateCreation string       `json:"date_create" validate:"required,excludesall=!@?"`
+	DateCheck    string       `json:"date_check" validate:"required,excludesall=!@?"`
 	DateClose    string       `json:"date_close" validate:"required,excludesall=!@?"`
 	Causes       string       `json:"causes" validate:"required,excludesall=!@?"`
 	Conclusions  string       `json:"conclusions" validate:"required,excludesall=!@?"`
@@ -47,7 +48,6 @@ type PlanStoreDto struct {
 	CreatorUser  string `json:"creator_user" validate:"required,excludesall=!@?"`
 	RespUser     string `json:"responsible_user" validate:"required,excludesall=!@?"`
 	DateCreation string `json:"date_create" validate:"required,excludesall=!@?"`
-	DateClose    string `json:"date_close" validate:"excludesall=!@?"`
 	Dir          string `json:"parent_dir" validate:"required,excludesall=!@?"`
 	State        string `json:"state" validate:"required,excludesall=!@?"`
 	Stage        int    `json:"stage" validate:"required,excludesall=!@?"`

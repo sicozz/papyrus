@@ -425,8 +425,16 @@ func (u *pFileUseCase) ChgState(c context.Context, pfUuid, userUuid, stateDesc s
 
 	err := u.pFileRepo.ChgState(ctx, pfUuid, userUuid, stateDesc)
 	if err != nil {
-		u.log.Err("IN [Activate] failed to activate pfile ", pfUuid, " -> ", err)
-		err = errors.New("Failed to delete file")
+		u.log.Err("IN [ChgState] failed to activate pfile ", pfUuid, " -> ", err)
+		err = errors.New("Failed to update file")
+		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
+		return
+	}
+
+	err = u.pFileRepo.SetDateClose(ctx, pfUuid)
+	if err != nil {
+		u.log.Err("IN [ChgState] failed to set date_close for pfile ", pfUuid, " -> ", err)
+		err = errors.New("Failed to update file")
 		rErr = domain.NewUCaseErr(http.StatusInternalServerError, err)
 		return
 	}

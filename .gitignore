@@ -7,3 +7,4 @@ engine
 bin/
 tmp_app/
 *.out
+pps_fs/

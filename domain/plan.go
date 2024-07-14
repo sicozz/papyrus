@@ -17,6 +17,7 @@ type Plan struct {
 	CreatorUser  string
 	RespUser     string
 	DateCreation time.Time
+	DateCheck    string
 	DateClose    string
 	Causes       string
 	Conclusions  string
@@ -70,4 +71,5 @@ type PlanRepository interface {
 	Delete(c context.Context, uuid string) error
 
 	ExistsByUuid(c context.Context, uuid string) bool
+	SetDateClose(c context.Context, uuid string) error
 }

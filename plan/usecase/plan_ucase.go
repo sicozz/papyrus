@@ -124,7 +124,6 @@ func (u *planUsecase) Store(c context.Context, dto dtos.PlanStoreDto) (res dtos.
 		RespUser:     dto.RespUser,
 		DateCreation: dateCreation,
 		// DateClose: dateClose,
-		DateClose:   dto.DateClose,
 		Causes:      dto.Causes,
 		Conclusions: dto.Conclusions,
 		Dir:         dto.Dir,
@@ -263,6 +262,16 @@ func (u *planUsecase) Update(c context.Context, uuid string, dto dtos.PlanUpdate
 		err := errors.New("Failed to update plan")
 		rErr = domain.NewUCaseErr(http.StatusNotFound, err)
 		return
+	}
+
+	if p.State == "cerrado" {
+		err := u.planRepo.SetDateClose(ctx, uuid)
+		if err != nil {
+			u.log.Err("IN [Update] failed to set date_close for plan ->", err)
+			err := errors.New("Failed to set date_close for plan")
+			rErr = domain.NewUCaseErr(http.StatusNotFound, err)
+			return
+		}
 	}
 
 	nPlan, err := u.planRepo.GetByUuid(ctx, uuid)

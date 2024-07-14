@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"database/sql"
+	"time"
 
 	"github.com/sicozz/papyrus/domain"
 	"github.com/sicozz/papyrus/utils"
@@ -31,6 +32,7 @@ func (r *postgresPlanRepository) GetAll(ctx context.Context) (res []domain.Plan,
 			creator_user,
 			resp_user,
 			date_create,
+			date_check,
 			date_close,
 			causes,
 			conclusions,
@@ -83,6 +85,7 @@ func (r *postgresPlanRepository) GetAll(ctx context.Context) (res []domain.Plan,
 			&p.CreatorUser,
 			&p.RespUser,
 			&p.DateCreation,
+			&p.DateCheck,
 			&p.DateClose,
 			&p.Causes,
 			&p.Conclusions,
@@ -129,6 +132,7 @@ func (r *postgresPlanRepository) GetByUuid(ctx context.Context, uuid string) (re
 			creator_user,
 			resp_user,
 			date_create,
+			date_check,
 			date_close,
 			causes,
 			conclusions,
@@ -171,6 +175,7 @@ func (r *postgresPlanRepository) GetByUuid(ctx context.Context, uuid string) (re
 		&res.CreatorUser,
 		&res.RespUser,
 		&res.DateCreation,
+		&res.DateCheck,
 		&res.DateClose,
 		&res.Causes,
 		&res.Conclusions,
@@ -216,6 +221,7 @@ func (r *postgresPlanRepository) GetByUser(ctx context.Context, uuid string) (re
 			creator_user,
 			resp_user,
 			date_create,
+			date_check,
 			date_close,
 			causes,
 			conclusions,
@@ -268,6 +274,7 @@ func (r *postgresPlanRepository) GetByUser(ctx context.Context, uuid string) (re
 			&p.CreatorUser,
 			&p.RespUser,
 			&p.DateCreation,
+			&p.DateCheck,
 			&p.DateClose,
 			&p.Causes,
 			&p.Conclusions,
@@ -314,6 +321,7 @@ func (r *postgresPlanRepository) GetOwnedByUser(ctx context.Context, uuid string
 			creator_user,
 			resp_user,
 			date_create,
+			date_check,
 			date_close,
 			causes,
 			conclusions,
@@ -366,6 +374,7 @@ func (r *postgresPlanRepository) GetOwnedByUser(ctx context.Context, uuid string
 			&p.CreatorUser,
 			&p.RespUser,
 			&p.DateCreation,
+			&p.DateCheck,
 			&p.DateClose,
 			&p.Causes,
 			&p.Conclusions,
@@ -428,6 +437,7 @@ func (r *postgresPlanRepository) Store(ctx context.Context, p domain.Plan) (uuid
 			creator_user,
 			resp_user,
 			date_create,
+			date_check,
 			date_close,
 			causes,
 			conclusions,
@@ -485,7 +495,8 @@ func (r *postgresPlanRepository) Store(ctx context.Context, p domain.Plan) (uuid
 			$29,
 			$30,
 			$31,
-			$32
+			$32,
+			$33
 		)
 		RETURNING uuid`
 	stmt, err := r.Conn.PrepareContext(ctx, query)
@@ -505,6 +516,7 @@ func (r *postgresPlanRepository) Store(ctx context.Context, p domain.Plan) (uuid
 		p.CreatorUser,
 		p.RespUser,
 		p.DateCreation,
+		p.DateCheck,
 		p.DateClose,
 		p.Causes,
 		p.Conclusions,
@@ -633,6 +645,25 @@ func (r *postgresPlanRepository) Delete(ctx context.Context, uuid string) (err e
 	_, err = stmt.ExecContext(ctx, uuid)
 	if err != nil {
 		r.log.Err("IN [Delete] failed to exec statement ->", err)
+		return
+	}
+
+	return
+}
+
+func (r *postgresPlanRepository) SetDateClose(ctx context.Context, uuid string) (err error) {
+	query := `UPDATE plan SET date_close = $1 WHERE uuid = $2`
+	stmt, err := r.Conn.PrepareContext(ctx, query)
+	if err != nil {
+		r.log.Err("IN [SetDateClose] failed to prepare context ->", err)
+		return
+	}
+	defer stmt.Close()
+
+	dateClose := time.Now().Format(constants.LayoutDate)
+	_, err = stmt.ExecContext(ctx, dateClose, uuid)
+	if err != nil {
+		r.log.Err("IN [SetDateClose] failed to exec statement ->", err)
 		return
 	}
 

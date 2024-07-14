@@ -18,6 +18,7 @@ func MapPlanToPlanGetDto(p domain.Plan) dtos.PlanGetDto {
 		RespUser:     p.RespUser,
 		DateCreation: p.DateCreation.Format(constants.LayoutDate),
 		// DateClose:    p.DateClose.Format(constants.LayoutDate),
+		DateCheck:   p.DateCheck,
 		DateClose:   p.DateClose,
 		Causes:      p.Causes,
 		Conclusions: p.Conclusions,

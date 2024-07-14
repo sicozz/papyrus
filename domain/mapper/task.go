@@ -12,6 +12,8 @@ func MapTaskToTaskGetDto(t domain.Task) dtos.TaskGetDto {
 		Name:         t.Name,
 		Procedure:    t.Procedure,
 		DateCreation: t.DateCreation.Format(constants.LayoutDate),
+		DateCheck:    t.DateCheck,
+		DateClose:    t.DateClose,
 		Term:         t.Term,
 		State:        t.State,
 		Dir:          t.Dir,

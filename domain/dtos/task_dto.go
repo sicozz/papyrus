@@ -5,6 +5,8 @@ type TaskGetDto struct {
 	Name         string `json:"name"`
 	Procedure    string `json:"procedure"`
 	DateCreation string `json:"date_create"`
+	DateCheck    string `json:"date_check"`
+	DateClose    string `json:"date_close"`
 	Term         int    `json:"term"`
 	State        string `json:"state"`
 	Dir          string `json:"dir"`
